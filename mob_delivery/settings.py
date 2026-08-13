@@ -6,6 +6,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -32,6 +33,7 @@ INSTALLED_APPS = [
     "accounts",
     "uploads",
     "vehicles",
+    "drivers",
 ]
 
 MIDDLEWARE = [
@@ -145,6 +147,40 @@ SIMPLE_JWT = {
 }
 
 API_CLIENT_TOKEN_LIFETIME_MINUTES = env.int("API_CLIENT_TOKEN_LIFETIME_MINUTES", default=60)
+
+DRIVER_TOKEN_LIFETIME_MINUTES = env.int("DRIVER_TOKEN_LIFETIME_MINUTES", default=60)
+
+# Non-prod-only: return the generated OTP in the otp/request response body so
+# the driver login flow is testable without a real SMS gateway wired in.
+# Defaults to DEBUG but is a separate flag so it can be flipped independently
+# (e.g. a staging environment that runs DEBUG=False but still wants this).
+DRIVER_OTP_DEBUG_RESPONSE = env.bool("DRIVER_OTP_DEBUG_RESPONSE", default=DEBUG)
+
+
+# Redis cache — used for ephemeral driver OTP storage (see drivers.services).
+REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/1")
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+    }
+}
+
+
+# Celery — currently only used for the daily DL-expiry-lock beat task
+# (drivers.tasks.lock_expired_driver_licenses).
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+
+CELERY_BEAT_SCHEDULE = {
+    "lock-expired-driver-licenses": {
+        "task": "drivers.tasks.lock_expired_driver_licenses",
+        "schedule": crontab(hour=0, minute=15),
+    },
+}
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "MOB Delivery Backend API",

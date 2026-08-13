@@ -26,4 +26,20 @@ class JWTMultiPrincipalAuthentication(JWTAuthentication):
             except ApiClient.DoesNotExist:
                 raise AuthenticationFailed("API client not found or inactive.")
 
+        if principal_type == "driver":
+            # Local import: drivers depends on accounts (Driver extends
+            # core.BaseModel -> Company), so importing it at module level
+            # here would be circular.
+            from drivers.models import Driver, DriverAccountStatus
+
+            driver_id = validated_token.get("sub")
+            if not driver_id:
+                raise AuthenticationFailed("Token is missing the sub claim.")
+            try:
+                return Driver.objects.select_related("company").get(
+                    id=driver_id, account_status=DriverAccountStatus.ACTIVE
+                )
+            except Driver.DoesNotExist:
+                raise AuthenticationFailed("Driver not found or inactive.")
+
         return super().get_user(validated_token)

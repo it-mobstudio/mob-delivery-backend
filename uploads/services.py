@@ -17,12 +17,14 @@ PURPOSE_PATH_SEGMENT = {
     UploadPurpose.VEHICLE_TYPE_ICON: "vehicle-types",
     UploadPurpose.VEHICLE_PHOTO: "vehicles",
     UploadPurpose.VEHICLE_DOCUMENT: "vehicle-documents",
+    UploadPurpose.DRIVER_DOCUMENT: "driver-documents",
 }
 
 PURPOSE_ALLOWED_EXTENSIONS = {
     UploadPurpose.VEHICLE_TYPE_ICON: IMAGE_EXTENSIONS,
     UploadPurpose.VEHICLE_PHOTO: IMAGE_EXTENSIONS,
     UploadPurpose.VEHICLE_DOCUMENT: DOCUMENT_EXTENSIONS,
+    UploadPurpose.DRIVER_DOCUMENT: DOCUMENT_EXTENSIONS,
 }
 
 
