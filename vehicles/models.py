@@ -82,3 +82,30 @@ class VehicleDocument(BaseModel):
 
     def __str__(self):
         return f"{self.get_document_type_display()} — {self.vehicle.registration_number}"
+
+
+class VehicleDocumentExpiryAlert(BaseModel):
+    """Fix 5 — created by vehicles.tasks.flag_expiring_vehicle_documents
+    (daily Celery Beat) for a VehicleDocument approaching its expiry_date.
+    Mirrors the acknowledged-based dedup pattern already used by
+    TripAnomalyAlert/SosAlert elsewhere in this codebase.
+    """
+
+    document = models.ForeignKey(VehicleDocument, on_delete=models.CASCADE, related_name="expiry_alerts")
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name="document_expiry_alerts")
+    expiry_date = models.DateField()
+    detected_at = models.DateTimeField()
+    acknowledged = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-detected_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["document"],
+                condition=models.Q(acknowledged=False),
+                name="unique_open_expiry_alert_per_document",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.document_id} expires {self.expiry_date}"

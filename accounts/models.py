@@ -96,6 +96,8 @@ class ApiClient(TimeStampedUUIDModel, SoftDeleteModel):
     client_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     client_secret_hash = models.CharField(max_length=128)
     status = models.CharField(max_length=20, choices=ApiClientStatus.choices, default=ApiClientStatus.ACTIVE)
+    webhook_url = models.URLField(null=True, blank=True)
+    webhook_signing_secret = models.CharField(max_length=100, null=True, blank=True)
 
     objects = SoftDeleteManager()
     all_objects = AllObjectsManager()

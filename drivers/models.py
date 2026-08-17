@@ -54,9 +54,16 @@ class Driver(BaseModel):
     police_rejection_note = models.TextField(null=True, blank=True)
 
     account_status = models.CharField(
-        max_length=30, choices=DriverAccountStatus.choices, default=DriverAccountStatus.ACTIVE
+        max_length=30, choices=DriverAccountStatus.choices, default=DriverAccountStatus.ACTIVE, db_index=True
     )
     current_vehicle_id = models.UUIDField(null=True, blank=True)
+
+    # Duck-typed to satisfy DRF's IsAuthenticated (and simplejwt), same as
+    # ApiClient — Driver isn't a Django auth user model, so without this any
+    # endpoint using the stock IsAuthenticated permission (rather than the
+    # custom IsDriverUser) raises AttributeError for a Driver principal.
+    is_authenticated = True
+    is_anonymous = False
 
     class Meta:
         ordering = ["-created_at"]

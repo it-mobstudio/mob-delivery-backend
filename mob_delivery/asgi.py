@@ -13,4 +13,18 @@ from django.core.asgi import get_asgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mob_delivery.settings')
 
-application = get_asgi_application()
+# Must be called before importing anything that touches models (channels
+# routing -> consumers -> models) so the app registry is ready.
+django_asgi_app = get_asgi_application()
+
+from channels.routing import ProtocolTypeRouter, URLRouter  # noqa: E402
+
+import sos.routing  # noqa: E402
+import tracking.routing  # noqa: E402
+
+application = ProtocolTypeRouter(
+    {
+        "http": django_asgi_app,
+        "websocket": URLRouter(tracking.routing.websocket_urlpatterns + sos.routing.websocket_urlpatterns),
+    }
+)

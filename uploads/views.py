@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
@@ -11,13 +12,18 @@ from .serializers import UploadSerializer
 from .services import store_upload
 
 
+@extend_schema(
+    summary="Upload a file",
+    description=(
+        "The one reusable multipart upload endpoint used across the API — vehicle-type icons, "
+        "vehicle photos, document scans, KYC documents, damage-report/proof photos, and more, "
+        "distinguished by the `purpose` field. Stores to Azure Blob if configured, otherwise "
+        "local filesystem storage for dev. Returns `{\"url\": ...}`; the caller passes that URL "
+        "into a separate, later request that creates/updates the actual record (e.g. "
+        "registering a vehicle document)."
+    ),
+)
 class UploadView(APIView):
-    """POST /api/v1/uploads — the one reusable upload endpoint for VehicleType
-    icons, Vehicle photos, and VehicleDocument scans. Returns {"url": ...};
-    the frontend passes that URL along in a separate, later call that
-    creates/updates the actual record.
-    """
-
     parser_classes = [MultiPartParser]
     permission_classes = [IsAuthenticated]
 

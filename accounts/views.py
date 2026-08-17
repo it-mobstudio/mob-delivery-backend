@@ -1,6 +1,8 @@
 from datetime import timedelta
 
 from django.conf import settings
+from drf_spectacular.utils import extend_schema, extend_schema_view
+from rest_framework import generics
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -8,21 +10,59 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .models import ApiClient, ApiClientStatus
-from .serializers import AdminTokenObtainPairSerializer, ApiClientTokenRequestSerializer
+from . import services
+from .models import AdminUser, ApiClient, ApiClientStatus
+from .permissions import IsAdminUser
+from .serializers import (
+    AdminTokenObtainPairSerializer,
+    AdminUserSerializer,
+    ApiClientTokenRequestSerializer,
+    CreateAdminUserSerializer,
+    RefreshTokenSerializer,
+)
 
 
+@extend_schema(
+    summary="Admin login",
+    description=(
+        "Exchanges an AdminUser's email/password for an access + refresh JWT pair. "
+        "Rejects disabled accounts (`is_active=False`) with a generic invalid-credentials "
+        "error, same as a wrong password — it never reveals which part was wrong."
+    ),
+)
 class AdminLoginView(TokenObtainPairView):
-    """POST /api/v1/auth/login — email + password -> access/refresh JWT for an AdminUser."""
-
     serializer_class = AdminTokenObtainPairSerializer
     permission_classes = [AllowAny]
 
 
-class ApiClientTokenView(APIView):
-    """POST /api/v1/auth/client-token — client_id + client_secret -> a short-lived
-    access token for an ApiClient (client-credentials style, no refresh token)."""
+@extend_schema(
+    summary="Refresh an access token",
+    description=(
+        "Exchanges a still-valid refresh token for a new access token. Works for any "
+        "principal type whose refresh token was issued by this API — Admin (via login) "
+        "or Driver (via OTP verify) — the token's own claims determine who it's reissued "
+        "for. An invalid, malformed, or expired refresh token returns 401."
+    ),
+)
+class RefreshTokenView(APIView):
+    permission_classes = [AllowAny]
 
+    def post(self, request, *args, **kwargs):
+        serializer = RefreshTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data)
+
+
+@extend_schema(
+    summary="Get an ApiClient access token",
+    description=(
+        "Client-credentials style exchange: a partner integration's `client_id` + "
+        "`client_secret` (issued out-of-band by an admin) for a short-lived access "
+        "token scoped to that client's company. No refresh token is issued — the "
+        "caller re-authenticates with the same credentials once the token expires."
+    ),
+)
+class ApiClientTokenView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -49,3 +89,49 @@ class ApiClientTokenView(APIView):
         return Response(
             {"access": str(access), "expires_in": int(lifetime.total_seconds())}
         )
+
+
+@extend_schema_view(
+    get=extend_schema(
+        summary="List admin users",
+        description="Lists every AdminUser (sub-user) in the caller's own company, newest first.",
+    ),
+    post=extend_schema(
+        summary="Create a sub-user",
+        description=(
+            "Creates another AdminUser under the caller's own company — the company is always "
+            "taken from the authenticated caller, never from the request body, so it can't be "
+            "spoofed to create a user in a different company. Every sub-user gets the same full "
+            "access within their company; there are no roles/permission tiers in this pass."
+        ),
+    ),
+)
+class AdminUserListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = AdminUserSerializer
+
+    def get_queryset(self):
+        return AdminUser.objects.filter(company_id=self.request.user.company_id).order_by("-created_at")
+
+    def create(self, request, *args, **kwargs):
+        serializer = CreateAdminUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        admin_user = services.create_admin_user(creator=request.user, **serializer.validated_data)
+        return Response(AdminUserSerializer(admin_user).data, status=201)
+
+
+@extend_schema(
+    summary="Disable a sub-user",
+    description=(
+        "Soft-deletes and deactivates another AdminUser in the caller's own company — their "
+        "existing JWTs stop working immediately. An admin cannot disable their own account "
+        "(409 `CANNOT_DISABLE_SELF`), and an id belonging to a different company 404s rather "
+        "than leaking its existence."
+    ),
+)
+class AdminUserDisableView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, pk=None):
+        admin_user = services.disable_admin_user(user_id=pk, actor=request.user)
+        return Response(AdminUserSerializer(admin_user).data)

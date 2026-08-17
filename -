@@ -1,0 +1,4015 @@
+openapi: 3.0.3
+info:
+  title: MOB Delivery Backend API
+  version: 1.0.0
+  description: Multi-tenant delivery platform API — Company/AdminUser/ApiClient auth,
+    Vehicle module.
+paths:
+  /api/v1/admin/users:
+    get:
+      operationId: admin_users_list
+      description: |-
+        GET/POST /api/v1/admin/users — Fix 8, sub-user management. Every
+        sub-user gets the same full access within their company — no roles/
+        permissions tiers in this pass.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - admin
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminUserList'
+          description: ''
+    post:
+      operationId: admin_users_create
+      description: |-
+        GET/POST /api/v1/admin/users — Fix 8, sub-user management. Every
+        sub-user gets the same full access within their company — no roles/
+        permissions tiers in this pass.
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminUser'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/v1/admin/users/{id}/disable:
+    post:
+      operationId: admin_users_disable_create
+      description: POST /api/v1/admin/users/{id}/disable
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - admin
+      responses:
+        '200':
+          description: No response body
+  /api/v1/alerts:
+    get:
+      operationId: alerts_list
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: query
+        name: acknowledged
+        schema:
+          type: boolean
+      - in: query
+        name: alert_type
+        schema:
+          type: string
+          enum:
+          - stationary_too_long
+          - wrong_direction
+        description: |-
+          * `stationary_too_long` - Stationary Too Long
+          * `wrong_direction` - Wrong Direction
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - alerts
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTripAnomalyAlertList'
+          description: ''
+  /api/v1/alerts/{id}/acknowledge:
+    post:
+      operationId: alerts_acknowledge_create
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip anomaly alert.
+        required: true
+      tags:
+      - alerts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripAnomalyAlert'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TripAnomalyAlert'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TripAnomalyAlert'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripAnomalyAlert'
+          description: ''
+  /api/v1/auth/client-token:
+    post:
+      operationId: auth_client_token_create
+      description: |-
+        POST /api/v1/auth/client-token — client_id + client_secret -> a short-lived
+        access token for an ApiClient (client-credentials style, no refresh token).
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/login:
+    post:
+      operationId: auth_login_create
+      description: POST /api/v1/auth/login — email + password -> access/refresh JWT
+        for an AdminUser.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminTokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminTokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminTokenObtainPair'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTokenObtainPair'
+          description: ''
+  /api/v1/auth/refresh:
+    post:
+      operationId: auth_refresh_create
+      description: |-
+        POST /api/v1/auth/refresh — body { refreshToken } -> a new accessToken.
+        Shared by every principal type (Admin, Driver) — see RefreshTokenSerializer.
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/damage-reports:
+    get:
+      operationId: damage_reports_list
+      description: |-
+        GET /api/v1/damage-reports, GET /api/v1/damage-reports/{id},
+        POST /api/v1/damage-reports/{id}/resolve
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: severity
+        schema:
+          type: string
+          enum:
+          - high
+          - low
+          - medium
+        description: |-
+          * `low` - Low
+          * `medium` - Medium
+          * `high` - High
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - open
+          - resolved
+        description: |-
+          * `open` - Open
+          * `resolved` - Resolved
+      - in: query
+        name: vehicle_id
+        schema:
+          type: string
+          format: uuid
+      tags:
+      - damage-reports
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDamageReportListList'
+          description: ''
+  /api/v1/damage-reports/{id}:
+    get:
+      operationId: damage_reports_retrieve
+      description: |-
+        GET /api/v1/damage-reports, GET /api/v1/damage-reports/{id},
+        POST /api/v1/damage-reports/{id}/resolve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle damage report.
+        required: true
+      tags:
+      - damage-reports
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DamageReport'
+          description: ''
+  /api/v1/damage-reports/{id}/resolve:
+    post:
+      operationId: damage_reports_resolve_create
+      description: |-
+        GET /api/v1/damage-reports, GET /api/v1/damage-reports/{id},
+        POST /api/v1/damage-reports/{id}/resolve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle damage report.
+        required: true
+      tags:
+      - damage-reports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DamageReport'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DamageReport'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DamageReport'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DamageReport'
+          description: ''
+  /api/v1/dashboard/fleet-status:
+    get:
+      operationId: dashboard_fleet_status_retrieve
+      description: GET /api/v1/dashboard/fleet-status
+      tags:
+      - dashboard
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/kpis:
+    get:
+      operationId: dashboard_kpis_retrieve
+      description: GET /api/v1/dashboard/kpis
+      tags:
+      - dashboard
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/recent-damage-reports:
+    get:
+      operationId: dashboard_recent_damage_reports_retrieve
+      description: GET /api/v1/dashboard/recent-damage-reports?limit=5
+      tags:
+      - dashboard
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/recent-issues:
+    get:
+      operationId: dashboard_recent_issues_retrieve
+      description: GET /api/v1/dashboard/recent-issues?limit=5
+      tags:
+      - dashboard
+      responses:
+        '200':
+          description: No response body
+  /api/v1/driver/auth/otp/request:
+    post:
+      operationId: driver_auth_otp_request_create
+      description: POST /api/v1/driver/auth/otp/request
+      tags:
+      - driver
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/driver/auth/otp/verify:
+    post:
+      operationId: driver_auth_otp_verify_create
+      description: POST /api/v1/driver/auth/otp/verify
+      tags:
+      - driver
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/driver/devices/{token}:
+    delete:
+      operationId: driver_devices_destroy
+      description: DELETE /api/v1/driver/devices/{token}
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      tags:
+      - driver
+      responses:
+        '204':
+          description: No response body
+  /api/v1/driver/devices/register:
+    post:
+      operationId: driver_devices_register_create
+      description: POST /api/v1/driver/devices/register
+      tags:
+      - driver
+      responses:
+        '200':
+          description: No response body
+  /api/v1/driver/me:
+    get:
+      operationId: driver_me_retrieve
+      description: GET /api/v1/driver/me
+      tags:
+      - driver
+      responses:
+        '200':
+          description: No response body
+  /api/v1/drivers:
+    get:
+      operationId: drivers_list
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: query
+        name: aadhar_status
+        schema:
+          type: string
+          enum:
+          - pending
+          - rejected
+          - verified
+        description: |-
+          * `pending` - Pending
+          * `verified` - Verified
+          * `rejected` - Rejected
+      - in: query
+        name: account_status
+        schema:
+          type: string
+          enum:
+          - active
+          - disabled
+          - locked_dl_expired
+        description: |-
+          * `active` - Active
+          * `locked_dl_expired` - Locked — DL Expired
+          * `disabled` - Disabled
+      - in: query
+        name: dl_status
+        schema:
+          type: string
+          enum:
+          - pending
+          - rejected
+          - verified
+        description: |-
+          * `pending` - Pending
+          * `verified` - Verified
+          * `rejected` - Rejected
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: police_status
+        schema:
+          type: string
+          enum:
+          - pending
+          - rejected
+          - verified
+        description: |-
+          * `pending` - Pending
+          * `verified` - Verified
+          * `rejected` - Rejected
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - drivers
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDriverListList'
+          description: ''
+    post:
+      operationId: drivers_create
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      tags:
+      - drivers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Driver'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Driver'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Driver'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+          description: ''
+  /api/v1/drivers/{id}:
+    get:
+      operationId: drivers_retrieve
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this driver.
+        required: true
+      tags:
+      - drivers
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+          description: ''
+    put:
+      operationId: drivers_update
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this driver.
+        required: true
+      tags:
+      - drivers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Driver'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Driver'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Driver'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+          description: ''
+    patch:
+      operationId: drivers_partial_update
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this driver.
+        required: true
+      tags:
+      - drivers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDriver'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDriver'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDriver'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+          description: ''
+    delete:
+      operationId: drivers_destroy
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this driver.
+        required: true
+      tags:
+      - drivers
+      responses:
+        '204':
+          description: No response body
+  /api/v1/drivers/{id}/disable:
+    post:
+      operationId: drivers_disable_create
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this driver.
+        required: true
+      tags:
+      - drivers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Driver'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Driver'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Driver'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+          description: ''
+  /api/v1/drivers/{id}/kyc:
+    get:
+      operationId: drivers_kyc_retrieve
+      description: GET /api/v1/drivers/{id}/kyc
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - drivers
+      responses:
+        '200':
+          description: No response body
+  /api/v1/drivers/{id}/kyc/aadhar:
+    patch:
+      operationId: drivers_kyc_aadhar_partial_update
+      description: PATCH /api/v1/drivers/{id}/kyc/aadhar
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - drivers
+      responses:
+        '200':
+          description: No response body
+  /api/v1/drivers/{id}/kyc/dl:
+    patch:
+      operationId: drivers_kyc_dl_partial_update
+      description: PATCH /api/v1/drivers/{id}/kyc/dl
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - drivers
+      responses:
+        '200':
+          description: No response body
+  /api/v1/drivers/{id}/kyc/police:
+    patch:
+      operationId: drivers_kyc_police_partial_update
+      description: PATCH /api/v1/drivers/{id}/kyc/police
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - drivers
+      responses:
+        '200':
+          description: No response body
+  /api/v1/issues:
+    get:
+      operationId: issues_list
+      description: GET /api/v1/issues, GET /api/v1/issues/{id}, POST /api/v1/issues/{id}/resolve
+      parameters:
+      - in: query
+        name: created_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: created_before
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: issue_type
+        schema:
+          type: string
+          enum:
+          - pickup
+          - traffic_penalty
+          - transit
+          - unloading
+        description: |-
+          * `pickup` - Pickup
+          * `transit` - Transit
+          * `unloading` - Unloading
+          * `traffic_penalty` - Traffic Penalty
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: severity
+        schema:
+          type: string
+          enum:
+          - high
+          - low
+          - medium
+        description: |-
+          * `low` - Low
+          * `medium` - Medium
+          * `high` - High
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - open
+          - resolved
+        description: |-
+          * `open` - Open
+          * `resolved` - Resolved
+      tags:
+      - issues
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedIssueListList'
+          description: ''
+  /api/v1/issues/{id}:
+    get:
+      operationId: issues_retrieve
+      description: GET /api/v1/issues, GET /api/v1/issues/{id}, POST /api/v1/issues/{id}/resolve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip issue.
+        required: true
+      tags:
+      - issues
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueDetail'
+          description: ''
+  /api/v1/issues/{id}/resolve:
+    post:
+      operationId: issues_resolve_create
+      description: GET /api/v1/issues, GET /api/v1/issues/{id}, POST /api/v1/issues/{id}/resolve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip issue.
+        required: true
+      tags:
+      - issues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/IssueDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/IssueDetail'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueDetail'
+          description: ''
+  /api/v1/orders:
+    post:
+      operationId: orders_create
+      description: POST /api/v1/orders
+      tags:
+      - orders
+      responses:
+        '200':
+          description: No response body
+  /api/v1/orders/{order_ref}/cancel:
+    post:
+      operationId: orders_cancel_create
+      description: |-
+        POST /api/v1/orders/{orderRef}/cancel — Scenario A: pre-pickup cancel.
+        Open to any authenticated principal (external client backends and Admin
+        both call this; no Driver/ApiClient restriction per the module spec).
+      parameters:
+      - in: path
+        name: order_ref
+        schema:
+          type: string
+        required: true
+      tags:
+      - orders
+      responses:
+        '200':
+          description: No response body
+  /api/v1/orders/grouped:
+    get:
+      operationId: orders_grouped_retrieve
+      description: GET /api/v1/orders/grouped
+      tags:
+      - orders
+      responses:
+        '200':
+          description: No response body
+  /api/v1/settings:
+    get:
+      operationId: settings_list
+      description: GET /api/v1/settings
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTenantSettingList'
+          description: ''
+  /api/v1/settings/{key}:
+    patch:
+      operationId: settings_partial_update
+      description: PATCH /api/v1/settings/{key}
+      parameters:
+      - in: path
+        name: key
+        schema:
+          type: string
+        required: true
+      tags:
+      - settings
+      responses:
+        '200':
+          description: No response body
+  /api/v1/shifts/{id}/end:
+    post:
+      operationId: shifts_end_create
+      description: POST /api/v1/shifts/{id}/end
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - shifts
+      responses:
+        '200':
+          description: No response body
+  /api/v1/shifts/active:
+    get:
+      operationId: shifts_active_retrieve
+      description: GET /api/v1/shifts/active?driver_id={id}
+      tags:
+      - shifts
+      responses:
+        '200':
+          description: No response body
+  /api/v1/shifts/start:
+    post:
+      operationId: shifts_start_create
+      description: POST /api/v1/shifts/start
+      tags:
+      - shifts
+      responses:
+        '200':
+          description: No response body
+  /api/v1/sos:
+    get:
+      operationId: sos_list
+      description: |-
+        POST /api/v1/sos (Driver only — triggers an alert, no validation
+        beyond lat/lng range) and GET /api/v1/sos (Admin Panel SOS log).
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - sos
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSosAlertList'
+          description: ''
+    post:
+      operationId: sos_create
+      description: |-
+        POST /api/v1/sos (Driver only — triggers an alert, no validation
+        beyond lat/lng range) and GET /api/v1/sos (Admin Panel SOS log).
+      tags:
+      - sos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SosAlert'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SosAlert'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SosAlert'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SosAlert'
+          description: ''
+  /api/v1/sos/{id}/acknowledge:
+    post:
+      operationId: sos_acknowledge_create
+      description: POST /api/v1/sos/{id}/acknowledge
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - sos
+      responses:
+        '200':
+          description: No response body
+  /api/v1/sos/{id}/resolve:
+    post:
+      operationId: sos_resolve_create
+      description: POST /api/v1/sos/{id}/resolve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - sos
+      responses:
+        '200':
+          description: No response body
+  /api/v1/start-points:
+    get:
+      operationId: start_points_list
+      description: AdminUser-only CRUD for reusable named shift start points (Point
+        6).
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - start-points
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedVehicleStartPointList'
+          description: ''
+    post:
+      operationId: start_points_create
+      description: AdminUser-only CRUD for reusable named shift start points (Point
+        6).
+      tags:
+      - start-points
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleStartPoint'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VehicleStartPoint'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VehicleStartPoint'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleStartPoint'
+          description: ''
+  /api/v1/start-points/{id}:
+    get:
+      operationId: start_points_retrieve
+      description: AdminUser-only CRUD for reusable named shift start points (Point
+        6).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle start point.
+        required: true
+      tags:
+      - start-points
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleStartPoint'
+          description: ''
+    put:
+      operationId: start_points_update
+      description: AdminUser-only CRUD for reusable named shift start points (Point
+        6).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle start point.
+        required: true
+      tags:
+      - start-points
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleStartPoint'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VehicleStartPoint'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VehicleStartPoint'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleStartPoint'
+          description: ''
+    patch:
+      operationId: start_points_partial_update
+      description: AdminUser-only CRUD for reusable named shift start points (Point
+        6).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle start point.
+        required: true
+      tags:
+      - start-points
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedVehicleStartPoint'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedVehicleStartPoint'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedVehicleStartPoint'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleStartPoint'
+          description: ''
+    delete:
+      operationId: start_points_destroy
+      description: AdminUser-only CRUD for reusable named shift start points (Point
+        6).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle start point.
+        required: true
+      tags:
+      - start-points
+      responses:
+        '204':
+          description: No response body
+  /api/v1/trips:
+    get:
+      operationId: trips_list
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - cancelled
+          - collecting_pickups
+          - delivered
+          - in_transit
+          - pickups_locked
+        description: |-
+          * `collecting_pickups` - Collecting Pickups
+          * `pickups_locked` - Pickups Locked
+          * `in_transit` - In Transit
+          * `delivered` - Delivered
+          * `cancelled` - Cancelled
+      tags:
+      - trips
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTripListList'
+          description: ''
+  /api/v1/trips/{id}:
+    get:
+      operationId: trips_retrieve
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip.
+        required: true
+      tags:
+      - trips
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripDetail'
+          description: ''
+  /api/v1/trips/{id}/assign-vehicle:
+    post:
+      operationId: trips_assign_vehicle_create
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip.
+        required: true
+      tags:
+      - trips
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripList'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TripList'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TripList'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripList'
+          description: ''
+  /api/v1/trips/{id}/cancel:
+    post:
+      operationId: trips_cancel_create
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip.
+        required: true
+      tags:
+      - trips
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripList'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TripList'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TripList'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripList'
+          description: ''
+  /api/v1/trips/{id}/location:
+    post:
+      operationId: trips_location_create
+      description: POST /api/v1/trips/{id}/location
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - trips
+      responses:
+        '200':
+          description: No response body
+  /api/v1/trips/{id}/lock-pickups:
+    post:
+      operationId: trips_lock_pickups_create
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip.
+        required: true
+      tags:
+      - trips
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripList'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TripList'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TripList'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripList'
+          description: ''
+  /api/v1/trips/{id}/pause:
+    post:
+      operationId: trips_pause_create
+      description: POST /api/v1/trips/{id}/pause
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - trips
+      responses:
+        '200':
+          description: No response body
+  /api/v1/trips/{id}/reassign-vehicle:
+    post:
+      operationId: trips_reassign_vehicle_create
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip.
+        required: true
+      tags:
+      - trips
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripList'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TripList'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TripList'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripList'
+          description: ''
+  /api/v1/trips/{id}/resume:
+    post:
+      operationId: trips_resume_create
+      description: POST /api/v1/trips/{id}/resume
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - trips
+      responses:
+        '200':
+          description: No response body
+  /api/v1/trips/{id}/stops/{stop_pk}/complete:
+    post:
+      operationId: trips_stops_complete_create
+      description: POST /api/v1/trips/{id}/stops/{stopId}/complete
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: stop_pk
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - trips
+      responses:
+        '200':
+          description: No response body
+  /api/v1/trips/{id}/stops/{stop_pk}/delivery-address:
+    patch:
+      operationId: trips_stops_delivery_address_partial_update
+      description: PATCH /api/v1/trips/{id}/stops/{stopId}/delivery-address
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: stop_pk
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - trips
+      responses:
+        '200':
+          description: No response body
+  /api/v1/trips/{id}/time-summary:
+    get:
+      operationId: trips_time_summary_retrieve
+      description: GET /api/v1/trips/{id}/time-summary
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - trips
+      responses:
+        '200':
+          description: No response body
+  /api/v1/trips/{trip_pk}/issues:
+    post:
+      operationId: trips_issues_create
+      description: POST /api/v1/trips/{tripId}/issues
+      parameters:
+      - in: path
+        name: trip_pk
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - trips
+      responses:
+        '200':
+          description: No response body
+  /api/v1/trips/assignment-candidates:
+    post:
+      operationId: trips_assignment_candidates_create
+      description: POST /api/v1/trips/assignment-candidates
+      tags:
+      - trips
+      responses:
+        '200':
+          description: No response body
+  /api/v1/uploads:
+    post:
+      operationId: uploads_create
+      description: |-
+        POST /api/v1/uploads — the one reusable upload endpoint for VehicleType
+        icons, Vehicle photos, and VehicleDocument scans. Returns {"url": ...};
+        the frontend passes that URL along in a separate, later call that
+        creates/updates the actual record.
+      tags:
+      - uploads
+      responses:
+        '200':
+          description: No response body
+  /api/v1/vehicle-types:
+    get:
+      operationId: vehicle_types_list
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+          enum:
+          - four_wheeler
+          - three_wheeler
+          - two_wheeler
+        description: |-
+          * `two_wheeler` - 2 Wheeler
+          * `three_wheeler` - 3 Wheeler
+          * `four_wheeler` - 4 Wheeler
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - active
+          - inactive
+        description: |-
+          * `active` - Active
+          * `inactive` - Inactive
+      tags:
+      - vehicle-types
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedVehicleTypeList'
+          description: ''
+    post:
+      operationId: vehicle_types_create
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      tags:
+      - vehicle-types
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleType'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VehicleType'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VehicleType'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleType'
+          description: ''
+  /api/v1/vehicle-types/{id}:
+    get:
+      operationId: vehicle_types_retrieve
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle type.
+        required: true
+      tags:
+      - vehicle-types
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleType'
+          description: ''
+    put:
+      operationId: vehicle_types_update
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle type.
+        required: true
+      tags:
+      - vehicle-types
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleType'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VehicleType'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VehicleType'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleType'
+          description: ''
+    patch:
+      operationId: vehicle_types_partial_update
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle type.
+        required: true
+      tags:
+      - vehicle-types
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedVehicleType'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedVehicleType'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedVehicleType'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleType'
+          description: ''
+    delete:
+      operationId: vehicle_types_destroy
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle type.
+        required: true
+      tags:
+      - vehicle-types
+      responses:
+        '204':
+          description: No response body
+  /api/v1/vehicles:
+    get:
+      operationId: vehicles_list
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - active
+          - disabled
+          - maintenance
+        description: |-
+          * `active` - Active
+          * `maintenance` - Maintenance
+          * `disabled` - Disabled
+      tags:
+      - vehicles
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedVehicleListList'
+          description: ''
+    post:
+      operationId: vehicles_create
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      tags:
+      - vehicles
+      responses:
+        '201':
+          description: No response body
+  /api/v1/vehicles/{id}:
+    get:
+      operationId: vehicles_retrieve
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle.
+        required: true
+      tags:
+      - vehicles
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleDetail'
+          description: ''
+    put:
+      operationId: vehicles_update
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle.
+        required: true
+      tags:
+      - vehicles
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: vehicles_partial_update
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle.
+        required: true
+      tags:
+      - vehicles
+      responses:
+        '200':
+          description: No response body
+    delete:
+      operationId: vehicles_destroy
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle.
+        required: true
+      tags:
+      - vehicles
+      responses:
+        '204':
+          description: No response body
+  /api/v1/vehicles/{id}/disable:
+    post:
+      operationId: vehicles_disable_create
+      description: |-
+        Scopes a ViewSet to the authenticated principal's company.
+
+        Both AdminUser and ApiClient (see accounts.authentication) expose
+        `.company`, so this works the same regardless of which one authenticated
+        the request — no thread-locals, no default-manager magic.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this vehicle.
+        required: true
+      tags:
+      - vehicles
+      responses:
+        '200':
+          description: No response body
+  /api/v1/vehicles/{vehicle_pk}/damage-reports:
+    get:
+      operationId: vehicles_damage_reports_list
+      description: GET/POST /api/v1/vehicles/{vehicle_pk}/damage-reports
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: vehicle_pk
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - vehicles
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDamageReportList'
+          description: ''
+    post:
+      operationId: vehicles_damage_reports_create
+      description: GET/POST /api/v1/vehicles/{vehicle_pk}/damage-reports
+      parameters:
+      - in: path
+        name: vehicle_pk
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - vehicles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDamageReport'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateDamageReport'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateDamageReport'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateDamageReport'
+          description: ''
+  /api/v1/vehicles/{vehicle_pk}/documents:
+    get:
+      operationId: vehicles_documents_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: vehicle_pk
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - vehicles
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedVehicleDocumentList'
+          description: ''
+    post:
+      operationId: vehicles_documents_create
+      parameters:
+      - in: path
+        name: vehicle_pk
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - vehicles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleDocument'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VehicleDocument'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VehicleDocument'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleDocument'
+          description: ''
+  /api/v1/vehicles/{vehicle_pk}/documents/{id}:
+    patch:
+      operationId: vehicles_documents_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: vehicle_pk
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - vehicles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedVehicleDocument'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedVehicleDocument'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedVehicleDocument'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleDocument'
+          description: ''
+  /api/v1/webhooks/deliveries:
+    get:
+      operationId: webhooks_deliveries_list
+      description: GET /api/v1/webhooks/deliveries?order_ref={ref}
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - webhooks
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWebhookEventList'
+          description: ''
+  /api/v1/webhooks/deliveries/{id}:
+    get:
+      operationId: webhooks_deliveries_retrieve
+      description: GET /api/v1/webhooks/deliveries/{eventId}
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - webhooks
+      responses:
+        '200':
+          description: No response body
+  /api/v1/webhooks/retry/{id}:
+    post:
+      operationId: webhooks_retry_create
+      description: POST /api/v1/webhooks/retry/{eventId}
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - webhooks
+      responses:
+        '200':
+          description: No response body
+components:
+  schemas:
+    AccountStatusEnum:
+      enum:
+      - active
+      - locked_dl_expired
+      - disabled
+      type: string
+      description: |-
+        * `active` - Active
+        * `locked_dl_expired` - Locked — DL Expired
+        * `disabled` - Disabled
+    AdminTokenObtainPair:
+      type: object
+      properties:
+        email:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - email
+      - first_name
+      - id
+      - is_active
+      - last_name
+      - role
+      - updated_at
+    AlertTypeEnum:
+      enum:
+      - stationary_too_long
+      - wrong_direction
+      type: string
+      description: |-
+        * `stationary_too_long` - Stationary Too Long
+        * `wrong_direction` - Wrong Direction
+    CategoryEnum:
+      enum:
+      - two_wheeler
+      - three_wheeler
+      - four_wheeler
+      type: string
+      description: |-
+        * `two_wheeler` - 2 Wheeler
+        * `three_wheeler` - 3 Wheeler
+        * `four_wheeler` - 4 Wheeler
+    CreateDamageReport:
+      type: object
+      properties:
+        description:
+          type: string
+          minLength: 5
+        photo_url:
+          nullable: true
+          oneOf:
+          - type: string
+            format: uri
+          - type: string
+            maxLength: 0
+        severity:
+          $ref: '#/components/schemas/SeverityEnum'
+      required:
+      - description
+    DamageReport:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        vehicle:
+          type: string
+          format: uuid
+          readOnly: true
+        reported_by_id:
+          type: string
+          format: uuid
+          readOnly: true
+        reporter_type:
+          allOf:
+          - $ref: '#/components/schemas/ReporterTypeEnum'
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        photo_url:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+        severity:
+          allOf:
+          - $ref: '#/components/schemas/SeverityEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusE46Enum'
+          readOnly: true
+        resolution_note:
+          type: string
+          readOnly: true
+          nullable: true
+        resolved_by:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - description
+      - id
+      - photo_url
+      - reported_by_id
+      - reporter_type
+      - resolution_note
+      - resolved_at
+      - resolved_by
+      - severity
+      - status
+      - updated_at
+      - vehicle
+    DamageReportList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        vehicle:
+          type: string
+          format: uuid
+          readOnly: true
+        vehicle_registration_number:
+          type: string
+          readOnly: true
+        reported_by_id:
+          type: string
+          format: uuid
+          readOnly: true
+        reporter_type:
+          allOf:
+          - $ref: '#/components/schemas/ReporterTypeEnum'
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        photo_url:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+        severity:
+          allOf:
+          - $ref: '#/components/schemas/SeverityEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusE46Enum'
+          readOnly: true
+        resolution_note:
+          type: string
+          readOnly: true
+          nullable: true
+        resolved_by:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - description
+      - id
+      - photo_url
+      - reported_by_id
+      - reporter_type
+      - resolution_note
+      - resolved_at
+      - resolved_by
+      - severity
+      - status
+      - updated_at
+      - vehicle
+      - vehicle_registration_number
+    DocumentTypeEnum:
+      enum:
+      - insurance
+      - fitness
+      - rc
+      - purchase
+      - other
+      type: string
+      description: |-
+        * `insurance` - Insurance
+        * `fitness` - Fitness
+        * `rc` - RC
+        * `purchase` - Purchase
+        * `other` - Other
+    Driver:
+      type: object
+      description: |-
+        Admin CRUD for the basic profile — verification statuses are managed
+        exclusively through the KYC endpoints, not this serializer.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        full_name:
+          type: string
+          maxLength: 150
+        phone_number:
+          type: string
+          maxLength: 20
+        emergency_contact_name:
+          type: string
+          maxLength: 150
+        emergency_contact_phone:
+          type: string
+          maxLength: 20
+        aadhar_status:
+          allOf:
+          - $ref: '#/components/schemas/PoliceStatusEnum'
+          readOnly: true
+        dl_status:
+          allOf:
+          - $ref: '#/components/schemas/PoliceStatusEnum'
+          readOnly: true
+        police_status:
+          allOf:
+          - $ref: '#/components/schemas/PoliceStatusEnum'
+          readOnly: true
+        dl_expiry_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        dl_allowed_categories:
+          readOnly: true
+        account_status:
+          allOf:
+          - $ref: '#/components/schemas/AccountStatusEnum'
+          readOnly: true
+        current_vehicle_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - aadhar_status
+      - account_status
+      - created_at
+      - current_vehicle_id
+      - dl_allowed_categories
+      - dl_expiry_date
+      - dl_status
+      - emergency_contact_name
+      - emergency_contact_phone
+      - full_name
+      - id
+      - phone_number
+      - police_status
+      - updated_at
+    DriverList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        full_name:
+          type: string
+          maxLength: 150
+        phone_number:
+          type: string
+          maxLength: 20
+        aadhar_status:
+          $ref: '#/components/schemas/PoliceStatusEnum'
+        dl_status:
+          $ref: '#/components/schemas/PoliceStatusEnum'
+        police_status:
+          $ref: '#/components/schemas/PoliceStatusEnum'
+        account_status:
+          $ref: '#/components/schemas/AccountStatusEnum'
+        is_eligible_for_assignment:
+          type: boolean
+          readOnly: true
+        current_vehicle_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - full_name
+      - id
+      - is_eligible_for_assignment
+      - phone_number
+      - updated_at
+    IssueDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        trip:
+          type: string
+          readOnly: true
+        trip_stop:
+          type: string
+          readOnly: true
+        issue_type:
+          allOf:
+          - $ref: '#/components/schemas/IssueTypeEnum'
+          readOnly: true
+        severity:
+          allOf:
+          - $ref: '#/components/schemas/SeverityEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusE46Enum'
+          readOnly: true
+        note:
+          type: string
+          readOnly: true
+        photo_url:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+        resolution_note:
+          type: string
+          readOnly: true
+          nullable: true
+        resolved_by:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - issue_type
+      - note
+      - photo_url
+      - resolution_note
+      - resolved_at
+      - resolved_by
+      - severity
+      - status
+      - trip
+      - trip_stop
+      - updated_at
+    IssueList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        trip:
+          type: string
+          format: uuid
+          readOnly: true
+        driver_name:
+          type: string
+          readOnly: true
+        issue_type:
+          allOf:
+          - $ref: '#/components/schemas/IssueTypeEnum'
+          readOnly: true
+        severity:
+          allOf:
+          - $ref: '#/components/schemas/SeverityEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusE46Enum'
+          readOnly: true
+        note:
+          type: string
+          readOnly: true
+        photo_url:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+        resolution_note:
+          type: string
+          readOnly: true
+          nullable: true
+        resolved_by:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - driver_name
+      - id
+      - issue_type
+      - note
+      - photo_url
+      - resolution_note
+      - resolved_at
+      - resolved_by
+      - severity
+      - status
+      - trip
+      - updated_at
+    IssueTypeEnum:
+      enum:
+      - pickup
+      - transit
+      - unloading
+      - traffic_penalty
+      type: string
+      description: |-
+        * `pickup` - Pickup
+        * `transit` - Transit
+        * `unloading` - Unloading
+        * `traffic_penalty` - Traffic Penalty
+    PaginatedAdminUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUser'
+    PaginatedDamageReportList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DamageReport'
+    PaginatedDamageReportListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DamageReportList'
+    PaginatedDriverListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DriverList'
+    PaginatedIssueListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueList'
+    PaginatedSosAlertList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SosAlert'
+    PaginatedTenantSettingList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantSetting'
+    PaginatedTripAnomalyAlertList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripAnomalyAlert'
+    PaginatedTripListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripList'
+    PaginatedVehicleDocumentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleDocument'
+    PaginatedVehicleListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleList'
+    PaginatedVehicleStartPointList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleStartPoint'
+    PaginatedVehicleTypeList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleType'
+    PaginatedWebhookEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookEvent'
+    PatchedDriver:
+      type: object
+      description: |-
+        Admin CRUD for the basic profile — verification statuses are managed
+        exclusively through the KYC endpoints, not this serializer.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        full_name:
+          type: string
+          maxLength: 150
+        phone_number:
+          type: string
+          maxLength: 20
+        emergency_contact_name:
+          type: string
+          maxLength: 150
+        emergency_contact_phone:
+          type: string
+          maxLength: 20
+        aadhar_status:
+          allOf:
+          - $ref: '#/components/schemas/PoliceStatusEnum'
+          readOnly: true
+        dl_status:
+          allOf:
+          - $ref: '#/components/schemas/PoliceStatusEnum'
+          readOnly: true
+        police_status:
+          allOf:
+          - $ref: '#/components/schemas/PoliceStatusEnum'
+          readOnly: true
+        dl_expiry_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        dl_allowed_categories:
+          readOnly: true
+        account_status:
+          allOf:
+          - $ref: '#/components/schemas/AccountStatusEnum'
+          readOnly: true
+        current_vehicle_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedVehicleDocument:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        document_type:
+          $ref: '#/components/schemas/DocumentTypeEnum'
+        file_url:
+          type: string
+          format: uri
+          maxLength: 200
+        expiry_date:
+          type: string
+          format: date
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedVehicleStartPoint:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        label:
+          type: string
+          maxLength: 150
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+        status:
+          type: string
+          maxLength: 20
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedVehicleType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 50
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        default_capacity_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+        icon_image_url:
+          nullable: true
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
+        status:
+          $ref: '#/components/schemas/VehicleTypeStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PaymentModeEnum:
+      enum:
+      - prepaid
+      - upi_on_delivery
+      type: string
+      description: |-
+        * `prepaid` - Prepaid
+        * `upi_on_delivery` - UPI on Delivery
+    PoliceStatusEnum:
+      enum:
+      - pending
+      - verified
+      - rejected
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `verified` - Verified
+        * `rejected` - Rejected
+    ReporterTypeEnum:
+      enum:
+      - driver
+      - admin
+      type: string
+      description: |-
+        * `driver` - Driver
+        * `admin` - Admin
+    RoleEnum:
+      enum:
+      - owner
+      - admin
+      - staff
+      type: string
+      description: |-
+        * `owner` - Owner
+        * `admin` - Admin
+        * `staff` - Staff
+    SeverityEnum:
+      enum:
+      - low
+      - medium
+      - high
+      type: string
+      description: |-
+        * `low` - Low
+        * `medium` - Medium
+        * `high` - High
+    SosAlert:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        driver:
+          type: string
+          format: uuid
+          readOnly: true
+        trip:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          readOnly: true
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          readOnly: true
+        triggered_at:
+          type: string
+          format: date-time
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SosAlertStatusEnum'
+          readOnly: true
+        acknowledged_by:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        acknowledged_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        resolved_by:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        resolution_note:
+          type: string
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - acknowledged_at
+      - acknowledged_by
+      - created_at
+      - driver
+      - id
+      - latitude
+      - longitude
+      - resolution_note
+      - resolved_at
+      - resolved_by
+      - status
+      - triggered_at
+      - trip
+      - updated_at
+    SosAlertStatusEnum:
+      enum:
+      - active
+      - acknowledged
+      - resolved
+      type: string
+      description: |-
+        * `active` - Active
+        * `acknowledged` - Acknowledged
+        * `resolved` - Resolved
+    Status111Enum:
+      enum:
+      - collecting_pickups
+      - pickups_locked
+      - in_transit
+      - delivered
+      - cancelled
+      type: string
+      description: |-
+        * `collecting_pickups` - Collecting Pickups
+        * `pickups_locked` - Pickups Locked
+        * `in_transit` - In Transit
+        * `delivered` - Delivered
+        * `cancelled` - Cancelled
+    StatusB39Enum:
+      enum:
+      - active
+      - maintenance
+      - disabled
+      type: string
+      description: |-
+        * `active` - Active
+        * `maintenance` - Maintenance
+        * `disabled` - Disabled
+    StatusE46Enum:
+      enum:
+      - open
+      - resolved
+      type: string
+      description: |-
+        * `open` - Open
+        * `resolved` - Resolved
+    StopTypeEnum:
+      enum:
+      - pickup
+      - drop
+      type: string
+      description: |-
+        * `pickup` - Pickup
+        * `drop` - Drop
+    TenantSetting:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        key:
+          type: string
+          readOnly: true
+        value:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - key
+      - updated_at
+      - value
+    TripAnomalyAlert:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        trip:
+          type: string
+          format: uuid
+          readOnly: true
+        vehicle_id:
+          type: string
+          format: uuid
+          readOnly: true
+        alert_type:
+          allOf:
+          - $ref: '#/components/schemas/AlertTypeEnum'
+          readOnly: true
+        details:
+          type: string
+          readOnly: true
+          nullable: true
+        detected_at:
+          type: string
+          format: date-time
+          readOnly: true
+        acknowledged:
+          type: boolean
+          readOnly: true
+          default: false
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - acknowledged
+      - alert_type
+      - created_at
+      - details
+      - detected_at
+      - id
+      - trip
+      - vehicle_id
+    TripDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        vehicle:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        driver:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status111Enum'
+          readOnly: true
+        total_weight_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripStop'
+          readOnly: true
+        vehicle_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripVehicleHistory'
+          readOnly: true
+      required:
+      - completed_at
+      - created_at
+      - driver
+      - id
+      - started_at
+      - status
+      - stops
+      - total_weight_kg
+      - updated_at
+      - vehicle
+      - vehicle_history
+    TripList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        vehicle:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        driver:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status111Enum'
+          readOnly: true
+        total_weight_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - completed_at
+      - created_at
+      - driver
+      - id
+      - started_at
+      - status
+      - total_weight_kg
+      - updated_at
+      - vehicle
+    TripStop:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        stop_type:
+          allOf:
+          - $ref: '#/components/schemas/StopTypeEnum'
+          readOnly: true
+        sequence_no:
+          type: integer
+          readOnly: true
+        order_ref:
+          type: string
+          readOnly: true
+        parent_order_ref:
+          type: string
+          readOnly: true
+          nullable: true
+        address:
+          type: string
+          readOnly: true
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          readOnly: true
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TripStopStatusEnum'
+          readOnly: true
+        proof_photo_url:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+        arrived_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        weight_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        payment_mode:
+          allOf:
+          - $ref: '#/components/schemas/PaymentModeEnum'
+          readOnly: true
+        payment_status:
+          type: string
+          readOnly: true
+          nullable: true
+        location_mismatch:
+          type: boolean
+          readOnly: true
+        location_mismatch_meters:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - address
+      - arrived_at
+      - completed_at
+      - created_at
+      - id
+      - latitude
+      - location_mismatch
+      - location_mismatch_meters
+      - longitude
+      - order_ref
+      - parent_order_ref
+      - payment_mode
+      - payment_status
+      - proof_photo_url
+      - sequence_no
+      - status
+      - stop_type
+      - updated_at
+      - weight_kg
+    TripStopStatusEnum:
+      enum:
+      - pending
+      - arrived
+      - completed
+      - skipped
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `arrived` - Arrived
+        * `completed` - Completed
+        * `skipped` - Skipped
+    TripVehicleHistory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        previous_vehicle:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        new_vehicle:
+          type: string
+          format: uuid
+          readOnly: true
+        previous_driver:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        new_driver:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        reason:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - new_driver
+      - new_vehicle
+      - previous_driver
+      - previous_vehicle
+      - reason
+    VehicleDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        vehicle_type:
+          allOf:
+          - $ref: '#/components/schemas/VehicleTypeSummary'
+          readOnly: true
+        registration_number:
+          type: string
+          maxLength: 20
+        capacity_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+        photo_url:
+          nullable: true
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
+        status:
+          $ref: '#/components/schemas/StatusB39Enum'
+        current_driver_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleDocument'
+          readOnly: true
+      required:
+      - capacity_kg
+      - created_at
+      - documents
+      - id
+      - registration_number
+      - updated_at
+      - vehicle_type
+    VehicleDocument:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        document_type:
+          $ref: '#/components/schemas/DocumentTypeEnum'
+        file_url:
+          type: string
+          format: uri
+          maxLength: 200
+        expiry_date:
+          type: string
+          format: date
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - document_type
+      - file_url
+      - id
+      - updated_at
+    VehicleList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        vehicle_type:
+          allOf:
+          - $ref: '#/components/schemas/VehicleTypeSummary'
+          readOnly: true
+        registration_number:
+          type: string
+          maxLength: 20
+        capacity_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+        photo_url:
+          nullable: true
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
+        status:
+          $ref: '#/components/schemas/StatusB39Enum'
+        current_driver_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - capacity_kg
+      - created_at
+      - id
+      - registration_number
+      - updated_at
+      - vehicle_type
+    VehicleStartPoint:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        label:
+          type: string
+          maxLength: 150
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+        status:
+          type: string
+          maxLength: 20
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - label
+      - latitude
+      - longitude
+      - updated_at
+    VehicleType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 50
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        default_capacity_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+        icon_image_url:
+          nullable: true
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
+        status:
+          $ref: '#/components/schemas/VehicleTypeStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - category
+      - created_at
+      - default_capacity_kg
+      - id
+      - name
+      - updated_at
+    VehicleTypeStatusEnum:
+      enum:
+      - active
+      - inactive
+      type: string
+      description: |-
+        * `active` - Active
+        * `inactive` - Inactive
+    VehicleTypeSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 50
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        icon_image_url:
+          nullable: true
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
+      required:
+      - category
+      - id
+      - name
+    WebhookEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        event_type:
+          type: string
+          readOnly: true
+        order_ref:
+          type: string
+          readOnly: true
+        payload:
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/WebhookEventStatusEnum'
+          readOnly: true
+        attempt_count:
+          type: integer
+          readOnly: true
+        next_attempt_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        delivered_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - attempt_count
+      - created_at
+      - delivered_at
+      - event_type
+      - id
+      - next_attempt_at
+      - order_ref
+      - payload
+      - status
+      - updated_at
+    WebhookEventStatusEnum:
+      enum:
+      - pending
+      - delivered
+      - failed
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `delivered` - Delivered
+        * `failed` - Failed

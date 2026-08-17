@@ -1,9 +1,11 @@
 import random
 
 from django.core.cache import cache
+from django.db import transaction
 from django.utils import timezone
 
 from core.exceptions import DomainError
+from notifications.tasks import send_push_notification
 
 from .models import Driver, DriverAccountStatus, VerificationStatus
 from .sms import get_sms_provider
@@ -83,10 +85,9 @@ def verify_otp(phone_number, otp):
 
 
 def has_active_trip(driver):
-    """No Trip model exists yet (a future module) — always False for now.
-    Single place to wire up the real check once trips exist.
-    """
-    return False
+    from trips.models import ACTIVE_TRIP_STATUSES, Trip
+
+    return Trip.objects.filter(driver=driver, status__in=ACTIVE_TRIP_STATUSES).exists()
 
 
 def disable_driver(driver):
@@ -99,6 +100,18 @@ def disable_driver(driver):
     driver.soft_delete()
 
 
+def _notify_kyc_rejected(driver, doc_type, note):
+    driver_id = driver.id
+    transaction.on_commit(
+        lambda: send_push_notification.delay(
+            driver_id=driver_id,
+            title="KYC Document Rejected",
+            body=f"Your {doc_type} was rejected: {note}",
+            data={"type": "kyc_rejected", "doc_type": doc_type},
+        )
+    )
+
+
 def verify_aadhar(driver, status, admin_id, note=None):
     driver.aadhar_status = status
     driver.aadhar_verified_by = admin_id
@@ -107,6 +120,8 @@ def verify_aadhar(driver, status, admin_id, note=None):
     driver.save(
         update_fields=["aadhar_status", "aadhar_verified_by", "aadhar_verified_at", "aadhar_rejection_note"]
     )
+    if status == VerificationStatus.REJECTED:
+        _notify_kyc_rejected(driver, "Aadhar", note)
     return driver
 
 
@@ -118,6 +133,8 @@ def verify_police(driver, status, admin_id, note=None):
     driver.save(
         update_fields=["police_status", "police_verified_by", "police_verified_at", "police_rejection_note"]
     )
+    if status == VerificationStatus.REJECTED:
+        _notify_kyc_rejected(driver, "Police Verification", note)
     return driver
 
 
@@ -142,4 +159,6 @@ def verify_dl(driver, status, admin_id, note=None, expiry_date=None, allowed_cat
             update_fields.append("account_status")
 
     driver.save(update_fields=update_fields)
+    if status == VerificationStatus.REJECTED:
+        _notify_kyc_rejected(driver, "Driving Licence", note)
     return driver

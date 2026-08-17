@@ -19,10 +19,16 @@ class Command(BaseCommand):
             raise CommandError(f"Company '{options['company_name']}' does not exist.")
 
         raw_secret = secrets.token_urlsafe(32)
-        client = ApiClient(company=company, name=options["name"])
+        webhook_signing_secret = secrets.token_hex(32)
+        client = ApiClient(company=company, name=options["name"], webhook_signing_secret=webhook_signing_secret)
         client.set_secret(raw_secret)
         client.save()
 
         self.stdout.write(self.style.SUCCESS(f"Created API client '{client.name}' for '{company.name}'"))
         self.stdout.write(f"client_id: {client.client_id}")
         self.stdout.write(f"client_secret: {raw_secret}  (shown once — store it now)")
+        self.stdout.write(
+            f"webhook_signing_secret: {webhook_signing_secret}  (shown once — used to verify the "
+            "X-Webhook-Signature header on delivered webhook events; give this to the client team)"
+        )
+        self.stdout.write("webhook_url is not set yet — update it via the admin panel once the client has an endpoint.")

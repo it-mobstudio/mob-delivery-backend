@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Vehicle, VehicleDocument, VehicleType
+from .models import Vehicle, VehicleDocument, VehicleDocumentExpiryAlert, VehicleType
 
 
 @admin.register(VehicleType)
@@ -21,3 +21,9 @@ class VehicleAdmin(admin.ModelAdmin):
     list_filter = ("status", "company", "vehicle_type__category")
     search_fields = ("registration_number",)
     inlines = [VehicleDocumentInline]
+
+
+@admin.register(VehicleDocumentExpiryAlert)
+class VehicleDocumentExpiryAlertAdmin(admin.ModelAdmin):
+    list_display = ("vehicle", "document", "expiry_date", "acknowledged", "company")
+    list_filter = ("acknowledged", "company")

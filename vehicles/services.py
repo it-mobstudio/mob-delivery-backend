@@ -19,11 +19,9 @@ def delete_vehicle_type(vehicle_type):
 
 
 def has_active_trip(vehicle):
-    """No Trip model exists yet (a future module) — always False for now.
-    This is the single place to wire up the real check once trips exist;
-    the disable endpoint, error code, and call site are already in place.
-    """
-    return False
+    from trips.models import ACTIVE_TRIP_STATUSES, Trip
+
+    return Trip.objects.filter(vehicle=vehicle, status__in=ACTIVE_TRIP_STATUSES).exists()
 
 
 def disable_vehicle(vehicle):

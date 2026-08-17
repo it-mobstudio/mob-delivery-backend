@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from accounts.models import AdminRole, AdminUser, Company
+from tenant_settings.services import seed_default_settings
 
 
 class Command(BaseCommand):
@@ -22,6 +23,7 @@ class Command(BaseCommand):
             raise CommandError(f"AdminUser '{admin_email}' already exists.")
 
         company = Company.objects.create(name=company_name)
+        seed_default_settings(company)
         admin_user = AdminUser.objects.create_user(
             email=admin_email,
             company=company,
