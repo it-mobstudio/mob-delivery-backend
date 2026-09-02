@@ -1,4 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.openapi import OpenApiTypes
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
@@ -7,27 +8,32 @@ from rest_framework.views import APIView
 
 from accounts.permissions import IsAdminUser
 from core.tenancy import CompanyScopedMixin
+from drivers.permissions import IsDriverUser
 from idempotency.services import with_idempotency
 
 from . import services
 from .filters import TripFilter
 from .models import StopType, Trip, TripStop
 from .serializers import (
+    AddTripStopPhotoSerializer,
     AssignmentCandidateSerializer,
     AssignmentCandidatesRequestSerializer,
     AssignVehicleSerializer,
     CancelSerializer,
     CompleteStopSerializer,
+    ExcludedAssignmentVehicleSerializer,
     IntakeOrderSerializer,
     ReassignVehicleSerializer,
     TripDetailSerializer,
     TripListSerializer,
+    TripPhotoSerializer,
     TripStopSerializer,
     UpdateDeliveryAddressSerializer,
 )
 
 
 @extend_schema(
+    tags=["Admin: Trips", "Integrations: Orders"],
     summary="Submit an order for pickup/delivery",
     description=(
         "Accepts a client order into the trip pipeline. If `parent_order_ref` is given and "
@@ -37,6 +43,8 @@ from .serializers import (
         "drop stop. Calling this again with an `order_ref` already seen is idempotent: it "
         "returns the original trip/stop ids without creating anything new."
     ),
+    request=IntakeOrderSerializer,
+    responses={200: OpenApiTypes.OBJECT},
 )
 class IntakeOrderView(APIView):
     def post(self, request):
@@ -56,6 +64,7 @@ class IntakeOrderView(APIView):
 
 
 @extend_schema(
+    tags=["Admin: Trips", "Integrations: Orders"],
     summary="Cancel a single order before pickup",
     description=(
         "Pre-pickup cancellation of one suborder (Scenario A). Rejected with 409 "
@@ -63,6 +72,8 @@ class IntakeOrderView(APIView):
         "Issues module for that case instead. Open to any authenticated principal (admin or "
         "an external client backend), unlike whole-trip cancellation which is admin-only."
     ),
+    request=CancelSerializer,
+    responses={200: OpenApiTypes.OBJECT},
 )
 class OrderCancelView(APIView):
     def post(self, request, order_ref=None):
@@ -73,8 +84,10 @@ class OrderCancelView(APIView):
 
 
 @extend_schema(
+    tags=["Admin: Trips", "Integrations: Orders"],
     summary="List orders grouped by parent order",
     description="Groups every suborder sharing a `parent_order_ref` together with their shared trip's status — the staggered-acceptance grouping made visible for the Admin Panel.",
+    responses={200: OpenApiTypes.OBJECT},
 )
 class GroupedOrdersView(APIView):
     def get(self, request):
@@ -108,34 +121,52 @@ class GroupedOrdersView(APIView):
 
 
 @extend_schema(
+    tags=["Admin: Trips", "Integrations: Orders"],
     summary="Find vehicle/driver candidates for assignment",
     description=(
-        "Returns available vehicles (active, unassigned, sufficient capacity) paired with "
-        "drivers eligible to drive them (fully verified, active, DL not expired, and whose "
-        "`dl_allowed_categories` include the vehicle's category). Accepts either `trip_id` or "
+        "Returns `matches`: vehicles that are either free right now or expected to finish "
+        "their current trip within `within_minutes` (active status, sufficient capacity), "
+        "paired with drivers eligible to drive them (fully verified, active, DL not expired, "
+        "and whose `dl_allowed_categories` include the vehicle's category). Each match's "
+        "`availableInMinutes` is `0` for a vehicle that's free now, or the estimated minutes "
+        "until it will be — a straight-line/assumed-speed estimate from the vehicle's last "
+        "location ping through its remaining stops, not a routed one. A busy vehicle whose "
+        "trip hasn't started moving yet, or has no recent location ping, is excluded rather "
+        "than guessed at. Also returns `excludedVehicles`: otherwise-assignable vehicles with "
+        "zero eligible drivers, each with a human-readable `reason`, so the Admin Panel can "
+        "show them disabled instead of just missing from the list. Accepts either `trip_id` or "
         "`order_refs` to determine the required weight capacity."
     ),
+    request=AssignmentCandidatesRequestSerializer,
+    responses={200: OpenApiTypes.OBJECT},
 )
 class AssignmentCandidatesView(APIView):
     def post(self, request):
         serializer = AssignmentCandidatesRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        candidates = services.get_assignment_candidates(
+        result = services.get_assignment_candidates(
             company_id=request.user.company_id,
             trip_id=data.get("trip_id"),
             order_refs=data.get("order_refs"),
             within_minutes=data.get("within_minutes"),
         )
-        return Response(AssignmentCandidateSerializer(candidates, many=True).data)
+        return Response(
+            {
+                "matches": AssignmentCandidateSerializer(result["matches"], many=True).data,
+                "excluded_vehicles": ExcludedAssignmentVehicleSerializer(
+                    result["excluded_vehicles"], many=True
+                ).data,
+            }
+        )
 
 
 @extend_schema_view(
-    list=extend_schema(summary="List trips", description="Lists this company's trips with their current status, filterable by status/vehicle/driver."),
-    retrieve=extend_schema(summary="Get a trip", description="Returns full trip detail: all stops, current vehicle/driver, and reassignment history."),
+    list=extend_schema(tags=["Admin: Trips"], summary="List trips", description="Lists this company's trips with their current status, filterable by status/vehicle/driver."),
+    retrieve=extend_schema(tags=["Admin: Trips"], summary="Get a trip", description="Returns full trip detail: all stops, current vehicle/driver, and reassignment history."),
 )
 class TripViewSet(CompanyScopedMixin, viewsets.ReadOnlyModelViewSet):
-    queryset = Trip.objects.select_related("vehicle", "driver").prefetch_related("stops", "vehicle_history")
+    queryset = Trip.objects.select_related("vehicle", "driver").prefetch_related("stops__photos", "vehicle_history")
     filter_backends = [DjangoFilterBackend]
     filterset_class = TripFilter
 
@@ -153,6 +184,7 @@ class TripViewSet(CompanyScopedMixin, viewsets.ReadOnlyModelViewSet):
         return [permissions.IsAuthenticated()]
 
     @extend_schema(
+        tags=["Admin: Trips"],
         summary="Lock a trip's pickups",
         description="Moves a trip from collecting_pickups to pickups_locked once at least one pickup stop is completed — no further suborders can attach to it after this.",
     )
@@ -162,6 +194,7 @@ class TripViewSet(CompanyScopedMixin, viewsets.ReadOnlyModelViewSet):
         return Response(TripDetailSerializer(trip).data)
 
     @extend_schema(
+        tags=["Admin: Trips"],
         summary="Assign a vehicle and driver to a trip",
         description=(
             "First assignment for a trip. Validates the driver is fully eligible, the "
@@ -178,6 +211,7 @@ class TripViewSet(CompanyScopedMixin, viewsets.ReadOnlyModelViewSet):
         return Response(TripDetailSerializer(trip).data)
 
     @extend_schema(
+        tags=["Admin: Trips"],
         summary="Reassign a trip to a different vehicle/driver",
         description=(
             "Swaps a trip's vehicle and/or driver mid-flight (e.g. vehicle breakdown). Same "
@@ -194,6 +228,7 @@ class TripViewSet(CompanyScopedMixin, viewsets.ReadOnlyModelViewSet):
         return Response(TripDetailSerializer(trip).data)
 
     @extend_schema(
+        tags=["Admin: Trips"],
         summary="Cancel an entire trip",
         description=(
             "Whole-trip cancellation (Scenario B) — admin-only, an ApiClient token is rejected "
@@ -210,6 +245,7 @@ class TripViewSet(CompanyScopedMixin, viewsets.ReadOnlyModelViewSet):
 
 
 @extend_schema(
+    tags=["Driver: Trips"],
     summary="Complete a trip stop",
     description=(
         "Marks a pickup/drop stop completed. A proof photo is required for the trip's very "
@@ -218,10 +254,14 @@ class TripViewSet(CompanyScopedMixin, viewsets.ReadOnlyModelViewSet):
         "the whole trip delivered. Soft-flags (never blocks) a `location_mismatch` if the "
         "vehicle's last GPS ping was further than the tenant's geofence threshold from the "
         "stop's coordinates. Supports the `Idempotency-Key` header — retried with the same key "
-        "replays the original response instead of re-processing."
+        "replays the original response instead of re-processing. Driver-only."
     ),
+    request=CompleteStopSerializer,
+    responses={200: TripStopSerializer},
 )
 class TripStopCompleteView(APIView):
+    permission_classes = [IsDriverUser]
+
     def post(self, request, pk=None, stop_pk=None):
         def handler():
             serializer = CompleteStopSerializer(data=request.data)
@@ -238,10 +278,40 @@ class TripStopCompleteView(APIView):
 
 
 @extend_schema(
+    tags=["Driver: Trips"],
+    summary="Add a photo to a trip stop",
+    description=(
+        "Attaches a categorized photo (pickup / before_loading / loaded_vehicle / delivery / "
+        "goods_after_delivery / signed_challan / dc / other) to a trip stop. The proof-photo "
+        "gate on `complete` looks for at least one `pickup`/`before_loading` photo on a pickup "
+        "stop, or `delivery`/`goods_after_delivery`/`dc`/`signed_challan` on a drop stop — this "
+        "is the preferred way to satisfy it going forward, replacing sending `proofPhotoUrl` "
+        "directly on the complete call (still accepted, for compatibility). A stop's first "
+        "photo also backfills the legacy `proofPhotoUrl` field. Driver-only."
+    ),
+    request=AddTripStopPhotoSerializer,
+    responses={201: TripPhotoSerializer},
+)
+class TripStopPhotoView(APIView):
+    permission_classes = [IsDriverUser]
+
+    def post(self, request, pk=None, stop_pk=None):
+        serializer = AddTripStopPhotoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        photo = services.add_trip_stop_photo(stop_id=stop_pk, actor=request.user, **serializer.validated_data)
+        return Response(TripPhotoSerializer(photo).data, status=201)
+
+
+@extend_schema(
+    tags=["Admin: Trips"],
     summary="Update a stop's delivery address",
-    description="Changes a stop's address/coordinates mid-trip, logging the old and new values to an AddressChangeLog and notifying the assigned driver.",
+    description="Admin-only: changes a stop's address/coordinates mid-trip, logging the old and new values to an AddressChangeLog and notifying the assigned driver.",
+    request=UpdateDeliveryAddressSerializer,
+    responses={200: TripStopSerializer},
 )
 class TripStopDeliveryAddressView(APIView):
+    permission_classes = [IsAdminUser]
+
     def patch(self, request, pk=None, stop_pk=None):
         serializer = UpdateDeliveryAddressSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

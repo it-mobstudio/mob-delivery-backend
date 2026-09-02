@@ -9,6 +9,17 @@ class CreateIssueSerializer(serializers.Serializer):
     severity = serializers.ChoiceField(choices=IssueSeverity.choices, required=False)
     note = serializers.CharField(min_length=5)
     photo_url = serializers.URLField(required=False, allow_null=True, allow_blank=True)
+    # Only used (and required) when issue_type == traffic_penalty — see
+    # services.create_issue.
+    penalty_amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, min_value=0)
+    penalty_challan_number = serializers.CharField(required=False, allow_blank=True, max_length=50)
+
+    def validate(self, attrs):
+        if attrs["issue_type"] == IssueType.TRAFFIC_PENALTY and attrs.get("penalty_amount") is None:
+            raise serializers.ValidationError(
+                {"penalty_amount": "Required when issue_type is 'traffic_penalty'."}
+            )
+        return attrs
 
 
 class IssueListSerializer(serializers.ModelSerializer):
@@ -28,6 +39,10 @@ class IssueListSerializer(serializers.ModelSerializer):
             "resolution_note",
             "resolved_by",
             "resolved_at",
+            "penalty_amount",
+            "penalty_challan_number",
+            "penalty_paid",
+            "penalty_paid_at",
             "created_at",
             "updated_at",
         ]
@@ -55,6 +70,10 @@ class IssueDetailSerializer(serializers.ModelSerializer):
             "resolution_note",
             "resolved_by",
             "resolved_at",
+            "penalty_amount",
+            "penalty_challan_number",
+            "penalty_paid",
+            "penalty_paid_at",
             "created_at",
             "updated_at",
         ]

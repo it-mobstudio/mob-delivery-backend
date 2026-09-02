@@ -23,9 +23,9 @@ from .serializers import (
 
 
 @extend_schema_view(
-    get=extend_schema(tags=["damage-reports"], summary="List a vehicle's damage reports", description="Lists damage reports filed against one specific vehicle."),
+    get=extend_schema(tags=["Admin: Damage Reports", "Driver: Damage Reports"], summary="List a vehicle's damage reports", description="Lists damage reports filed against one specific vehicle."),
     post=extend_schema(
-        tags=["damage-reports"],
+        tags=["Admin: Damage Reports", "Driver: Damage Reports"],
         summary="Report vehicle damage",
         description=(
             "Files a damage report for a vehicle. A driver can only report against their own "
@@ -70,8 +70,8 @@ class VehicleDamageReportListCreateView(generics.ListCreateAPIView):
 
 
 @extend_schema_view(
-    list=extend_schema(summary="List damage reports", description="Company-wide list of all vehicle damage reports, filterable by status/vehicle."),
-    retrieve=extend_schema(summary="Get a damage report"),
+    list=extend_schema(tags=["Admin: Damage Reports"], summary="List damage reports", description="Company-wide list of all vehicle damage reports, filterable by status/vehicle."),
+    retrieve=extend_schema(tags=["Admin: Damage Reports"], summary="Get a damage report"),
 )
 class DamageReportViewSet(CompanyScopedMixin, viewsets.ReadOnlyModelViewSet):
     queryset = VehicleDamageReport.objects.select_related("vehicle").all()
@@ -88,7 +88,7 @@ class DamageReportViewSet(CompanyScopedMixin, viewsets.ReadOnlyModelViewSet):
             return DamageReportListSerializer
         return DamageReportSerializer
 
-    @extend_schema(summary="Resolve a damage report", description="Admin-only: marks a damage report resolved. A second resolve attempt on an already-resolved report is rejected.")
+    @extend_schema(tags=["Admin: Damage Reports"], summary="Resolve a damage report", description="Admin-only: marks a damage report resolved. A second resolve attempt on an already-resolved report is rejected.")
     @action(detail=True, methods=["post"])
     def resolve(self, request, pk=None):
         serializer = ResolveDamageReportSerializer(data=request.data)

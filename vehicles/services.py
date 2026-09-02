@@ -33,3 +33,24 @@ def disable_vehicle(vehicle):
     vehicle.status = VehicleStatus.DISABLED
     vehicle.save(update_fields=["status"])
     vehicle.soft_delete()
+
+
+def get_driver_current_vehicle(driver):
+    """Resolves the Vehicle currently assigned to `driver` (via
+    Driver.current_vehicle_id) for the driver-facing GET /driver/vehicle
+    endpoint — joined with its VehicleType. Raises a clean 404 DomainError,
+    rather than letting a bare Vehicle.DoesNotExist/AttributeError surface,
+    when the driver has no vehicle assigned right now.
+    """
+    if not driver.current_vehicle_id:
+        raise DomainError(
+            "NO_VEHICLE_ASSIGNED", "You do not have a vehicle assigned.", status_code=404
+        )
+    try:
+        return Vehicle.objects.select_related("vehicle_type").get(
+            pk=driver.current_vehicle_id, company_id=driver.company_id
+        )
+    except Vehicle.DoesNotExist:
+        raise DomainError(
+            "NO_VEHICLE_ASSIGNED", "You do not have a vehicle assigned.", status_code=404
+        )

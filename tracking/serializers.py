@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
-from .models import DriverShift, PauseReason, TripAnomalyAlert, TripPause, VehicleStartPoint
+from drivers.models import Driver
+from vehicles.models import Vehicle
+
+from .models import DriverShift, PauseReason, TripAnomalyAlert, TripPause
 
 
 class LocationPingSerializer(serializers.Serializer):
@@ -39,7 +42,6 @@ class StartShiftSerializer(serializers.Serializer):
     driver_id = serializers.UUIDField()
     vehicle_id = serializers.UUIDField()
     start_odometer = serializers.DecimalField(max_digits=10, decimal_places=2)
-    start_point_id = serializers.UUIDField(required=False, allow_null=True)
 
     def validate_start_odometer(self, value):
         if value < 0:
@@ -64,28 +66,56 @@ class DriverShiftSerializer(serializers.ModelSerializer):
             "total_working_minutes",
             "cleanliness_photo_url",
             "charging_plugged_photo_url",
-            "fixed_start_latitude",
-            "fixed_start_longitude",
-            "fixed_start_label",
+            "gps_distance_km",
+            "variance_km",
+            "needs_variance_review",
         ]
         read_only_fields = fields
 
 
-class VehicleStartPointSerializer(serializers.ModelSerializer):
+class ShiftDriverSummarySerializer(serializers.ModelSerializer):
     class Meta:
-        model = VehicleStartPoint
-        fields = ["id", "label", "latitude", "longitude", "status", "created_at", "updated_at"]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        model = Driver
+        fields = ["id", "full_name", "phone_number"]
 
-    def validate_latitude(self, value):
-        if not (-90 <= value <= 90):
-            raise serializers.ValidationError("Must be between -90 and 90.")
-        return value
 
-    def validate_longitude(self, value):
-        if not (-180 <= value <= 180):
-            raise serializers.ValidationError("Must be between -180 and 180.")
-        return value
+class ShiftVehicleSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vehicle
+        fields = ["id", "registration_number"]
+
+
+class DriverShiftAdminSerializer(serializers.ModelSerializer):
+    """Admin Panel list view of a shift — nests driver/vehicle summaries
+    instead of the bare FK ids DriverShiftSerializer returns, since the
+    driver-app start/active/end responses don't need names but the admin
+    shift list does.
+    """
+
+    driver = ShiftDriverSummarySerializer(read_only=True)
+    vehicle = ShiftVehicleSummarySerializer(read_only=True)
+
+    class Meta:
+        model = DriverShift
+        fields = [
+            "id",
+            "driver",
+            "vehicle",
+            "shift_date",
+            "start_odometer",
+            "end_odometer",
+            "started_at",
+            "ended_at",
+            "status",
+            "total_km",
+            "total_working_minutes",
+            "cleanliness_photo_url",
+            "charging_plugged_photo_url",
+            "gps_distance_km",
+            "variance_km",
+            "needs_variance_review",
+        ]
+        read_only_fields = fields
 
 
 class EndShiftSerializer(serializers.Serializer):
@@ -115,6 +145,7 @@ class TripAnomalyAlertSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "trip",
+            "shift",
             "vehicle_id",
             "alert_type",
             "details",

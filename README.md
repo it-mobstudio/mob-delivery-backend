@@ -99,6 +99,36 @@ never set. When `DEBUG=True`, common localhost dev-server origins
 (`localhost`/`127.0.0.1` on ports 3000 and 5173) are appended
 automatically.
 
+## API structure — three callers, one API
+
+Every endpoint under `/api/v1/` is meant for exactly one (occasionally two) of
+three callers, all authenticated the same way — a JWT in the `Authorization:
+Bearer <token>` header — but issued from different login flows and carrying a
+different principal type (`accounts.authentication.JWTMultiPrincipalAuthentication`
+resolves the token to whichever of these it turns out to be):
+
+- **AdminUser** — the Admin Panel. Logs in via `POST /api/v1/auth/login`
+  (email/password).
+- **Driver** — the driver mobile app. Logs in via phone+OTP
+  (`POST /api/v1/driver/auth/otp/request` then `.../otp/verify`).
+- **ApiClient** — a 3rd-party/partner backend. Authenticates via
+  client-credentials (`POST /api/v1/auth/client-token`), for order intake and
+  order status without a human in the loop.
+
+`POST /api/v1/auth/refresh` and `POST /api/v1/uploads` are the only two
+endpoints genuinely shared between Admin and Driver.
+
+### Swagger
+
+`/api/docs/` groups every operation by caller — `Admin: *`, `Driver: *`,
+`Integrations: *` — instead of by Django app, so someone integrating against
+just the Driver app (for example) doesn't have to read through Admin-only
+vehicle/fleet-management endpoints to find what's relevant to them. A handful
+of genuinely shared endpoints (token refresh, file upload) are tagged with
+both audiences and appear in both sections. The raw schema is at
+`/api/schema/`; tag descriptions and ordering live in
+`SPECTACULAR_SETTINGS["TAGS"]` in `mob_delivery/settings.py`.
+
 ## Running tests
 
 ```

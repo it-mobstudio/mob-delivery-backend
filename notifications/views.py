@@ -9,7 +9,7 @@ from .serializers import DriverDeviceSerializer, RegisterDeviceSerializer
 
 
 @extend_schema(
-    tags=["notifications"],
+    tags=["Driver: Devices"],
     summary="Register a device for push notifications",
     description="Registers (or upserts, if the FCM token already exists) a driver's device for push notifications. Driver-only.",
 )
@@ -24,7 +24,7 @@ class DeviceRegisterView(APIView):
 
 
 @extend_schema(
-    tags=["notifications"],
+    tags=["Driver: Devices"],
     summary="Deregister a device from push notifications",
     description="Removes one FCM token from the calling driver's registered devices — e.g. on logout.",
 )

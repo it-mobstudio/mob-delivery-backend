@@ -15,8 +15,9 @@ from .serializers import ResolveSosSerializer, SosAlertSerializer, TriggerSosSer
 
 
 @extend_schema_view(
-    get=extend_schema(summary="List SOS alerts", description="Admin Panel SOS log — every SOS alert raised for this company, filterable by status."),
+    get=extend_schema(tags=["Admin: SOS"], summary="List SOS alerts", description="Admin Panel SOS log — every SOS alert raised for this company, filterable by status."),
     post=extend_schema(
+        tags=["Driver: SOS"],
         summary="Trigger an SOS alert",
         description=(
             "Driver-only panic button. Deliberately bypasses every other eligibility rule in "
@@ -52,6 +53,7 @@ class SosAlertListCreateView(generics.ListCreateAPIView):
 
 
 @extend_schema(
+    tags=["Admin: SOS"],
     summary="Acknowledge an SOS alert",
     description="Admin-only: marks an SOS alert acknowledged (seen, being handled) and notifies the driver.",
 )
@@ -64,6 +66,7 @@ class SosAcknowledgeView(APIView):
 
 
 @extend_schema(
+    tags=["Admin: SOS"],
     summary="Resolve an SOS alert",
     description="Admin-only: closes out an SOS alert with a resolution note and notifies the driver.",
 )

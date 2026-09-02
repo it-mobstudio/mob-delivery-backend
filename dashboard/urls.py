@@ -1,6 +1,12 @@
 from django.urls import path
 
-from .views import DashboardKpisView, FleetStatusView, RecentDamageReportsView, RecentIssuesView
+from .views import (
+    DashboardKpisView,
+    DriverSafetyScoreView,
+    FleetStatusView,
+    RecentDamageReportsView,
+    RecentIssuesView,
+)
 
 urlpatterns = [
     path("dashboard/fleet-status", FleetStatusView.as_view(), name="dashboard-fleet-status"),
@@ -11,4 +17,5 @@ urlpatterns = [
         RecentDamageReportsView.as_view(),
         name="dashboard-recent-damage-reports",
     ),
+    path("drivers/<uuid:pk>/safety-score", DriverSafetyScoreView.as_view(), name="driver-safety-score"),
 ]

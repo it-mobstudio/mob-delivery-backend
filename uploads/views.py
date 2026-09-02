@@ -13,6 +13,7 @@ from .services import store_upload
 
 
 @extend_schema(
+    tags=["Admin: Uploads", "Driver: Uploads"],
     summary="Upload a file",
     description=(
         "The one reusable multipart upload endpoint used across the API — vehicle-type icons, "

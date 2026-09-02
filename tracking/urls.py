@@ -7,15 +7,17 @@ from .views import (
     LocationPingView,
     ShiftEndView,
     ShiftStartView,
+    ShiftViewSet,
     TripPauseView,
     TripResumeView,
     TripTimeSummaryView,
-    VehicleStartPointViewSet,
 )
 
 router = DefaultRouter(trailing_slash=False)
 router.register("alerts", AlertViewSet, basename="alert")
-router.register("start-points", VehicleStartPointViewSet, basename="start-point")
+# ShiftViewSet only implements `list` — registered after the explicit
+# shifts/start, shifts/active, shifts/<pk>/end paths so there's no collision.
+router.register("shifts", ShiftViewSet, basename="admin-shift")
 
 urlpatterns = [
     path("trips/<uuid:pk>/location", LocationPingView.as_view(), name="trip-location"),

@@ -1,4 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.openapi import OpenApiTypes
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
@@ -8,12 +9,15 @@ from rest_framework.views import APIView
 from accounts.permissions import IsAdminUser
 from core.exceptions import DomainError
 from core.tenancy import CompanyScopedMixin
+from damage_reports.permissions import IsDriverOrAdminUser
+from drivers.permissions import IsDriverUser
 from idempotency.services import with_idempotency
 
 from . import services
-from .filters import AlertFilter
-from .models import TripAnomalyAlert, VehicleStartPoint
+from .filters import AlertFilter, ShiftFilter
+from .models import DriverShift, TripAnomalyAlert
 from .serializers import (
+    DriverShiftAdminSerializer,
     DriverShiftSerializer,
     EndShiftResultSerializer,
     EndShiftSerializer,
@@ -23,20 +27,24 @@ from .serializers import (
     TimeSummarySerializer,
     TripAnomalyAlertSerializer,
     TripPauseSerializer,
-    VehicleStartPointSerializer,
 )
 
 
 @extend_schema(
+    tags=["Driver: Tracking"],
     summary="Record a live GPS ping for a trip's vehicle",
     description=(
         "Appends one location ping (lat/lng/timestamp/source) for the trip's currently "
         "assigned vehicle. Feeds the live-tracking WebSocket broadcast and the anomaly "
         "detection jobs (stationary/wrong-direction). Supports the `Idempotency-Key` header. "
-        "Pings older than `LOCATION_PING_RETENTION_DAYS` are purged weekly."
+        "Pings older than `LOCATION_PING_RETENTION_DAYS` are purged weekly. Driver-only."
     ),
+    request=LocationPingSerializer,
+    responses={200: OpenApiTypes.OBJECT},
 )
 class LocationPingView(APIView):
+    permission_classes = [IsDriverUser]
+
     def post(self, request, pk=None):
         def handler():
             serializer = LocationPingSerializer(data=request.data)
@@ -49,10 +57,15 @@ class LocationPingView(APIView):
 
 
 @extend_schema(
+    tags=["Driver: Tracking"],
     summary="Pause a trip",
-    description="Opens a TripPause window (e.g. driver on a break) — while open, the trip is excluded from the stationary-vehicle anomaly check. Supports the `Idempotency-Key` header.",
+    description="Driver-only: opens a TripPause window (e.g. driver on a break) — while open, the trip is excluded from the stationary-vehicle anomaly check. Supports the `Idempotency-Key` header.",
+    request=PauseSerializer,
+    responses={200: TripPauseSerializer},
 )
 class TripPauseView(APIView):
+    permission_classes = [IsDriverUser]
+
     def post(self, request, pk=None):
         def handler():
             serializer = PauseSerializer(data=request.data)
@@ -65,10 +78,14 @@ class TripPauseView(APIView):
 
 
 @extend_schema(
+    tags=["Driver: Tracking"],
     summary="Resume a paused trip",
-    description="Closes the trip's currently open TripPause window, resuming stationary-vehicle anomaly checks. Supports the `Idempotency-Key` header.",
+    description="Driver-only: closes the trip's currently open TripPause window, resuming stationary-vehicle anomaly checks. Supports the `Idempotency-Key` header.",
+    responses={200: TripPauseSerializer},
 )
 class TripResumeView(APIView):
+    permission_classes = [IsDriverUser]
+
     def post(self, request, pk=None):
         def handler():
             pause = services.resume_trip(trip_id=pk, actor=request.user)
@@ -79,10 +96,14 @@ class TripResumeView(APIView):
 
 
 @extend_schema(
+    tags=["Admin: Trips", "Driver: Tracking"],
     summary="Get a trip's time summary",
-    description="Returns total elapsed time and total paused time for a trip, computed from its TripPause windows.",
+    description="Returns total elapsed time and total paused time for a trip, computed from its TripPause windows. Admin or Driver only.",
+    responses={200: TimeSummarySerializer},
 )
 class TripTimeSummaryView(APIView):
+    permission_classes = [IsDriverOrAdminUser]
+
     def get(self, request, pk=None):
         trip = services.get_trip(pk, request.user.company_id)
         summary = services.get_trip_time_summary(trip)
@@ -90,10 +111,15 @@ class TripTimeSummaryView(APIView):
 
 
 @extend_schema(
+    tags=["Admin: Shifts", "Driver: Shifts"],
     summary="Start a driver's shift",
-    description="Opens a new DriverShift for a driver/vehicle pair with a starting odometer reading. Rejected with 409 `SHIFT_ALREADY_ACTIVE` if that driver already has one open — one active shift per driver at a time.",
+    description="Admin or Driver: opens a new DriverShift for a driver/vehicle pair with a starting odometer reading — an admin can start one on a driver's behalf (e.g. at a hub) as well as the driver themself. Rejected with 409 `SHIFT_ALREADY_ACTIVE` if that driver already has one open — one active shift per driver at a time.",
+    request=StartShiftSerializer,
+    responses={200: DriverShiftSerializer},
 )
 class ShiftStartView(APIView):
+    permission_classes = [IsDriverOrAdminUser]
+
     def post(self, request):
         serializer = StartShiftSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -102,10 +128,14 @@ class ShiftStartView(APIView):
 
 
 @extend_schema(
+    tags=["Admin: Shifts", "Driver: Shifts"],
     summary="Get a driver's active shift",
-    description="Looks up the currently open DriverShift for `driver_id` (required query param). Returns null if the driver has no active shift.",
+    description="Admin or Driver: looks up the currently open DriverShift for `driver_id` (required query param). Returns null if the driver has no active shift.",
+    responses={200: DriverShiftSerializer},
 )
 class ActiveShiftView(APIView):
+    permission_classes = [IsDriverOrAdminUser]
+
     def get(self, request):
         driver_id = request.query_params.get("driver_id")
         if not driver_id:
@@ -115,15 +145,20 @@ class ActiveShiftView(APIView):
 
 
 @extend_schema(
+    tags=["Admin: Shifts", "Driver: Shifts"],
     summary="End a driver's shift",
     description=(
-        "Closes a shift and computes total km/working minutes. Requires both a cleanliness "
-        "photo and a charging-plugged photo (422 `CLEANLINESS_PHOTO_REQUIRED` / "
+        "Admin or Driver: closes a shift and computes total km/working minutes. Requires both "
+        "a cleanliness photo and a charging-plugged photo (422 `CLEANLINESS_PHOTO_REQUIRED` / "
         "`CHARGING_PHOTO_REQUIRED` if either is missing) — never optional. Refused with 409 "
         "`TRIP_IN_PROGRESS` if the driver/vehicle still has an active trip; end that first."
     ),
+    request=EndShiftSerializer,
+    responses={200: EndShiftResultSerializer},
 )
 class ShiftEndView(APIView):
+    permission_classes = [IsDriverOrAdminUser]
+
     def post(self, request, pk=None):
         serializer = EndShiftSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -132,23 +167,28 @@ class ShiftEndView(APIView):
 
 
 @extend_schema_view(
-    list=extend_schema(summary="List shift start points", description="Lists this company's reusable named shift-start locations (e.g. a warehouse hub)."),
-    retrieve=extend_schema(summary="Get a shift start point"),
-    create=extend_schema(summary="Create a shift start point"),
-    update=extend_schema(summary="Replace a shift start point"),
-    partial_update=extend_schema(summary="Update a shift start point"),
-    destroy=extend_schema(summary="Delete a shift start point"),
+    list=extend_schema(
+        tags=["Admin: Shifts"],
+        summary="List driver shifts",
+        description=(
+            "Admin-side, day-level view of DriverShift records (separate from individual "
+            "trips) — driver, vehicle, odometer readings, total km/working minutes, status, "
+            "and the two required end-of-shift photos. Filterable by `status`, `driver`, "
+            "`vehicle`, and `date_from`/`date_to` (inclusive, against `shift_date`)."
+        ),
+    ),
 )
-class VehicleStartPointViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
-    """AdminUser-only CRUD for reusable named shift start points (Point 6)."""
-
+class ShiftViewSet(CompanyScopedMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
     permission_classes = [IsAdminUser]
-    queryset = VehicleStartPoint.objects.all()
-    serializer_class = VehicleStartPointSerializer
+    queryset = DriverShift.objects.select_related("driver", "vehicle").all()
+    serializer_class = DriverShiftAdminSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = ShiftFilter
 
 
 @extend_schema_view(
     list=extend_schema(
+        tags=["Admin: Tracking"],
         summary="List anomaly alerts",
         description=(
             "Lists automated anomaly alerts (a vehicle stationary too long, or heading the "
@@ -163,7 +203,7 @@ class AlertViewSet(CompanyScopedMixin, mixins.ListModelMixin, viewsets.GenericVi
     filter_backends = [DjangoFilterBackend]
     filterset_class = AlertFilter
 
-    @extend_schema(summary="Acknowledge an alert", description="Marks an alert acknowledged, clearing the way for a fresh alert of that type to be raised later if the anomaly recurs.")
+    @extend_schema(tags=["Admin: Tracking"], summary="Acknowledge an alert", description="Marks an alert acknowledged, clearing the way for a fresh alert of that type to be raised later if the anomaly recurs.")
     @action(detail=True, methods=["post"])
     def acknowledge(self, request, pk=None):
         alert = services.acknowledge_alert(alert_id=pk, actor=request.user)

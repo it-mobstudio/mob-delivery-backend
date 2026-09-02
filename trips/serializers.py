@@ -3,23 +3,32 @@ from rest_framework import serializers
 from drivers.serializers import DriverListSerializer
 from vehicles.serializers import VehicleListSerializer
 
-from .models import AddressChangeLog, Trip, TripStop, TripVehicleHistory
+from .models import AddressChangeLog, Trip, TripPhoto, TripPhotoType, TripStop, TripVehicleHistory
 
 
 class LatLngAddressSerializer(serializers.Serializer):
     address = serializers.CharField(max_length=500)
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    # Not required — a pincode-only payload is resolved server-side (see
+    # trips.services._resolve_stop_coordinates) rather than rejected here.
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    pincode = serializers.CharField(max_length=10, required=False, allow_null=True, allow_blank=True)
 
     def validate_latitude(self, value):
-        if not (-90 <= value <= 90):
+        if value is not None and not (-90 <= value <= 90):
             raise serializers.ValidationError("Must be between -90 and 90.")
         return value
 
     def validate_longitude(self, value):
-        if not (-180 <= value <= 180):
+        if value is not None and not (-180 <= value <= 180):
             raise serializers.ValidationError("Must be between -180 and 180.")
         return value
+
+    def validate(self, attrs):
+        has_coords = attrs.get("latitude") is not None and attrs.get("longitude") is not None
+        if not has_coords and not attrs.get("pincode"):
+            raise serializers.ValidationError("Provide either latitude/longitude or a pincode.")
+        return attrs
 
 
 class IntakeOrderSerializer(serializers.Serializer):
@@ -35,7 +44,33 @@ class IntakeOrderSerializer(serializers.Serializer):
         return value
 
 
+class TripPhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TripPhoto
+        fields = ["id", "trip_stop", "photo_type", "photo_url", "latitude", "longitude", "created_at"]
+        read_only_fields = fields
+
+
+class AddTripStopPhotoSerializer(serializers.Serializer):
+    photo_type = serializers.ChoiceField(choices=TripPhotoType.choices)
+    photo_url = serializers.URLField()
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+
+    def validate_latitude(self, value):
+        if value is not None and not (-90 <= value <= 90):
+            raise serializers.ValidationError("Must be between -90 and 90.")
+        return value
+
+    def validate_longitude(self, value):
+        if value is not None and not (-180 <= value <= 180):
+            raise serializers.ValidationError("Must be between -180 and 180.")
+        return value
+
+
 class TripStopSerializer(serializers.ModelSerializer):
+    photos = TripPhotoSerializer(many=True, read_only=True)
+
     class Meta:
         model = TripStop
         fields = [
@@ -49,6 +84,7 @@ class TripStopSerializer(serializers.ModelSerializer):
             "longitude",
             "status",
             "proof_photo_url",
+            "photos",
             "arrived_at",
             "completed_at",
             "weight_kg",
@@ -118,10 +154,26 @@ class TripListSerializer(serializers.ModelSerializer):
 class TripDetailSerializer(TripListSerializer):
     stops = TripStopSerializer(many=True, read_only=True)
     vehicle_history = TripVehicleHistorySerializer(many=True, read_only=True)
+    route = serializers.SerializerMethodField()
 
     class Meta(TripListSerializer.Meta):
-        fields = TripListSerializer.Meta.fields + ["stops", "vehicle_history"]
+        fields = TripListSerializer.Meta.fields + ["stops", "vehicle_history", "route"]
         read_only_fields = fields
+
+    def get_route(self, trip):
+        """The actual driving route (Google Maps), not a straight line
+        between endpoints — earliest stop to latest by sequence_no, so the
+        Admin Panel can draw it on the trip map. None if the trip has fewer
+        than two stops or Google Maps isn't configured.
+        """
+        stops = list(trip.stops.all())  # already sequence_no-ordered (TripStop.Meta.ordering)
+        if len(stops) < 2:
+            return None
+
+        from maps.services import fetch_route_polyline
+
+        origin, destination = stops[0], stops[-1]
+        return fetch_route_polyline(origin.latitude, origin.longitude, destination.latitude, destination.longitude)
 
 
 class AssignmentCandidatesRequestSerializer(serializers.Serializer):
@@ -141,6 +193,12 @@ class AssignmentCandidatesRequestSerializer(serializers.Serializer):
 class AssignmentCandidateSerializer(serializers.Serializer):
     vehicle = VehicleListSerializer()
     drivers = DriverListSerializer(many=True)
+    available_in_minutes = serializers.IntegerField()
+
+
+class ExcludedAssignmentVehicleSerializer(serializers.Serializer):
+    vehicle = VehicleListSerializer()
+    reason = serializers.CharField()
 
 
 class AssignVehicleSerializer(serializers.Serializer):

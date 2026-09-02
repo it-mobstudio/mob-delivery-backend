@@ -94,6 +94,43 @@ class TripStop(BaseModel):
         return f"{self.get_stop_type_display()} — {self.order_ref}"
 
 
+class TripPhotoType(models.TextChoices):
+    PICKUP = "pickup", "Pickup"
+    BEFORE_LOADING = "before_loading", "Before Loading"
+    LOADED_VEHICLE = "loaded_vehicle", "Loaded Vehicle"
+    DELIVERY = "delivery", "Delivered Goods"
+    GOODS_AFTER_DELIVERY = "goods_after_delivery", "Goods After Delivery"
+    SIGNED_CHALLAN = "signed_challan", "Signed Delivery Challan"
+    DC = "dc", "Delivery Challan"
+    OTHER = "other", "Other"
+
+
+# Which TripPhoto types satisfy the pickup/delivery proof-photo gate in
+# services.complete_stop — anything else (e.g. OTHER) can be attached for
+# record-keeping but doesn't itself unlock completion.
+PICKUP_GATE_PHOTO_TYPES = [TripPhotoType.PICKUP, TripPhotoType.BEFORE_LOADING]
+DELIVERY_GATE_PHOTO_TYPES = [
+    TripPhotoType.DELIVERY,
+    TripPhotoType.GOODS_AFTER_DELIVERY,
+    TripPhotoType.DC,
+    TripPhotoType.SIGNED_CHALLAN,
+]
+
+
+class TripPhoto(BaseModel):
+    trip_stop = models.ForeignKey(TripStop, on_delete=models.CASCADE, related_name="photos")
+    photo_type = models.CharField(max_length=25, choices=TripPhotoType.choices)
+    photo_url = models.URLField()
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_photo_type_display()} — stop {self.trip_stop_id}"
+
+
 class TripVehicleHistory(BaseModel):
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name="vehicle_history")
     previous_vehicle = models.ForeignKey(Vehicle, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")

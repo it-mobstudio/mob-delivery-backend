@@ -112,51 +112,113 @@ def _notify_kyc_rejected(driver, doc_type, note):
     )
 
 
-def verify_aadhar(driver, status, admin_id, note=None):
-    driver.aadhar_status = status
-    driver.aadhar_verified_by = admin_id
-    driver.aadhar_verified_at = timezone.now()
-    driver.aadhar_rejection_note = note if status == VerificationStatus.REJECTED else None
-    driver.save(
-        update_fields=["aadhar_status", "aadhar_verified_by", "aadhar_verified_at", "aadhar_rejection_note"]
-    )
+def verify_aadhar(driver, status=None, admin_id=None, note=None, doc_url=None):
+    """A single call can attach/replace the document (doc_url), decide it
+    (status + note), or both at once. doc_url with no status resets
+    aadhar_status to pending — covers first-time submission and
+    resubmission after a rejection in the same shape; the prior
+    verifier/rejection-note are cleared so a stale decision doesn't linger
+    against the new document.
+    """
+    update_fields = []
+
+    if doc_url is not None:
+        driver.aadhar_doc_url = doc_url
+        update_fields.append("aadhar_doc_url")
+
+    if status is not None:
+        driver.aadhar_status = status
+        driver.aadhar_verified_by = admin_id
+        driver.aadhar_verified_at = timezone.now()
+        driver.aadhar_rejection_note = note if status == VerificationStatus.REJECTED else None
+        update_fields += ["aadhar_status", "aadhar_verified_by", "aadhar_verified_at", "aadhar_rejection_note"]
+    elif doc_url is not None:
+        driver.aadhar_status = VerificationStatus.PENDING
+        driver.aadhar_verified_by = None
+        driver.aadhar_verified_at = None
+        driver.aadhar_rejection_note = None
+        update_fields += ["aadhar_status", "aadhar_verified_by", "aadhar_verified_at", "aadhar_rejection_note"]
+
+    driver.save(update_fields=update_fields)
     if status == VerificationStatus.REJECTED:
         _notify_kyc_rejected(driver, "Aadhar", note)
     return driver
 
 
-def verify_police(driver, status, admin_id, note=None):
-    driver.police_status = status
-    driver.police_verified_by = admin_id
-    driver.police_verified_at = timezone.now()
-    driver.police_rejection_note = note if status == VerificationStatus.REJECTED else None
-    driver.save(
-        update_fields=["police_status", "police_verified_by", "police_verified_at", "police_rejection_note"]
-    )
+def verify_police(driver, status=None, admin_id=None, note=None, doc_url=None):
+    update_fields = []
+
+    if doc_url is not None:
+        driver.police_doc_url = doc_url
+        update_fields.append("police_doc_url")
+
+    if status is not None:
+        driver.police_status = status
+        driver.police_verified_by = admin_id
+        driver.police_verified_at = timezone.now()
+        driver.police_rejection_note = note if status == VerificationStatus.REJECTED else None
+        update_fields += ["police_status", "police_verified_by", "police_verified_at", "police_rejection_note"]
+    elif doc_url is not None:
+        driver.police_status = VerificationStatus.PENDING
+        driver.police_verified_by = None
+        driver.police_verified_at = None
+        driver.police_rejection_note = None
+        update_fields += ["police_status", "police_verified_by", "police_verified_at", "police_rejection_note"]
+
+    driver.save(update_fields=update_fields)
     if status == VerificationStatus.REJECTED:
         _notify_kyc_rejected(driver, "Police Verification", note)
     return driver
 
 
-def verify_dl(driver, status, admin_id, note=None, expiry_date=None, allowed_categories=None):
-    driver.dl_status = status
-    driver.dl_verified_by = admin_id
-    driver.dl_verified_at = timezone.now()
-    driver.dl_rejection_note = note if status == VerificationStatus.REJECTED else None
+def verify_dl(driver, status=None, admin_id=None, note=None, expiry_date=None, allowed_categories=None, doc_url=None):
+    """expiry_date/allowed_categories are applied whenever explicitly
+    passed — independent of status, so they can be set/corrected in a call
+    that doesn't also decide verified/rejected. A verify call that omits
+    them (e.g. re-confirming a DL whose expiry/categories were already set
+    in an earlier call) leaves whatever is already on the driver record
+    untouched rather than nulling it out.
+    """
+    update_fields = []
 
-    update_fields = ["dl_status", "dl_verified_by", "dl_verified_at", "dl_rejection_note"]
+    if doc_url is not None:
+        driver.dl_doc_url = doc_url
+        update_fields.append("dl_doc_url")
 
-    if status == VerificationStatus.VERIFIED:
+    if expiry_date is not None:
         driver.dl_expiry_date = expiry_date
+        update_fields.append("dl_expiry_date")
+    if allowed_categories is not None:
         driver.dl_allowed_categories = allowed_categories
-        update_fields += ["dl_expiry_date", "dl_allowed_categories"]
+        update_fields.append("dl_allowed_categories")
 
-        # The only place account_status unlocks from locked_dl_expired — tied
-        # specifically to a successful DL re-verification with a future
-        # expiry date, per the module spec (no separate generic unlock endpoint).
-        if driver.account_status == DriverAccountStatus.LOCKED_DL_EXPIRED and expiry_date >= timezone.localdate():
-            driver.account_status = DriverAccountStatus.ACTIVE
-            update_fields.append("account_status")
+    if status is not None:
+        driver.dl_status = status
+        driver.dl_verified_by = admin_id
+        driver.dl_verified_at = timezone.now()
+        driver.dl_rejection_note = note if status == VerificationStatus.REJECTED else None
+        update_fields += ["dl_status", "dl_verified_by", "dl_verified_at", "dl_rejection_note"]
+
+        if status == VerificationStatus.VERIFIED:
+            # The only place account_status unlocks from locked_dl_expired —
+            # tied specifically to a successful DL re-verification with a
+            # future expiry date, per the module spec (no separate generic
+            # unlock endpoint). Reads driver.dl_expiry_date (not the raw
+            # param) since that reflects the effective value whether it was
+            # just set above or already on file.
+            if (
+                driver.account_status == DriverAccountStatus.LOCKED_DL_EXPIRED
+                and driver.dl_expiry_date
+                and driver.dl_expiry_date >= timezone.localdate()
+            ):
+                driver.account_status = DriverAccountStatus.ACTIVE
+                update_fields.append("account_status")
+    elif doc_url is not None:
+        driver.dl_status = VerificationStatus.PENDING
+        driver.dl_verified_by = None
+        driver.dl_verified_at = None
+        driver.dl_rejection_note = None
+        update_fields += ["dl_status", "dl_verified_by", "dl_verified_at", "dl_rejection_note"]
 
     driver.save(update_fields=update_fields)
     if status == VerificationStatus.REJECTED:

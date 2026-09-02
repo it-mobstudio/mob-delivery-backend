@@ -17,6 +17,33 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env.bool("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
+if DEBUG:
+    # redis-py 5+ defaults to negotiating RESP3 by sending `HELLO 3` on every
+    # new connection. The Windows Redis build commonly used for local dev
+    # (the old Microsoft-archived port, no official Windows build exists
+    # past it) tops out around Redis 5.0, and HELLO wasn't added until Redis
+    # 6.0 — so every cache/channel-layer/Celery-broker connection fails with
+    # "unknown command `HELLO`" the moment it tries to connect. A real
+    # (Linux/Docker/Memurai) Redis 6+ server doesn't have this problem, so
+    # this is intentionally DEBUG-only, not a blanket downgrade.
+    #
+    # There's no single Django/Celery setting that reaches all three
+    # consumers (django-redis, channels-redis, and Celery's kombu broker all
+    # build their own redis-py connections differently — a `?protocol=2`
+    # query string on the URL works for the first two but kombu silently
+    # drops unknown query params), so this pins the default at the
+    # redis-py library level instead, before anything opens a connection.
+    # Three separate module bindings because each does `from .utils import
+    # DEFAULT_RESP_VERSION`, copying the name into its own namespace at
+    # import time — patching redis.utils alone doesn't reach the others.
+    import redis.asyncio.connection
+    import redis.connection
+    import redis.utils
+
+    redis.connection.DEFAULT_RESP_VERSION = 2
+    redis.asyncio.connection.DEFAULT_RESP_VERSION = 2
+    redis.utils.DEFAULT_RESP_VERSION = 2
+
 
 INSTALLED_APPS = [
     "daphne",
@@ -64,6 +91,10 @@ ASGI_APPLICATION = "mob_delivery.asgi.application"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Serves STATIC_ROOT directly from the Django process — no separate CDN
+    # or static-file host needed for a single-web-service deploy (Render).
+    # Must sit directly after SecurityMiddleware, before everything else.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     # As high as possible, and specifically before CommonMiddleware — see
     # django-cors-headers' own installation docs.
     "corsheaders.middleware.CorsMiddleware",
@@ -75,19 +106,19 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# CORS — the Admin Panel is a separate frontend origin from this API, so
-# browser requests need an explicit allow-list. Deliberately never
-# CORS_ALLOW_ALL_ORIGINS = True: that would let any site read authenticated
-# responses. ALLOWED_ADMIN_PANEL_ORIGIN accepts one or more comma-separated
-# production origins; localhost variants are only added when DEBUG is on.
+# CORS — the Admin Panel and Driver-app frontends are separate origins from
+# this API, so browser requests need an explicit allow-list. Deliberately
+# never CORS_ALLOW_ALL_ORIGINS = True: that would let any site read
+# authenticated responses. ALLOWED_ADMIN_PANEL_ORIGIN accepts one or more
+# comma-separated production origins.
 CORS_ALLOWED_ORIGINS = env.list("ALLOWED_ADMIN_PANEL_ORIGIN", default=[])
 if DEBUG:
-    CORS_ALLOWED_ORIGINS = list(CORS_ALLOWED_ORIGINS) + [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ]
+    # Any localhost/127.0.0.1 port, not a fixed list — multiple frontend
+    # dev servers running at once (admin panel, driver app, ...) each land
+    # on whatever port is free, so a hardcoded port list needs editing every
+    # time a new one shows up. Still strictly DEBUG-only, same as the
+    # explicit list this replaced — production is unaffected either way.
+    CORS_ALLOWED_ORIGIN_REGEXES = [r"^https?://(localhost|127\.0\.0\.1):\d+$"]
 CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = "mob_delivery.urls"
@@ -133,6 +164,11 @@ USE_TZ = True
 
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
@@ -288,6 +324,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "tracking.tasks.detect_wrong_direction",
         "schedule": timedelta(minutes=1),
     },
+    "detect-offline-vehicles": {
+        "task": "tracking.tasks.detect_offline_vehicles",
+        "schedule": timedelta(minutes=2),
+    },
     "dispatch-pending-webhooks": {
         "task": "webhooks.tasks.dispatch_pending_webhooks",
         "schedule": timedelta(seconds=30),
@@ -318,16 +358,70 @@ ANOMALY_DETECTION_SETTINGS = {
 # Fix 7 — TripLocationPing data retention (tracking.tasks.purge_old_location_pings).
 LOCATION_PING_RETENTION_DAYS = env.int("LOCATION_PING_RETENTION_DAYS", default=90)
 
+# Google Maps — route polylines (trips trip-detail) and pincode geocoding
+# (trips order-intake fallback), see maps.services. Left unset in dev/test,
+# both features are simply disabled (nulls returned, never a hard failure).
+# GOOGLE_ROUTES_API_ENABLED gates trying the newer Routes API first — not
+# every Google Cloud project has it turned on yet — before falling back to
+# the older, more universally-enabled Directions API.
+GOOGLE_MAPS_API_KEY = env("GOOGLE_MAPS_API_KEY", default="")
+GOOGLE_ROUTES_API_ENABLED = env.bool("GOOGLE_ROUTES_API_ENABLED", default=False)
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "MOB Delivery Backend API",
-    "DESCRIPTION": "Multi-tenant delivery platform API — Company/AdminUser/ApiClient auth, Vehicle module.",
+    "DESCRIPTION": (
+        "Multi-tenant delivery platform API, split below into three audiences by who "
+        "calls each endpoint:\n\n"
+        "- **Admin: \\*** — the Admin Panel (fleet ops, dispatch, KYC, monitoring). "
+        "Callers authenticate as an `AdminUser`.\n"
+        "- **Driver: \\*** — the driver mobile app. Callers authenticate as a `Driver` "
+        "via phone+OTP login.\n"
+        "- **Integrations: \\*** — 3rd-party/partner backends (order intake, order "
+        "status). Callers authenticate as an `ApiClient` via client-credentials.\n\n"
+        "A handful of endpoints are legitimately used by two audiences (e.g. token "
+        "refresh, file upload) — those appear under both of their tags rather than "
+        "being force-fit into one."
+    ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
-    # Without this, spectacular's auto-detected common path prefix stops at
-    # "/api/" (since every URL starts there), so every operation's tag ends
-    # up deduced from the next segment, "v1" — one giant flat group in
-    # Swagger UI instead of one group per module. Trimming "/api/v1" first
-    # makes the tag come from the segment after that (vehicles, drivers,
-    # damage-reports, ...).
+    # Every operation below gets an explicit tags=[...] in its @extend_schema /
+    # @extend_schema_view (grouped by audience — Admin/Driver/Integrations, see
+    # DESCRIPTION above) rather than relying on spectacular's path-based
+    # auto-tagging, which would otherwise group everything by URL segment
+    # (vehicles, drivers, ...) with no notion of who's meant to call it.
     "SCHEMA_PATH_PREFIX": "/api/v1",
+    # Explicit tag order + one-line descriptions so Swagger UI's sidebar lists
+    # Admin, then Driver, then Integrations — each internally in a sensible
+    # reading order — instead of alphabetical.
+    "TAGS": [
+        {"name": "Admin: Auth", "description": "Admin login and access-token refresh."},
+        {"name": "Admin: Users", "description": "Managing other AdminUser sub-accounts within your own company."},
+        {"name": "Admin: Drivers", "description": "Driver roster CRUD."},
+        {"name": "Admin: Driver KYC", "description": "Reviewing/approving a driver's Aadhar, police verification, and driving licence."},
+        {"name": "Admin: Vehicles", "description": "Vehicle roster CRUD."},
+        {"name": "Admin: Vehicle Types", "description": "The vehicle-category master list (Bike, Auto, Tempo, ...)."},
+        {"name": "Admin: Vehicle Documents", "description": "Insurance/fitness/RC documents attached to a vehicle."},
+        {"name": "Admin: Uploads", "description": "Generic file upload used ahead of a record-creating call."},
+        {"name": "Admin: Trips", "description": "Order intake, trip assignment/dispatch, and trip lifecycle."},
+        {"name": "Admin: Tracking", "description": "Automated stationary/wrong-direction anomaly alerts."},
+        {"name": "Admin: Shifts", "description": "Admin-side, day-level view of driver shift records (separate from individual trips)."},
+        {"name": "Admin: Damage Reports", "description": "Company-wide view and resolution of vehicle damage reports."},
+        {"name": "Admin: Issues", "description": "Company-wide view and resolution of flagged trip issues."},
+        {"name": "Admin: SOS", "description": "SOS alert log, acknowledgement, and resolution."},
+        {"name": "Admin: Webhooks", "description": "Outbound webhook delivery log for this company's integrations."},
+        {"name": "Admin: Settings", "description": "Per-tenant configurable thresholds (geofence, anomaly detection, ...)."},
+        {"name": "Admin: Dashboard", "description": "Fleet status, KPIs, and driver safety-score summaries for the Admin Panel home screen."},
+        {"name": "Driver: Auth", "description": "Phone+OTP login for the driver mobile app."},
+        {"name": "Driver: Profile", "description": "The logged-in driver's own profile."},
+        {"name": "Driver: Uploads", "description": "Generic file upload used ahead of a record-creating call."},
+        {"name": "Driver: Trips", "description": "Completing stops, attaching photos, on an assigned trip."},
+        {"name": "Driver: Tracking", "description": "Live GPS pings and pause/resume during a trip."},
+        {"name": "Driver: Shifts", "description": "Starting/ending a driving shift."},
+        {"name": "Driver: Damage Reports", "description": "Reporting damage on the driver's currently assigned vehicle."},
+        {"name": "Driver: Issues", "description": "Flagging a problem on a trip mid-delivery."},
+        {"name": "Driver: SOS", "description": "Triggering the panic-button alert."},
+        {"name": "Driver: Devices", "description": "Registering/deregistering a device for push notifications."},
+        {"name": "Integrations: Auth", "description": "Client-credentials token exchange for partner backends."},
+        {"name": "Integrations: Orders", "description": "Order intake, cancellation, and status lookup for partner backends."},
+    ],
 }

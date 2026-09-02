@@ -1,18 +1,21 @@
 from django.contrib import admin
 
-from .models import DriverShift, TripAnomalyAlert, TripLocationPing, TripPause, VehicleStartPoint
+from .models import DriverShift, TripAnomalyAlert, TripLocationPing, TripPause
 
 
 @admin.register(DriverShift)
 class DriverShiftAdmin(admin.ModelAdmin):
-    list_display = ("driver", "vehicle", "shift_date", "status", "total_km", "total_working_minutes", "company")
-    list_filter = ("status", "company")
-
-
-@admin.register(VehicleStartPoint)
-class VehicleStartPointAdmin(admin.ModelAdmin):
-    list_display = ("label", "latitude", "longitude", "status", "company")
-    list_filter = ("status", "company")
+    list_display = (
+        "driver",
+        "vehicle",
+        "shift_date",
+        "status",
+        "total_km",
+        "total_working_minutes",
+        "needs_variance_review",
+        "company",
+    )
+    list_filter = ("status", "needs_variance_review", "company")
 
 
 @admin.register(TripLocationPing)
@@ -29,5 +32,5 @@ class TripPauseAdmin(admin.ModelAdmin):
 
 @admin.register(TripAnomalyAlert)
 class TripAnomalyAlertAdmin(admin.ModelAdmin):
-    list_display = ("trip", "alert_type", "detected_at", "acknowledged", "company")
+    list_display = ("trip", "shift", "alert_type", "detected_at", "acknowledged", "company")
     list_filter = ("alert_type", "acknowledged", "company")

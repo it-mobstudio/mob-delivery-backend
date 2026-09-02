@@ -14,6 +14,7 @@ from .serializers import WebhookEventDetailSerializer, WebhookEventSerializer
 
 
 @extend_schema(
+    tags=["Admin: Webhooks"],
     summary="List webhook deliveries",
     description=(
         "Lists outbound webhook events for this company's registered ApiClient endpoints "
@@ -33,6 +34,7 @@ class WebhookEventListView(generics.ListAPIView):
 
 
 @extend_schema(
+    tags=["Admin: Webhooks"],
     summary="Get a webhook delivery's detail",
     description="Returns one webhook event plus its full delivery log history (every attempt, response status, and timestamp).",
 )
@@ -47,6 +49,7 @@ class WebhookEventDetailView(APIView):
 
 
 @extend_schema(
+    tags=["Admin: Webhooks"],
     summary="Retry a failed webhook delivery",
     description=(
         "Manually resets a `failed` webhook event back to pending for immediate redelivery "

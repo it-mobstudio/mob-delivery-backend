@@ -29,12 +29,14 @@ class DriverShift(BaseModel):
     cleanliness_photo_url = models.URLField(null=True, blank=True)
     charging_plugged_photo_url = models.URLField(null=True, blank=True)
 
-    # Point 6 — optional fixed start point (e.g. a warehouse hub), copied
-    # from a VehicleStartPoint at shift-start time if one was referenced.
-    # Null/free-form (driver's actual reported location) when not used.
-    fixed_start_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    fixed_start_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    fixed_start_label = models.CharField(max_length=150, null=True, blank=True)
+    # KM variance reconciliation (see services.end_shift) — total_km stays
+    # the odometer-based figure of record; these compare it against the
+    # independently GPS-derived distance from this shift's TripLocationPing
+    # rows, purely as a review signal. needs_variance_review never blocks
+    # closing the shift, it just flags it for admin follow-up.
+    gps_distance_km = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    variance_km = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    needs_variance_review = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]
@@ -48,24 +50,6 @@ class DriverShift(BaseModel):
 
     def __str__(self):
         return f"{self.driver_id} — {self.shift_date}"
-
-
-class VehicleStartPoint(BaseModel):
-    """Optional preset start locations an admin can configure — e.g. a
-    warehouse hub. Not tied to City/zone scoping; just a reusable named
-    coordinate a shift can optionally reference.
-    """
-
-    label = models.CharField(max_length=150)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6)
-    status = models.CharField(max_length=20, default="active")
-
-    class Meta:
-        ordering = ["label"]
-
-    def __str__(self):
-        return self.label
 
 
 class LocationSource(models.TextChoices):
@@ -86,6 +70,17 @@ class TripLocationPing(models.Model):
     source = models.CharField(max_length=20, choices=LocationSource.choices, default=LocationSource.DRIVER_PHONE)
     recorded_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # Speed-sanity check (see services.record_location_ping): distance from
+    # the previous ping for the same vehicle, in km. Left at 0 (not the raw
+    # haversine distance) when the implied speed exceeds
+    # MAX_REASONABLE_SPEED_KPH, so one implausible GPS jump can't pollute a
+    # GPS-derived KM total — DriverShift.total_km itself stays odometer-based
+    # (start/end odometer, more accurate than GPS) and is untouched by this;
+    # this field is for future KM-based dashboard metrics that want a
+    # GPS-derived distance. The ping itself is still stored either way, for
+    # debugging device issues.
+    distance_from_previous_km = models.DecimalField(max_digits=8, decimal_places=3, default=0)
 
     class Meta:
         indexes = [models.Index(fields=["vehicle_id", "-recorded_at"])]
@@ -123,10 +118,18 @@ class TripPause(BaseModel):
 class AnomalyType(models.TextChoices):
     STATIONARY_TOO_LONG = "stationary_too_long", "Stationary Too Long"
     WRONG_DIRECTION = "wrong_direction", "Wrong Direction"
+    GPS_OFFLINE = "gps_offline", "GPS Offline"
 
 
 class TripAnomalyAlert(BaseModel):
-    trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name="anomaly_alerts")
+    # Nullable — a gps_offline alert raised for a driver on an active shift
+    # but with no active trip yet has no trip to attach to (see
+    # tracking.tasks.detect_offline_vehicles), so it's attached to `shift`
+    # instead. Every other alert type is always trip-scoped.
+    trip = models.ForeignKey(Trip, null=True, blank=True, on_delete=models.CASCADE, related_name="anomaly_alerts")
+    shift = models.ForeignKey(
+        "DriverShift", null=True, blank=True, on_delete=models.CASCADE, related_name="anomaly_alerts"
+    )
     vehicle_id = models.UUIDField()
     alert_type = models.CharField(max_length=30, choices=AnomalyType.choices)
     details = models.TextField(null=True, blank=True)
@@ -140,7 +143,12 @@ class TripAnomalyAlert(BaseModel):
                 fields=["trip", "alert_type"],
                 condition=models.Q(acknowledged=False),
                 name="unique_open_alert_per_trip_and_type",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["shift", "alert_type"],
+                condition=models.Q(acknowledged=False),
+                name="unique_open_alert_per_shift_and_type",
+            ),
         ]
 
     def __str__(self):

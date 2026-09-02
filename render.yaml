@@ -1,0 +1,155 @@
+# Render Blueprint — UAT environment.
+#
+# Kept deliberately lean for UAT cost/complexity, not scaled for production:
+# - One combined Celery worker+beat process instead of two separate services
+#   (fine for UAT; for real production this should split into a dedicated
+#   `beat` service so a worker restart can't ever double-schedule a beat tick).
+# - Starter-tier web/worker instances — bump if UAT load needs more.
+#
+# After the first deploy, run once from the Render shell (or a one-off job):
+#   python manage.py bootstrap_company --company-name "..." --admin-email "..." --admin-password "..."
+#   python manage.py seed_demo_data          # optional, realistic demo data for UAT
+#
+# Render dashboard → connect this repo, it will detect this file automatically.
+# Every `sync: false` env var must be filled in manually in the dashboard —
+# they're marked that way specifically so secrets never live in this file.
+
+databases:
+  - name: mob-delivery-db
+    databaseName: mob_delivery
+    plan: starter
+    postgresMajorVersion: 16
+
+services:
+  - type: redis
+    name: mob-delivery-redis
+    plan: starter
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+
+  - type: web
+    name: mob-delivery-backend
+    runtime: python
+    plan: starter
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
+    startCommand: "daphne -b 0.0.0.0 -p $PORT mob_delivery.asgi:application"
+    healthCheckPath: /api/docs/
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SIGNING_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: mob-delivery-backend.onrender.com
+      - key: ALLOWED_ADMIN_PANEL_ORIGIN
+        sync: false # set to the Netlify admin panel URL once it's deployed
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mob-delivery-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: mob-delivery-redis
+          property: connectionString
+      - key: CHANNEL_LAYER_REDIS_URL
+        fromService:
+          type: redis
+          name: mob-delivery-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: mob-delivery-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: mob-delivery-redis
+          property: connectionString
+      - key: DRIVER_OTP_DEBUG_RESPONSE
+        value: "True" # UAT only — echoes the OTP back so testers don't need real SMS. Set False before any prod cutover.
+      - key: ACCESS_TOKEN_LIFETIME_MINUTES
+        value: "60"
+      - key: REFRESH_TOKEN_LIFETIME_DAYS
+        value: "7"
+      - key: API_CLIENT_TOKEN_LIFETIME_MINUTES
+        value: "60"
+      - key: DRIVER_TOKEN_LIFETIME_MINUTES
+        value: "60"
+      - key: DRIVER_REFRESH_TOKEN_LIFETIME_DAYS
+        value: "30"
+      - key: API_CLIENT_RATE_LIMIT
+        value: 100/min
+      - key: ANOMALY_WRONG_DIRECTION_MIN_CONSECUTIVE_PINGS
+        value: "3"
+      - key: LOCATION_PING_RETENTION_DAYS
+        value: "90"
+      - key: MAX_UPLOAD_SIZE_MB
+        value: "10"
+      - key: AZURE_ACCOUNT_NAME
+        sync: false # leave blank to use local disk storage for UAT uploads (fine short-term; Render's local disk is ephemeral on redeploy, so switch to Azure/S3 before this needs to persist)
+      - key: AZURE_ACCOUNT_KEY
+        sync: false
+      - key: AZURE_CONTAINER
+        value: mob-uploads
+      - key: FIREBASE_CREDENTIALS_PATH
+        value: "" # leave unset — push notifications stay disabled (safe no-op) until this is wired up
+
+  - type: worker
+    name: mob-delivery-worker
+    runtime: python
+    plan: starter
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "celery -A mob_delivery worker -B -l info"
+    envVars:
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: mob-delivery-backend
+          envVarKey: SECRET_KEY
+      - key: JWT_SIGNING_KEY
+        fromService:
+          type: web
+          name: mob-delivery-backend
+          envVarKey: JWT_SIGNING_KEY
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: mob-delivery-backend.onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mob-delivery-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: mob-delivery-redis
+          property: connectionString
+      - key: CHANNEL_LAYER_REDIS_URL
+        fromService:
+          type: redis
+          name: mob-delivery-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: mob-delivery-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: mob-delivery-redis
+          property: connectionString
+      - key: MAX_UPLOAD_SIZE_MB
+        value: "10"
+      - key: AZURE_ACCOUNT_NAME
+        sync: false
+      - key: AZURE_ACCOUNT_KEY
+        sync: false
+      - key: AZURE_CONTAINER
+        value: mob-uploads
+      - key: FIREBASE_CREDENTIALS_PATH
+        value: ""

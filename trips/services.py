@@ -11,15 +11,18 @@ from drivers.models import Driver, DriverAccountStatus, VerificationStatus
 from notifications.tasks import send_push_notification
 from tenant_settings.services import get_tenant_setting
 from vehicles.models import Vehicle, VehicleStatus
-from vehicles.services import has_active_trip as vehicle_has_active_trip
 from webhooks.services import publish_webhook_event
 
 from .models import (
     ACTIVE_TRIP_STATUSES,
+    DELIVERY_GATE_PHOTO_TYPES,
+    PICKUP_GATE_PHOTO_TYPES,
     AddressChangeLog,
     StopStatus,
     StopType,
     Trip,
+    TripPhoto,
+    TripPhotoType,
     TripStatus,
     TripStop,
     TripVehicleHistory,
@@ -28,6 +31,15 @@ from .models import (
 DEFAULT_ASSIGNMENT_WINDOW_MINUTES = 30
 DEFAULT_GEOFENCE_METERS = 100
 RECENT_PING_WINDOW = timedelta(minutes=2)
+
+# Point 8 — ETA-window vehicle assignment. Deliberately straight-line +
+# assumed-speed rather than a routed Maps estimate: this runs inline in a
+# list endpoint over every busy vehicle, so a per-vehicle external HTTP call
+# isn't viable, and the approximation is transparent/testable without
+# mocking a third-party API.
+ETA_PING_FRESHNESS = timedelta(minutes=15)
+DEFAULT_ASSIGNMENT_ETA_SPEED_KMPH = 25
+DEFAULT_ASSIGNMENT_ETA_DWELL_MINUTES = 5
 
 
 # ---------------------------------------------------------------------------
@@ -118,10 +130,36 @@ def _find_existing_intake(company_id, order_ref):
     }
 
 
+def _resolve_stop_coordinates(location_data):
+    """Pincode-to-coordinate fallback — if lat/lng are missing but a pincode
+    is present, resolve via Google's Geocoding API rather than rejecting the
+    order outright. Only raises once that also fails.
+    """
+    latitude, longitude = location_data.get("latitude"), location_data.get("longitude")
+    if latitude is not None and longitude is not None:
+        return latitude, longitude
+
+    # Local import: maps has no dependency on trips, but keeping the import
+    # here mirrors how every other cross-app pull-in in this file is scoped
+    # to where it's actually used.
+    from maps.services import resolve_pincode_coordinates
+
+    latitude, longitude = resolve_pincode_coordinates(location_data.get("pincode"))
+    if latitude is None or longitude is None:
+        raise DomainError(
+            "COORDINATES_UNRESOLVED",
+            "latitude/longitude were not provided and could not be resolved from the given pincode.",
+            status_code=422,
+        )
+    return latitude, longitude
+
+
 def intake_order(company_id, order_ref, parent_order_ref, pickup, delivery, weight_kg, actor):
     existing = _find_existing_intake(company_id, order_ref)
     if existing is not None:
         return existing
+
+    pickup_latitude, pickup_longitude = _resolve_stop_coordinates(pickup)
 
     try:
         with transaction.atomic():
@@ -153,13 +191,17 @@ def intake_order(company_id, order_ref, parent_order_ref, pickup, delivery, weig
                 order_ref=order_ref,
                 parent_order_ref=parent_order_ref,
                 address=pickup["address"],
-                latitude=pickup["latitude"],
-                longitude=pickup["longitude"],
+                latitude=pickup_latitude,
+                longitude=pickup_longitude,
                 weight_kg=weight_kg,
             )
 
             drop_stop = _drop_stop_for(trip, parent_order_ref)
             if drop_stop is None:
+                # Only resolved when actually needed — a suborder joining an
+                # existing staggered group reuses that group's shared drop
+                # stop instead, with no geocode lookup for `delivery` at all.
+                delivery_latitude, delivery_longitude = _resolve_stop_coordinates(delivery)
                 drop_stop = TripStop.objects.create(
                     company_id=company_id,
                     trip=trip,
@@ -168,8 +210,8 @@ def intake_order(company_id, order_ref, parent_order_ref, pickup, delivery, weig
                     order_ref=order_ref,
                     parent_order_ref=parent_order_ref,
                     address=delivery["address"],
-                    latitude=delivery["latitude"],
-                    longitude=delivery["longitude"],
+                    latitude=delivery_latitude,
+                    longitude=delivery_longitude,
                 )
 
             _recompute_total_weight(trip)
@@ -208,14 +250,91 @@ def lock_pickups(trip_id, actor):
 # ---------------------------------------------------------------------------
 
 
-def get_assignment_candidates(company_id, trip_id=None, order_refs=None, within_minutes=None):
-    """Returns [{"vehicle": Vehicle, "drivers": [Driver, ...]}, ...].
+def _estimate_minutes_until_free(vehicle, company_id):
+    """Point 8 — how soon `vehicle` is expected to finish its current trip.
 
-    `within_minutes` is accepted per the spec but currently has nothing to
-    act on: no model stores or estimates a trip's completion time, so
-    "vehicle busy but about to free up" can't be evaluated honestly yet.
-    Only vehicles with zero active trips are treated as available; wire up
-    the real ETA-window relaxation once trip timing data exists.
+    Returns 0 if the vehicle isn't on an active trip at all (immediately
+    available). Returns None if it IS on one but there isn't enough data to
+    estimate honestly: the trip hasn't started moving yet (still collecting
+    or has locked pickups — no location trail to project from), or its last
+    location ping is stale/missing. A None here means "treat as busy,
+    unknown ETA" — the caller excludes it, same as before this feature
+    existed, rather than guessing.
+
+    When there IS a fresh ping, the estimate is straight-line distance from
+    the vehicle's last known position, through each remaining stop in
+    sequence, at an assumed average speed — plus a fixed per-stop dwell time
+    for loading/unloading/photo capture at each remaining stop. Both are
+    tenant-configurable (assignment_eta_speed_kmph /
+    assignment_eta_dwell_minutes) since real-world speed varies by city.
+
+    VehicleType.default_loading_minutes/default_unloading_minutes are a
+    natural future input to the dwell-time estimate below (per-vehicle-type
+    instead of one tenant-wide assignment_eta_dwell_minutes) — deliberately
+    not wired in yet, since that changes existing assignment-candidate
+    behavior and deserves its own deliberate testing pass.
+    """
+    from tracking.models import TripLocationPing
+
+    trip = (
+        Trip.objects.filter(company_id=company_id, vehicle=vehicle, status__in=ACTIVE_TRIP_STATUSES)
+        .order_by("-created_at")
+        .first()
+    )
+    if trip is None:
+        return 0
+    if trip.status != TripStatus.IN_TRANSIT:
+        return None
+
+    recent_ping = (
+        TripLocationPing.objects.filter(
+            vehicle_id=vehicle.id, recorded_at__gte=timezone.now() - ETA_PING_FRESHNESS
+        )
+        .order_by("-recorded_at")
+        .first()
+    )
+    if recent_ping is None:
+        return None
+
+    remaining_stops = list(
+        trip.stops.exclude(status__in=[StopStatus.COMPLETED, StopStatus.SKIPPED]).order_by("sequence_no")
+    )
+    if not remaining_stops:
+        return None
+
+    speed_kmph = get_tenant_setting(company_id, "assignment_eta_speed_kmph", DEFAULT_ASSIGNMENT_ETA_SPEED_KMPH)
+    dwell_minutes = get_tenant_setting(
+        company_id, "assignment_eta_dwell_minutes", DEFAULT_ASSIGNMENT_ETA_DWELL_MINUTES
+    )
+
+    total_distance_m = 0.0
+    prev_lat, prev_lng = recent_ping.latitude, recent_ping.longitude
+    for stop in remaining_stops:
+        total_distance_m += haversine_distance_m(prev_lat, prev_lng, stop.latitude, stop.longitude)
+        prev_lat, prev_lng = stop.latitude, stop.longitude
+
+    drive_minutes = (total_distance_m / 1000) / speed_kmph * 60
+    return round(drive_minutes + dwell_minutes * len(remaining_stops))
+
+
+def get_assignment_candidates(company_id, trip_id=None, order_refs=None, within_minutes=None):
+    """Returns {"matches": [{"vehicle": Vehicle, "drivers": [Driver, ...],
+    "available_in_minutes": int}, ...],
+    "excluded_vehicles": [{"vehicle": Vehicle, "reason": str}, ...]}.
+
+    A vehicle lands in `excluded_vehicles` (rather than being silently
+    dropped) only for the vehicle-type/DL-category mismatch case — it's
+    otherwise assignable (active, enough capacity, free now or soon) but no
+    currently-eligible driver is licensed for its category. Capacity-too-low
+    and busy-with-no-honest-ETA vehicles are still just absent from both
+    lists — those aren't a "this driver isn't licensed for this vehicle"
+    situation, so surfacing them as disabled-with-reason in the Admin Panel
+    vehicle picker isn't the point of this distinction.
+
+    `within_minutes` sets how soon a busy vehicle must be expected to free
+    up to still be offered as a match — see _estimate_minutes_until_free().
+    `available_in_minutes` on each match is 0 for a vehicle that's free
+    right now, or the estimated number of minutes until it is.
 
     Omitted (None) -> falls back to this tenant's configured
     assignment_window_minutes (TenantSetting, default 30).
@@ -241,12 +360,14 @@ def get_assignment_candidates(company_id, trip_id=None, order_refs=None, within_
 
     eligible_drivers = list(Driver.objects.filter(company_id=company_id))
 
-    candidates = []
+    matches = []
+    excluded_vehicles = []
     vehicles = Vehicle.objects.select_related("vehicle_type").filter(
         company_id=company_id, status=VehicleStatus.ACTIVE, capacity_kg__gte=cumulative_weight
     )
     for vehicle in vehicles:
-        if vehicle_has_active_trip(vehicle):
+        available_in_minutes = _estimate_minutes_until_free(vehicle, company_id)
+        if available_in_minutes is None or available_in_minutes > within_minutes:
             continue
         matched_drivers = [
             driver
@@ -254,10 +375,17 @@ def get_assignment_candidates(company_id, trip_id=None, order_refs=None, within_
             if driver.is_eligible_for_assignment and vehicle.vehicle_type.category in (driver.dl_allowed_categories or [])
         ]
         if not matched_drivers:
+            category_label = vehicle.vehicle_type.get_category_display()
+            excluded_vehicles.append(
+                {
+                    "vehicle": vehicle,
+                    "reason": f"No currently-eligible driver is licensed for a {category_label} vehicle.",
+                }
+            )
             continue
-        candidates.append({"vehicle": vehicle, "drivers": matched_drivers})
+        matches.append({"vehicle": vehicle, "drivers": matched_drivers, "available_in_minutes": available_in_minutes})
 
-    return candidates
+    return {"matches": matches, "excluded_vehicles": excluded_vehicles}
 
 
 def _driver_ineligibility_reasons(driver):
@@ -351,29 +479,39 @@ def reassign_vehicle(trip_id, new_vehicle_id, reason, actor, new_driver_id=None)
     previous_vehicle = trip.vehicle
     previous_driver = trip.driver
 
-    TripVehicleHistory.objects.create(
-        company_id=trip.company_id,
-        trip=trip,
-        previous_vehicle=previous_vehicle,
-        new_vehicle=new_vehicle,
-        previous_driver=previous_driver,
-        new_driver=new_driver,
-        reason=reason,
-    )
+    with transaction.atomic():
+        TripVehicleHistory.objects.create(
+            company_id=trip.company_id,
+            trip=trip,
+            previous_vehicle=previous_vehicle,
+            new_vehicle=new_vehicle,
+            previous_driver=previous_driver,
+            new_driver=new_driver,
+            reason=reason,
+        )
 
-    if previous_vehicle is not None and previous_vehicle.id != new_vehicle.id:
-        release_assignment(previous_vehicle, None)
-    if previous_driver is not None and previous_driver.id != new_driver.id:
-        release_assignment(None, previous_driver)
+        if previous_vehicle is not None and previous_vehicle.id != new_vehicle.id:
+            release_assignment(previous_vehicle, None)
+        if previous_driver is not None and previous_driver.id != new_driver.id:
+            release_assignment(None, previous_driver)
 
-    trip.vehicle = new_vehicle
-    trip.driver = new_driver
-    trip.save(update_fields=["vehicle", "driver"])
+        trip.vehicle = new_vehicle
+        trip.driver = new_driver
+        trip.save(update_fields=["vehicle", "driver"])
 
-    new_vehicle.current_driver_id = new_driver.id
-    new_vehicle.save(update_fields=["current_driver_id"])
-    new_driver.current_vehicle_id = new_vehicle.id
-    new_driver.save(update_fields=["current_vehicle_id"])
+        new_vehicle.current_driver_id = new_driver.id
+        new_vehicle.save(update_fields=["current_driver_id"])
+        new_driver.current_vehicle_id = new_vehicle.id
+        new_driver.save(update_fields=["current_vehicle_id"])
+
+        order_refs = trip.stops.filter(stop_type=StopType.PICKUP).values_list("order_ref", flat=True).distinct()
+        for order_ref in order_refs:
+            publish_webhook_event(
+                company_id=trip.company_id,
+                order_ref=order_ref,
+                event_type="order.driver_reassigned",
+                data={"newDriverName": new_driver.full_name, "reason": reason},
+            )
 
     if previous_driver is not None and previous_driver.id != new_driver.id:
         transaction.on_commit(
@@ -434,12 +572,51 @@ def _check_delivery_geofence(stop, trip):
         stop.location_mismatch_meters = Decimal(str(round(distance_m, 2)))
 
 
+def _gate_photo_types_for(stop):
+    return PICKUP_GATE_PHOTO_TYPES if stop.stop_type == StopType.PICKUP else DELIVERY_GATE_PHOTO_TYPES
+
+
+def _has_gate_photo(stop):
+    return stop.photos.filter(photo_type__in=_gate_photo_types_for(stop)).exists()
+
+
+def _add_stop_photo(stop, photo_type, photo_url, latitude=None, longitude=None):
+    photo = TripPhoto.objects.create(
+        company_id=stop.company_id,
+        trip_stop=stop,
+        photo_type=photo_type,
+        photo_url=photo_url,
+        latitude=latitude,
+        longitude=longitude,
+    )
+    # Keep the legacy single field in sync for backward compatibility — set
+    # to this stop's first/primary photo so nothing that still reads
+    # proof_photo_url breaks.
+    if not stop.proof_photo_url:
+        stop.proof_photo_url = photo_url
+        stop.save(update_fields=["proof_photo_url"])
+    return photo
+
+
+def add_trip_stop_photo(stop_id, photo_type, photo_url, actor, latitude=None, longitude=None):
+    stop = _get_stop(stop_id, actor.company_id)
+    return _add_stop_photo(stop, photo_type, photo_url, latitude, longitude)
+
+
 def complete_stop(stop_id, proof_photo_url, actor):
     stop = _get_stop(stop_id, actor.company_id)
     trip = stop.trip
 
+    if proof_photo_url:
+        # Backward-compat shape (proofPhotoUrl directly on the complete
+        # call) — auto-mapped to whichever gate-satisfying TripPhoto type
+        # this stop is for, same as the dedicated photos endpoint would
+        # produce.
+        default_type = TripPhotoType.PICKUP if stop.stop_type == StopType.PICKUP else TripPhotoType.DELIVERY
+        _add_stop_photo(stop, default_type, proof_photo_url)
+
     is_first_stop_overall = not trip.stops.filter(status=StopStatus.COMPLETED).exists()
-    if is_first_stop_overall and not proof_photo_url:
+    if is_first_stop_overall and not _has_gate_photo(stop):
         raise DomainError(
             "PROOF_PHOTO_REQUIRED", "A proof photo is required to complete the trip's first stop.", status_code=422
         )
@@ -447,7 +624,7 @@ def complete_stop(stop_id, proof_photo_url, actor):
     other_incomplete_remaining = trip.stops.exclude(pk=stop.pk).filter(
         status__in=[StopStatus.PENDING, StopStatus.ARRIVED]
     ).exists()
-    if not other_incomplete_remaining and not proof_photo_url:
+    if not other_incomplete_remaining and not _has_gate_photo(stop):
         raise DomainError(
             "PROOF_PHOTO_REQUIRED", "A proof photo is required to complete the trip's final stop.", status_code=422
         )
@@ -455,18 +632,8 @@ def complete_stop(stop_id, proof_photo_url, actor):
     with transaction.atomic():
         stop.status = StopStatus.COMPLETED
         stop.completed_at = timezone.now()
-        if proof_photo_url:
-            stop.proof_photo_url = proof_photo_url
         _check_delivery_geofence(stop, trip)
-        stop.save(
-            update_fields=[
-                "status",
-                "completed_at",
-                "proof_photo_url",
-                "location_mismatch",
-                "location_mismatch_meters",
-            ]
-        )
+        stop.save(update_fields=["status", "completed_at", "location_mismatch", "location_mismatch_meters"])
 
         if not other_incomplete_remaining:
             trip.status = TripStatus.DELIVERED

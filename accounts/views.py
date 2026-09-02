@@ -23,6 +23,7 @@ from .serializers import (
 
 
 @extend_schema(
+    tags=["Admin: Auth"],
     summary="Admin login",
     description=(
         "Exchanges an AdminUser's email/password for an access + refresh JWT pair. "
@@ -36,6 +37,7 @@ class AdminLoginView(TokenObtainPairView):
 
 
 @extend_schema(
+    tags=["Admin: Auth", "Driver: Auth"],
     summary="Refresh an access token",
     description=(
         "Exchanges a still-valid refresh token for a new access token. Works for any "
@@ -54,6 +56,7 @@ class RefreshTokenView(APIView):
 
 
 @extend_schema(
+    tags=["Integrations: Auth"],
     summary="Get an ApiClient access token",
     description=(
         "Client-credentials style exchange: a partner integration's `client_id` + "
@@ -93,10 +96,12 @@ class ApiClientTokenView(APIView):
 
 @extend_schema_view(
     get=extend_schema(
+        tags=["Admin: Users"],
         summary="List admin users",
         description="Lists every AdminUser (sub-user) in the caller's own company, newest first.",
     ),
     post=extend_schema(
+        tags=["Admin: Users"],
         summary="Create a sub-user",
         description=(
             "Creates another AdminUser under the caller's own company — the company is always "
@@ -121,6 +126,7 @@ class AdminUserListCreateView(generics.ListCreateAPIView):
 
 
 @extend_schema(
+    tags=["Admin: Users"],
     summary="Disable a sub-user",
     description=(
         "Soft-deletes and deactivates another AdminUser in the caller's own company — their "

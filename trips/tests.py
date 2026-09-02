@@ -567,3 +567,162 @@ class ReassignVehicleTests(TestCase):
         self.assertIsNone(self.old_driver.current_vehicle_id)
         self.assertEqual(self.new_vehicle.current_driver_id, self.new_driver.id)
         self.assertEqual(self.new_driver.current_vehicle_id, self.new_vehicle.id)
+
+    def test_reassignment_publishes_a_webhook_event_per_affected_order(self):
+        from webhooks.models import WebhookEvent
+
+        services.reassign_vehicle(
+            trip_id=self.trip.id, new_vehicle_id=self.new_vehicle.id, new_driver_id=self.new_driver.id,
+            reason="Old vehicle broke down", actor=self.actor,
+        )
+
+        event = WebhookEvent.objects.get(order_ref="REASSIGN-1", event_type="order.driver_reassigned")
+        self.assertEqual(event.payload["newDriverName"], self.new_driver.full_name)
+        self.assertEqual(event.payload["reason"], "Old vehicle broke down")
+
+
+class AssignmentCandidatesEtaTests(TestCase):
+    """Point 8 — vehicles busy on an in-transit trip but expected to free up
+    within the requested window should still be offered as candidates."""
+
+    def setUp(self):
+        from tracking.models import TripLocationPing
+
+        self.TripLocationPing = TripLocationPing
+        self.company = Company.objects.create(name="ETA Test Co")
+        self.actor = SimpleNamespace(company_id=self.company.id)
+
+        self.vehicle_type = VehicleType.objects.create(
+            company=self.company, name="Mini Van", category=VehicleCategory.FOUR_WHEELER,
+            default_capacity_kg=Decimal("500.00"),
+        )
+        self.vehicle = Vehicle.objects.create(
+            company=self.company, vehicle_type=self.vehicle_type,
+            registration_number="KA-01-ETA-0001", capacity_kg=Decimal("500.00"),
+        )
+        self.driver = Driver.objects.create(
+            company=self.company, full_name="Eta Driver", phone_number="+919000000099",
+            emergency_contact_name="EC", emergency_contact_phone="+918888888899",
+            aadhar_status=VerificationStatus.VERIFIED, police_status=VerificationStatus.VERIFIED,
+            dl_status=VerificationStatus.VERIFIED, dl_expiry_date=date.today() + timedelta(days=365),
+            dl_allowed_categories=[VehicleCategory.FOUR_WHEELER],
+        )
+
+        # Second incoming order looking for a vehicle.
+        self.incoming = services.intake_order(
+            company_id=self.company.id, order_ref="ETA-INCOMING", parent_order_ref=None,
+            pickup=_addr("New Pickup"), delivery=_addr("New Delivery"), weight_kg=Decimal("5.00"),
+            actor=self.actor,
+        )
+
+    def _put_vehicle_in_transit(self, ping_lat, ping_lng, remaining_stop_lat, remaining_stop_lng):
+        """Assigns the vehicle to its own trip, completes the pickup (so
+        only the delivery stop remains), puts it in transit, and drops a
+        ping at (ping_lat, ping_lng). What actually drives the ETA is the
+        distance from that ping to the remaining delivery stop — not
+        anything about the *new* incoming order these tests are matching
+        against.
+        """
+        result = services.intake_order(
+            company_id=self.company.id, order_ref="ETA-CURRENT", parent_order_ref=None,
+            pickup=_addr("Current Pickup", ping_lat, ping_lng),
+            delivery=_addr("Current Delivery", remaining_stop_lat, remaining_stop_lng),
+            weight_kg=Decimal("5.00"), actor=self.actor,
+        )
+        services.complete_stop(stop_id=result["pickup_stop_id"], proof_photo_url="https://x.test/p.jpg", actor=self.actor)
+        services.lock_pickups(trip_id=result["trip_id"], actor=self.actor)
+        trip = services.assign_vehicle(
+            trip_id=result["trip_id"], vehicle_id=self.vehicle.id, driver_id=self.driver.id, actor=self.actor
+        )
+        # Deliberately not tracking.services.record_location_ping — it also
+        # writes a live-location cache key for realtime broadcast, which
+        # isn't what this ETA logic reads. Replicating just the DB-visible
+        # effect (status flip + a stored ping) is what's actually under test.
+        trip.status = TripStatus.IN_TRANSIT
+        trip.save(update_fields=["status"])
+        self.TripLocationPing.objects.create(
+            company_id=self.company.id, trip=trip, vehicle_id=self.vehicle.id,
+            latitude=Decimal(ping_lat), longitude=Decimal(ping_lng), recorded_at=timezone.now(),
+        )
+        return trip
+
+    def test_free_vehicle_is_available_now(self):
+        result = services.get_assignment_candidates(company_id=self.company.id, trip_id=self.incoming["trip_id"])
+        self.assertEqual(len(result["matches"]), 1)
+        self.assertEqual(result["matches"][0]["available_in_minutes"], 0)
+
+    def test_vehicle_assigned_but_not_yet_moving_has_no_honest_eta_and_is_excluded(self):
+        result = services.intake_order(
+            company_id=self.company.id, order_ref="ETA-NOT-MOVING", parent_order_ref=None,
+            pickup=_addr("P"), delivery=_addr("D"), weight_kg=Decimal("5.00"), actor=self.actor,
+        )
+        services.complete_stop(stop_id=result["pickup_stop_id"], proof_photo_url="https://x.test/p.jpg", actor=self.actor)
+        services.lock_pickups(trip_id=result["trip_id"], actor=self.actor)
+        services.assign_vehicle(
+            trip_id=result["trip_id"], vehicle_id=self.vehicle.id, driver_id=self.driver.id, actor=self.actor
+        )
+        # Pickups locked but no location ping yet — hasn't started moving.
+
+        matches = services.get_assignment_candidates(company_id=self.company.id, trip_id=self.incoming["trip_id"])
+        self.assertEqual(matches["matches"], [])
+
+    def test_vehicle_nearby_and_in_transit_is_offered_with_a_positive_eta(self):
+        # Ping and its remaining delivery stop are ~2km apart.
+        self._put_vehicle_in_transit("1.000000", "1.000000", "1.018000", "1.000000")
+
+        result = services.get_assignment_candidates(
+            company_id=self.company.id, trip_id=self.incoming["trip_id"], within_minutes=30
+        )
+        self.assertEqual(len(result["matches"]), 1)
+        self.assertGreater(result["matches"][0]["available_in_minutes"], 0)
+        self.assertLessEqual(result["matches"][0]["available_in_minutes"], 30)
+
+    def test_vehicle_far_away_and_in_transit_exceeds_the_window_and_is_excluded(self):
+        # Ping and its remaining delivery stop are hundreds of km apart.
+        self._put_vehicle_in_transit("1.000000", "1.000000", "15.000000", "80.000000")
+
+        result = services.get_assignment_candidates(
+            company_id=self.company.id, trip_id=self.incoming["trip_id"], within_minutes=30
+        )
+        self.assertEqual(result["matches"], [])
+
+    def test_vehicle_in_transit_with_no_recent_ping_is_excluded(self):
+        result = services.intake_order(
+            company_id=self.company.id, order_ref="ETA-STALE", parent_order_ref=None,
+            pickup=_addr("P", "1.000100", "1.000100"), delivery=_addr("D", "1.000100", "1.000100"),
+            weight_kg=Decimal("5.00"), actor=self.actor,
+        )
+        services.complete_stop(stop_id=result["pickup_stop_id"], proof_photo_url="https://x.test/p.jpg", actor=self.actor)
+        services.lock_pickups(trip_id=result["trip_id"], actor=self.actor)
+        trip = services.assign_vehicle(
+            trip_id=result["trip_id"], vehicle_id=self.vehicle.id, driver_id=self.driver.id, actor=self.actor
+        )
+        # Already in transit, but its only ping is well outside ETA_PING_FRESHNESS.
+        trip.status = TripStatus.IN_TRANSIT
+        trip.save(update_fields=["status"])
+        self.TripLocationPing.objects.create(
+            company_id=self.company.id, trip=trip, vehicle_id=self.vehicle.id,
+            latitude=Decimal("1.000100"), longitude=Decimal("1.000100"),
+            recorded_at=timezone.now() - timedelta(minutes=45),
+        )
+
+        result = services.get_assignment_candidates(company_id=self.company.id, trip_id=self.incoming["trip_id"])
+        self.assertEqual(result["matches"], [])
+
+    def test_wider_tenant_eta_speed_shrinks_the_estimate(self):
+        # ~50km between the ping and the remaining delivery stop, so the
+        # configured speed actually moves the estimate.
+        self._put_vehicle_in_transit("2.000000", "2.000000", "2.450000", "2.000000")
+
+        default_result = services.get_assignment_candidates(
+            company_id=self.company.id, trip_id=self.incoming["trip_id"], within_minutes=999
+        )
+        default_minutes = default_result["matches"][0]["available_in_minutes"]
+
+        set_tenant_setting(self.company.id, "assignment_eta_speed_kmph", "250")
+        faster_result = services.get_assignment_candidates(
+            company_id=self.company.id, trip_id=self.incoming["trip_id"], within_minutes=999
+        )
+        faster_minutes = faster_result["matches"][0]["available_in_minutes"]
+
+        self.assertLess(faster_minutes, default_minutes)

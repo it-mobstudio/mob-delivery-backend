@@ -104,7 +104,7 @@ class FleetStatusTests(DashboardTestBase):
         self.assertEqual(by_reg["KA06AA0002"]["pause_reason"], "lunch")
         self.assertEqual(by_reg["KA06AA0003"]["status"], "offline")
         self.assertIsNone(by_reg["KA06AA0003"]["driver_id"])
-        self.assertIsNone(by_reg["KA06AA0003"]["today_km"])
+        self.assertEqual(by_reg["KA06AA0003"]["today_km"], 0.0, "no pings recorded today yet")
 
         # Add three more idle vehicles and confirm the query count doesn't grow —
         # proof there's no per-vehicle query hiding in the loop.
@@ -118,6 +118,35 @@ class FleetStatusTests(DashboardTestBase):
         self.assertEqual(
             baseline_query_count, grown_query_count, "query count must not scale with fleet size"
         )
+
+    def test_today_km_sums_the_days_gps_derived_distance(self):
+        from tracking.models import TripLocationPing
+
+        vehicle = self._make_vehicle("KA06AA0010")
+        driver = self._make_driver("+919500000010")
+        trip = self._put_vehicle_in_transit(vehicle, driver, "ORD-KM")
+
+        now = timezone.now()
+        TripLocationPing.objects.create(
+            company_id=self.company.id, trip=trip, vehicle_id=vehicle.id,
+            latitude=Decimal("12.910"), longitude=Decimal("77.610"),
+            recorded_at=now - timedelta(minutes=10), distance_from_previous_km=Decimal("3.200"),
+        )
+        TripLocationPing.objects.create(
+            company_id=self.company.id, trip=trip, vehicle_id=vehicle.id,
+            latitude=Decimal("12.915"), longitude=Decimal("77.615"),
+            recorded_at=now - timedelta(minutes=5), distance_from_previous_km=Decimal("1.800"),
+        )
+        # From yesterday — must not be counted in today's total.
+        TripLocationPing.objects.create(
+            company_id=self.company.id, trip=trip, vehicle_id=vehicle.id,
+            latitude=Decimal("12.800"), longitude=Decimal("77.500"),
+            recorded_at=now - timedelta(days=1), distance_from_previous_km=Decimal("50.000"),
+        )
+
+        fleet = services.get_fleet_status(self.company.id)
+        by_reg = {row["registration_number"]: row for row in fleet}
+        self.assertAlmostEqual(by_reg["KA06AA0010"]["today_km"], 5.0)
 
 
 class KpiTests(DashboardTestBase):

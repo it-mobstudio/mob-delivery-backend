@@ -2,16 +2,22 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 from django.core.cache import cache
-from django.db.models import Avg, DurationField, ExpressionWrapper, F
+from django.db.models import Avg, DurationField, ExpressionWrapper, F, Sum
 from django.utils import timezone
 
+from core.exceptions import DomainError
 from damage_reports.models import DamageReportStatus, VehicleDamageReport
 from drivers.models import Driver, DriverAccountStatus
-from issues.models import TripIssue
-from tracking.models import AnomalyType, DriverShift, ShiftStatus, TripAnomalyAlert, TripPause
+from issues.models import IssueStatus, IssueType, TripIssue
+from tracking.models import AnomalyType, DriverShift, ShiftStatus, TripAnomalyAlert, TripLocationPing, TripPause
 from tracking.services import LOCATION_CACHE_KEY
 from trips.models import ACTIVE_TRIP_STATUSES, Trip, TripStatus
 from vehicles.models import Vehicle, VehicleDocumentExpiryAlert, VehicleStatus
+
+# Safety score penalties — see compute_safety_score.
+SAFETY_SCORE_ALERT_PENALTY = 3
+SAFETY_SCORE_UNRESOLVED_ISSUE_PENALTY = 5
+SAFETY_SCORE_TRAFFIC_PENALTY_PENALTY = 10
 
 # A vehicle counts as "moving" only if its last location ping is within this
 # window — separate from (and tighter than) the Tracking module's own
@@ -72,6 +78,22 @@ def get_fleet_status(company_id):
     cache_keys = [LOCATION_CACHE_KEY.format(vehicle_id=vid) for vid in vehicle_ids]
     locations_by_key = cache.get_many(cache_keys)
 
+    # GPS-derived running total for today — an in-progress approximation,
+    # not the authoritative figure. DriverShift.total_km (odometer-based) is
+    # more accurate but only exists once a shift has ended; this fills the
+    # gap while a vehicle is still out. Speed-implausible GPS jumps are
+    # already zeroed out at write time (see
+    # tracking.services.record_location_ping), so they don't inflate this.
+    today_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+    km_by_vehicle = {
+        row["vehicle_id"]: row["total"]
+        for row in TripLocationPing.objects.filter(
+            company_id=company_id, vehicle_id__in=vehicle_ids, recorded_at__gte=today_start
+        )
+        .values("vehicle_id")
+        .annotate(total=Sum("distance_from_previous_km"))
+    }
+
     results = []
     for vehicle in vehicles:
         shift = shifts_by_vehicle.get(vehicle.id)
@@ -130,7 +152,7 @@ def get_fleet_status(company_id):
                     else None
                 ),
                 "today_working_minutes": today_working_minutes,
-                "today_km": None,  # only computable once the shift ends (needs end_odometer)
+                "today_km": float(km_by_vehicle.get(vehicle.id) or 0),
             }
         )
 
@@ -200,3 +222,47 @@ def get_recent_damage_reports(company_id, limit):
         .select_related("vehicle")
         .order_by("-created_at")[:limit]
     )
+
+
+def _start_of_current_week():
+    today = timezone.localdate()
+    monday = today - timedelta(days=today.weekday())
+    return timezone.make_aware(datetime.combine(monday, datetime.min.time()))
+
+
+def compute_safety_score(driver_id, company_id, since):
+    alerts = TripAnomalyAlert.objects.filter(
+        trip__driver_id=driver_id, company_id=company_id, created_at__gte=since
+    ).count()
+    unresolved_issues = TripIssue.objects.filter(
+        trip__driver_id=driver_id, company_id=company_id, created_at__gte=since, status=IssueStatus.OPEN
+    ).count()
+    traffic_penalties = TripIssue.objects.filter(
+        trip__driver_id=driver_id,
+        company_id=company_id,
+        created_at__gte=since,
+        issue_type=IssueType.TRAFFIC_PENALTY,
+    ).count()
+
+    score = max(
+        100
+        - alerts * SAFETY_SCORE_ALERT_PENALTY
+        - unresolved_issues * SAFETY_SCORE_UNRESOLVED_ISSUE_PENALTY
+        - traffic_penalties * SAFETY_SCORE_TRAFFIC_PENALTY_PENALTY,
+        0,
+    )
+    return {
+        "score": score,
+        "out_of": 100,
+        "factors": {
+            "tracking_alerts": alerts,
+            "unresolved_issues": unresolved_issues,
+            "traffic_penalties": traffic_penalties,
+        },
+    }
+
+
+def get_driver_safety_score(driver_id, company_id, since=None):
+    if not Driver.objects.filter(pk=driver_id, company_id=company_id).exists():
+        raise DomainError("DRIVER_NOT_FOUND", "Driver not found.", status_code=404)
+    return compute_safety_score(driver_id, company_id, since or _start_of_current_week())

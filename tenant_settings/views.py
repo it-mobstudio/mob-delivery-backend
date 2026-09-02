@@ -11,6 +11,7 @@ from .serializers import TenantSettingSerializer, UpdateTenantSettingSerializer
 
 
 @extend_schema(
+    tags=["Admin: Settings"],
     summary="List tenant settings",
     description=(
         "Lists this company's configurable per-tenant knobs and their current values — "
@@ -28,6 +29,7 @@ class TenantSettingListView(generics.ListAPIView):
 
 
 @extend_schema(
+    tags=["Admin: Settings"],
     summary="Update a tenant setting",
     description="Upserts one setting's value by key for the caller's company (e.g. `geofence_meters`).",
 )

@@ -8,6 +8,7 @@ from .views import (
     OrderCancelView,
     TripStopCompleteView,
     TripStopDeliveryAddressView,
+    TripStopPhotoView,
     TripViewSet,
 )
 
@@ -23,6 +24,11 @@ urlpatterns = [
         "trips/<uuid:pk>/stops/<uuid:stop_pk>/complete",
         TripStopCompleteView.as_view(),
         name="trip-stop-complete",
+    ),
+    path(
+        "trips/<uuid:pk>/stops/<uuid:stop_pk>/photos",
+        TripStopPhotoView.as_view(),
+        name="trip-stop-photos",
     ),
     path(
         "trips/<uuid:pk>/stops/<uuid:stop_pk>/delivery-address",

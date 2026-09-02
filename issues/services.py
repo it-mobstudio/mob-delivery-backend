@@ -4,7 +4,7 @@ from core.exceptions import DomainError
 from trips import services as trip_services
 from trips.models import TripStop
 
-from .models import IssueStatus, TripIssue
+from .models import IssueStatus, IssueType, TripIssue
 
 
 def _get_issue(issue_id, company_id):
@@ -16,7 +16,17 @@ def _get_issue(issue_id, company_id):
         raise DomainError("ISSUE_NOT_FOUND", "Issue not found.", status_code=404)
 
 
-def create_issue(trip_id, issue_type, note, actor, trip_stop_id=None, severity=None, photo_url=None):
+def create_issue(
+    trip_id,
+    issue_type,
+    note,
+    actor,
+    trip_stop_id=None,
+    severity=None,
+    photo_url=None,
+    penalty_amount=None,
+    penalty_challan_number=None,
+):
     trip = trip_services.get_trip(trip_id, actor.company_id)
 
     trip_stop = None
@@ -27,6 +37,11 @@ def create_issue(trip_id, issue_type, note, actor, trip_stop_id=None, severity=N
             raise DomainError(
                 "TRIP_STOP_NOT_FOUND", "This stop was not found on the given trip.", status_code=404
             )
+
+    if issue_type == IssueType.TRAFFIC_PENALTY and penalty_amount is None:
+        raise DomainError(
+            "PENALTY_AMOUNT_REQUIRED", "penalty_amount is required for a traffic_penalty issue.", status_code=400
+        )
 
     kwargs = {}
     if severity:
@@ -39,6 +54,8 @@ def create_issue(trip_id, issue_type, note, actor, trip_stop_id=None, severity=N
         issue_type=issue_type,
         note=note,
         photo_url=photo_url,
+        penalty_amount=penalty_amount,
+        penalty_challan_number=penalty_challan_number,
         **kwargs,
     )
 
@@ -54,5 +71,22 @@ def resolve_issue(issue_id, resolution_note, actor):
     issue.resolved_by = actor.id
     issue.resolved_at = timezone.now()
     issue.save(update_fields=["status", "resolution_note", "resolved_by", "resolved_at"])
+
+    return issue
+
+
+def mark_penalty_paid(issue_id, actor):
+    issue = _get_issue(issue_id, actor.company_id)
+
+    if issue.issue_type != IssueType.TRAFFIC_PENALTY:
+        raise DomainError(
+            "NOT_A_PENALTY_ISSUE", "Only a traffic_penalty issue can be marked paid.", status_code=409
+        )
+    if issue.penalty_paid:
+        raise DomainError("PENALTY_ALREADY_PAID", "This penalty is already marked paid.", status_code=409)
+
+    issue.penalty_paid = True
+    issue.penalty_paid_at = timezone.now()
+    issue.save(update_fields=["penalty_paid", "penalty_paid_at"])
 
     return issue

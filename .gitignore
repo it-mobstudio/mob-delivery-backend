@@ -10,3 +10,5 @@ logs/
 .idea/
 .claude/
 python3
+staticfiles/
+swagger_warnings.txt

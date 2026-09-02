@@ -3,6 +3,7 @@ import re
 from rest_framework import serializers
 
 from .models import (
+    DimensionUnit,
     Vehicle,
     VehicleDocument,
     VehicleDocumentType,
@@ -11,9 +12,12 @@ from .models import (
 )
 
 REGISTRATION_NUMBER_RE = re.compile(r"^[A-Z0-9-]+$")
+STORAGE_DIMENSION_FIELDS = ["storage_length", "storage_width", "storage_height"]
 
 
 class VehicleTypeSerializer(serializers.ModelSerializer):
+    storage_display = serializers.CharField(read_only=True)
+
     class Meta:
         model = VehicleType
         fields = [
@@ -23,6 +27,14 @@ class VehicleTypeSerializer(serializers.ModelSerializer):
             "default_capacity_kg",
             "icon_image_url",
             "status",
+            "storage_length",
+            "storage_width",
+            "storage_height",
+            "storage_unit",
+            "storage_display",
+            "suitable_product_categories",
+            "default_loading_minutes",
+            "default_unloading_minutes",
             "created_at",
             "updated_at",
         ]
@@ -32,6 +44,10 @@ class VehicleTypeSerializer(serializers.ModelSerializer):
         if value <= 0:
             raise serializers.ValidationError("Must be a positive number.")
         return value
+
+    def _validate_positive(self, field, value):
+        if value is not None and value <= 0:
+            raise serializers.ValidationError({field: "Must be a positive number."})
 
     def validate(self, attrs):
         # DRF's automatic unique-together validation skips UniqueConstraints
@@ -48,6 +64,30 @@ class VehicleTypeSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {"name": "A vehicle type with this name already exists."}
                 )
+
+        # Storage dimensions — a partial set isn't useful, so length/width/
+        # height must resolve to all-or-nothing. Checked against the
+        # *effective* value (this request, falling back to what's already
+        # on the instance) rather than only what's in this exact payload —
+        # so a PATCH correcting just one dimension of an already-complete
+        # set doesn't have to resend the other two.
+        effective = {
+            field: attrs[field] if field in attrs else getattr(self.instance, field, None) if self.instance else None
+            for field in STORAGE_DIMENSION_FIELDS
+        }
+        if any(field in attrs for field in STORAGE_DIMENSION_FIELDS):
+            missing = [field for field in STORAGE_DIMENSION_FIELDS if not effective[field]]
+            if missing:
+                raise serializers.ValidationError(
+                    {
+                        field: "storage_length, storage_width, and storage_height must be provided together."
+                        for field in missing
+                    }
+                )
+            for field in STORAGE_DIMENSION_FIELDS:
+                self._validate_positive(field, effective[field])
+            if not attrs.get("storage_unit") and not (self.instance and self.instance.storage_unit):
+                attrs["storage_unit"] = DimensionUnit.CM
         return attrs
 
 
@@ -89,6 +129,9 @@ class VehicleSerializer(serializers.ModelSerializer):
             "photo_url",
             "status",
             "current_driver_id",
+            "make",
+            "model",
+            "ownership",
             "created_at",
             "updated_at",
         ]
@@ -159,6 +202,9 @@ class VehicleListSerializer(serializers.ModelSerializer):
             "photo_url",
             "status",
             "current_driver_id",
+            "make",
+            "model",
+            "ownership",
             "created_at",
             "updated_at",
         ]
@@ -169,3 +215,46 @@ class VehicleDetailSerializer(VehicleListSerializer):
 
     class Meta(VehicleListSerializer.Meta):
         fields = VehicleListSerializer.Meta.fields + ["documents"]
+
+
+class DriverVehicleTypeSerializer(serializers.ModelSerializer):
+    """Nested vehicle-type detail for DriverVehicleSerializer — trimmed to
+    what a driver needs to know about the *kind* of vehicle they're driving
+    (name/category, capacity, cargo dimensions, icon), not the admin-only
+    fields (status, suitable_product_categories, loading/unloading minutes).
+    """
+
+    storage_display = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = VehicleType
+        fields = [
+            "name",
+            "category",
+            "default_capacity_kg",
+            "storage_length",
+            "storage_width",
+            "storage_height",
+            "storage_unit",
+            "storage_display",
+            "icon_image_url",
+        ]
+
+
+class DriverVehicleSerializer(serializers.ModelSerializer):
+    """GET /driver/vehicle — the authenticated driver's own currently-
+    assigned vehicle, joined with its vehicle type. Read-only, driver-facing
+    subset of VehicleDetailSerializer (no documents/current_driver_id).
+    """
+
+    vehicle_type = DriverVehicleTypeSerializer(read_only=True)
+
+    class Meta:
+        model = Vehicle
+        fields = [
+            "id",
+            "registration_number",
+            "photo_url",
+            "status",
+            "vehicle_type",
+        ]

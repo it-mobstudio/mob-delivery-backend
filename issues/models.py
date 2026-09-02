@@ -34,6 +34,15 @@ class TripIssue(BaseModel):
     resolved_by = models.UUIDField(null=True, blank=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
 
+    # Only meaningful when issue_type == TRAFFIC_PENALTY — kept on the same
+    # row rather than a separate model since a penalty is still fundamentally
+    # a TripIssue, just one with a fine attached (see create_issue, which
+    # requires penalty_amount for this type).
+    penalty_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    penalty_challan_number = models.CharField(max_length=50, null=True, blank=True)
+    penalty_paid = models.BooleanField(default=False)
+    penalty_paid_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ["-created_at"]
 

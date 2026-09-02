@@ -5,11 +5,15 @@ from .models import TenantSetting
 # whatever get_tenant_setting() call sites actually exist.
 DEFAULT_SETTINGS = {
     "assignment_window_minutes": "30",  # Trips — get_assignment_candidates
+    "assignment_eta_speed_kmph": "25",  # Trips — _estimate_minutes_until_free
+    "assignment_eta_dwell_minutes": "5",  # Trips — _estimate_minutes_until_free
     "stationary_radius_meters": "50",  # Tracking — detect_stationary_vehicles
     "stationary_duration_minutes": "10",  # Tracking — detect_stationary_vehicles
     "wrong_direction_degrees": "90",  # Tracking — detect_wrong_direction
     "geofence_meters": "100",  # Trips — complete_stop delivery geofence check
     "document_expiry_warning_days": "14",  # Vehicles — flag_expiring_vehicle_documents
+    "shift_variance_threshold_percent": "20",  # Tracking — end_shift KM variance reconciliation
+    "gps_offline_minutes": "5",  # Tracking — detect_offline_vehicles
 }
 
 

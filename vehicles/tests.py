@@ -1,5 +1,6 @@
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 
 from django.test import TestCase
 from django.utils import timezone
@@ -7,6 +8,8 @@ from rest_framework.test import APIClient
 
 from accounts.models import AdminUser, Company
 from core.exceptions import DomainError
+from drivers.models import Driver, VerificationStatus
+from drivers.tokens import issue_driver_token
 from tenant_settings.services import set_tenant_setting
 
 from . import services
@@ -158,3 +161,284 @@ class VehiclesNamedTests(TestCase):
         services.delete_vehicle_type(unused)
         unused.refresh_from_db()
         self.assertTrue(unused.is_deleted)
+
+
+class VehicleDeleteSafetyTests(TestCase):
+    """DELETE /vehicles/{id} must go through the same disable_vehicle
+    safety check (active-trip refusal, soft delete) as the disable action —
+    not a raw instance.delete() that bypasses both."""
+
+    def setUp(self):
+        self.company = Company.objects.create(name="Vehicle Delete Safety Co")
+        self.admin = AdminUser.objects.create_user(
+            email="deletesafety@test.invalid", company=self.company, password="pass12345"
+        )
+        self.vehicle_type = VehicleType.objects.create(
+            company=self.company, name="Mini Van", category=VehicleCategory.FOUR_WHEELER,
+            default_capacity_kg=Decimal("500.00"),
+        )
+        self.client_api = APIClient()
+        self.client_api.force_authenticate(user=self.admin)
+
+    def test_delete_soft_deletes_and_deactivates_instead_of_hard_deleting(self):
+        vehicle = Vehicle.objects.create(
+            company=self.company, vehicle_type=self.vehicle_type,
+            registration_number="KA01DS0001", capacity_kg=Decimal("400"),
+        )
+
+        r = self.client_api.delete(f"/api/v1/vehicles/{vehicle.id}")
+        self.assertEqual(r.status_code, 204)
+
+        vehicle.refresh_from_db()
+        self.assertTrue(vehicle.is_deleted)
+        self.assertEqual(vehicle.status, "disabled")
+
+    def test_delete_is_refused_with_an_active_trip_same_as_disable(self):
+        from trips import services as trip_services
+
+        driver = Driver.objects.create(
+            company=self.company, full_name="Delete Safety Driver", phone_number="+919700000001",
+            emergency_contact_name="EC", emergency_contact_phone="+919700000002",
+            aadhar_status=VerificationStatus.VERIFIED, police_status=VerificationStatus.VERIFIED,
+            dl_status=VerificationStatus.VERIFIED, dl_expiry_date=date.today() + timedelta(days=300),
+            dl_allowed_categories=[VehicleCategory.FOUR_WHEELER],
+        )
+        vehicle = Vehicle.objects.create(
+            company=self.company, vehicle_type=self.vehicle_type,
+            registration_number="KA01DS0002", capacity_kg=Decimal("400"),
+        )
+        actor = SimpleNamespace(company_id=self.company.id)
+        result = trip_services.intake_order(
+            company_id=self.company.id, order_ref="ORD-DEL-SAFETY", parent_order_ref=None,
+            pickup={"address": "P", "latitude": Decimal("1"), "longitude": Decimal("1")},
+            delivery={"address": "D", "latitude": Decimal("1"), "longitude": Decimal("1")},
+            weight_kg=Decimal("5.00"), actor=actor,
+        )
+        trip_services.assign_vehicle(
+            trip_id=result["trip_id"], vehicle_id=vehicle.id, driver_id=driver.id, actor=actor
+        )
+
+        r = self.client_api.delete(f"/api/v1/vehicles/{vehicle.id}")
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(r.json()["error"]["code"], "VEHICLE_HAS_ACTIVE_TRIP")
+
+        vehicle.refresh_from_db()
+        self.assertFalse(vehicle.is_deleted, "must not be deleted, soft or hard, when refused")
+
+
+class PutMethodRemovedTests(TestCase):
+    """Data-safety fix — every update spec here was PATCH (partial); PUT
+    (full replacement) was only ever reachable as an accidental side effect
+    of ModelViewSet's defaults. Confirms it's actually gone, not just that
+    the flag was set."""
+
+    def setUp(self):
+        self.company = Company.objects.create(name="Put Removed Test Co")
+        self.admin = AdminUser.objects.create_user(
+            email="putremoved@test.invalid", company=self.company, password="pass12345"
+        )
+        self.vehicle_type = VehicleType.objects.create(
+            company=self.company, name="Mini Van", category=VehicleCategory.FOUR_WHEELER,
+            default_capacity_kg=Decimal("500.00"),
+        )
+        self.vehicle = Vehicle.objects.create(
+            company=self.company, vehicle_type=self.vehicle_type,
+            registration_number="KA01PR0001", capacity_kg=Decimal("400"),
+        )
+        self.client_api = APIClient()
+        self.client_api.force_authenticate(user=self.admin)
+
+    def test_put_on_vehicle_type_is_405(self):
+        r = self.client_api.put(
+            f"/api/v1/vehicle-types/{self.vehicle_type.id}",
+            {"name": "Full Replace Attempt"}, format="json",
+        )
+        self.assertEqual(r.status_code, 405)
+
+    def test_patch_on_vehicle_type_still_works(self):
+        r = self.client_api.patch(
+            f"/api/v1/vehicle-types/{self.vehicle_type.id}", {"name": "Renamed Van"}, format="json"
+        )
+        self.assertEqual(r.status_code, 200)
+        self.vehicle_type.refresh_from_db()
+        self.assertEqual(self.vehicle_type.name, "Renamed Van")
+        self.assertEqual(self.vehicle_type.category, VehicleCategory.FOUR_WHEELER, "untouched by the PATCH")
+
+    def test_put_on_vehicle_is_405(self):
+        r = self.client_api.put(
+            f"/api/v1/vehicles/{self.vehicle.id}", {"registrationNumber": "KA01PR9999"}, format="json"
+        )
+        self.assertEqual(r.status_code, 405)
+
+    def test_patch_on_vehicle_still_works_and_leaves_other_fields_alone(self):
+        r = self.client_api.patch(
+            f"/api/v1/vehicles/{self.vehicle.id}", {"capacityKg": "550.00"}, format="json"
+        )
+        self.assertEqual(r.status_code, 200)
+        self.vehicle.refresh_from_db()
+        self.assertEqual(self.vehicle.capacity_kg, Decimal("550.00"))
+        self.assertEqual(self.vehicle.registration_number, "KA01PR0001", "untouched by the PATCH")
+
+
+class VehicleTypeStorageDimensionsTests(TestCase):
+    """Vehicle types can be compared by physical cargo space, not just
+    weight — storage_length/width/height (+ unit) are optional and
+    independent of default_capacity_kg."""
+
+    def setUp(self):
+        self.company = Company.objects.create(name="Storage Dims Test Co")
+        self.admin = AdminUser.objects.create_user(
+            email="storagedims@test.invalid", company=self.company, password="pass12345"
+        )
+        self.client_api = APIClient()
+        self.client_api.force_authenticate(user=self.admin)
+
+    def _create(self, **extra):
+        payload = {"name": "Tata Ace", "category": "four_wheeler", "defaultCapacityKg": "750.00"}
+        payload.update(extra)
+        return self.client_api.post("/api/v1/vehicle-types", payload, format="json")
+
+    def test_creating_with_only_weight_still_succeeds(self):
+        r = self._create()
+        self.assertEqual(r.status_code, 201)
+
+        vehicle_type = VehicleType.objects.get(pk=r.data["id"])
+        self.assertIsNone(vehicle_type.storage_length)
+        self.assertIsNone(vehicle_type.storage_unit)
+        self.assertIsNone(vehicle_type.storage_display)
+
+    def test_creating_with_all_three_dimensions_and_unit_computes_storage_display(self):
+        r = self._create(storageLength="7", storageWidth="4", storageHeight="5", storageUnit="feet")
+        self.assertEqual(r.status_code, 201)
+        # r.data is the pre-render dict (snake_case); camelCase only applies
+        # to the rendered response.content the client actually receives.
+        # Decimal fields render at their configured 2 decimal places.
+        self.assertEqual(r.data["storage_display"], "7.00 × 4.00 × 5.00 feet")
+
+        vehicle_type = VehicleType.objects.get(pk=r.data["id"])
+        self.assertEqual(vehicle_type.storage_length, Decimal("7.00"))
+        self.assertEqual(vehicle_type.storage_unit, "feet")
+        self.assertEqual(vehicle_type.storage_display, "7.00 × 4.00 × 5.00 feet")
+
+    def test_omitted_unit_defaults_to_cm_when_dimensions_are_present(self):
+        r = self._create(storageLength="40", storageWidth="40", storageHeight="40")
+        self.assertEqual(r.status_code, 201)
+
+        vehicle_type = VehicleType.objects.get(pk=r.data["id"])
+        self.assertEqual(vehicle_type.storage_unit, "cm")
+
+    def test_partial_dimension_set_is_rejected(self):
+        r = self._create(storageLength="7")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("storageWidth", r.json()["error"]["details"])
+
+    def test_non_positive_dimension_is_rejected(self):
+        r = self._create(storageLength="7", storageWidth="0", storageHeight="5", storageUnit="feet")
+        self.assertEqual(r.status_code, 400)
+
+    def test_patch_correcting_one_dimension_of_an_already_complete_set_succeeds(self):
+        created = self._create(storageLength="7", storageWidth="4", storageHeight="5", storageUnit="feet")
+        vehicle_type_id = created.data["id"]
+
+        r = self.client_api.patch(
+            f"/api/v1/vehicle-types/{vehicle_type_id}", {"storageLength": "7.5"}, format="json"
+        )
+        self.assertEqual(r.status_code, 200)
+
+        vehicle_type = VehicleType.objects.get(pk=vehicle_type_id)
+        self.assertEqual(vehicle_type.storage_length, Decimal("7.5"))
+        self.assertEqual(vehicle_type.storage_width, Decimal("4"), "untouched by the PATCH")
+        self.assertEqual(vehicle_type.storage_unit, "feet", "untouched by the PATCH")
+
+    def test_patch_introducing_a_new_partial_set_is_rejected(self):
+        created = self._create()  # no dimensions at all yet
+        vehicle_type_id = created.data["id"]
+
+        r = self.client_api.patch(
+            f"/api/v1/vehicle-types/{vehicle_type_id}", {"storageLength": "7"}, format="json"
+        )
+        self.assertEqual(r.status_code, 400)
+
+
+class DriverCurrentVehicleViewTests(TestCase):
+    """GET /driver/vehicle — a driver's own view of the vehicle currently
+    assigned to them (Driver.current_vehicle_id), joined with its vehicle
+    type. Driver-only, and a clean 404 when nothing is assigned."""
+
+    def setUp(self):
+        self.company = Company.objects.create(name="Driver Vehicle Endpoint Co")
+        self.vehicle_type = VehicleType.objects.create(
+            company=self.company, name="Tempo", category=VehicleCategory.THREE_WHEELER,
+            default_capacity_kg=Decimal("750.00"), icon_image_url="https://x.test/tempo-icon.png",
+        )
+        self.vehicle = Vehicle.objects.create(
+            company=self.company, vehicle_type=self.vehicle_type,
+            registration_number="KA05EE0099", capacity_kg=Decimal("700"),
+            photo_url="https://x.test/vehicle-photo.jpg",
+        )
+        self.driver = Driver.objects.create(
+            company=self.company, full_name="Assigned Vehicle Driver", phone_number="+919876500060",
+            emergency_contact_name="EC", emergency_contact_phone="+919876500061",
+            current_vehicle_id=self.vehicle.id,
+        )
+
+    def _authed_driver_client(self, driver):
+        access, _refresh, _expires_in = issue_driver_token(driver)
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        return client
+
+    def test_driver_can_view_their_assigned_vehicle(self):
+        client = self._authed_driver_client(self.driver)
+        r = client.get("/api/v1/driver/vehicle")
+        self.assertEqual(r.status_code, 200)
+
+        body = r.json()
+        self.assertEqual(body["id"], str(self.vehicle.id))
+        self.assertEqual(body["registrationNumber"], "KA05EE0099")
+        self.assertEqual(body["photoUrl"], "https://x.test/vehicle-photo.jpg")
+        self.assertEqual(body["status"], "active")
+        self.assertEqual(body["vehicleType"]["name"], "Tempo")
+        self.assertEqual(body["vehicleType"]["category"], "three_wheeler")
+        self.assertEqual(body["vehicleType"]["iconImageUrl"], "https://x.test/tempo-icon.png")
+
+    def test_driver_with_no_vehicle_assigned_gets_404(self):
+        unassigned_driver = Driver.objects.create(
+            company=self.company, full_name="Unassigned Driver", phone_number="+919876500062",
+            emergency_contact_name="EC", emergency_contact_phone="+919876500063",
+        )
+        client = self._authed_driver_client(unassigned_driver)
+
+        r = client.get("/api/v1/driver/vehicle")
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.json()["error"]["code"], "NO_VEHICLE_ASSIGNED")
+
+    def test_non_driver_principal_is_rejected_with_403(self):
+        admin = AdminUser.objects.create_user(
+            email="notadriver-vehicle@test.invalid", company=self.company, password="pass12345"
+        )
+        client = APIClient()
+        client.force_authenticate(user=admin)
+
+        r = client.get("/api/v1/driver/vehicle")
+        self.assertEqual(r.status_code, 403)
+
+    def test_vehicle_from_another_company_is_not_leaked(self):
+        other_company = Company.objects.create(name="Other Vehicle Co")
+        other_vehicle_type = VehicleType.objects.create(
+            company=other_company, name="Truck", category=VehicleCategory.FOUR_WHEELER,
+            default_capacity_kg=Decimal("2000.00"),
+        )
+        other_vehicle = Vehicle.objects.create(
+            company=other_company, vehicle_type=other_vehicle_type, registration_number="KA10FF0001",
+            capacity_kg=Decimal("1900"),
+        )
+        # Same company as self.driver, but current_vehicle_id points at a
+        # vehicle belonging to a *different* company — should 404, not leak.
+        self.driver.current_vehicle_id = other_vehicle.id
+        self.driver.save(update_fields=["current_vehicle_id"])
+
+        client = self._authed_driver_client(self.driver)
+        r = client.get("/api/v1/driver/vehicle")
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.json()["error"]["code"], "NO_VEHICLE_ASSIGNED")

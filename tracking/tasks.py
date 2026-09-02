@@ -10,7 +10,7 @@ from tenant_settings.services import get_tenant_setting
 from trips.models import Trip, TripStatus
 
 from . import anomaly_detection, realtime
-from .models import AnomalyType, TripAnomalyAlert, TripLocationPing
+from .models import AnomalyType, DriverShift, ShiftStatus, TripAnomalyAlert, TripLocationPing
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_STATIONARY_RADIUS_METERS = 50
 DEFAULT_STATIONARY_DURATION_MINUTES = 10
 DEFAULT_WRONG_DIRECTION_DEGREES = 90
+DEFAULT_GPS_OFFLINE_MINUTES = 5
 
 
 def _stationary_settings_for(company_id):
@@ -142,6 +143,80 @@ def detect_wrong_direction():
             created += 1
 
     logger.info("detect_wrong_direction: created %d alert(s)", created)
+    return created
+
+
+def _offline_minutes_for(company_id):
+    return get_tenant_setting(company_id, "gps_offline_minutes", DEFAULT_GPS_OFFLINE_MINUTES)
+
+
+@shared_task
+def detect_offline_vehicles():
+    """Distinct from detect_stationary_vehicles — that's pings arriving but
+    the vehicle not moving; this is no pings arriving at all (phone died,
+    app killed, GPS/permissions disabled). Runs every ~2 minutes (see
+    CELERY_BEAT_SCHEDULE). Checks both an in-transit trip AND an active
+    shift with no active trip yet, so a driver going offline before their
+    first ping of the day is also caught.
+    """
+    now = timezone.now()
+    created = 0
+    minutes_cache = {}
+
+    def _offline_minutes(company_id):
+        if company_id not in minutes_cache:
+            minutes_cache[company_id] = _offline_minutes_for(company_id)
+        return minutes_cache[company_id]
+
+    vehicles_covered_by_trip = set()
+
+    for trip in Trip.objects.filter(status=TripStatus.IN_TRANSIT, vehicle_id__isnull=False):
+        vehicles_covered_by_trip.add(trip.vehicle_id)
+
+        if _has_unacknowledged_alert(trip, AnomalyType.GPS_OFFLINE):
+            continue
+
+        window_start = now - timedelta(minutes=_offline_minutes(trip.company_id))
+        has_recent_ping = TripLocationPing.objects.filter(
+            vehicle_id=trip.vehicle_id, recorded_at__gte=window_start
+        ).exists()
+        if not has_recent_ping:
+            _create_alert(
+                trip,
+                AnomalyType.GPS_OFFLINE,
+                f"No location pings in the last {_offline_minutes(trip.company_id)} minute(s).",
+            )
+            created += 1
+
+    # Shift-level — a driver marked active on shift but with no active trip
+    # (and so not already covered by the loop above) and no pings at all.
+    for shift in DriverShift.objects.filter(status=ShiftStatus.ACTIVE):
+        if shift.vehicle_id in vehicles_covered_by_trip:
+            continue
+        if TripAnomalyAlert.objects.filter(
+            shift=shift, alert_type=AnomalyType.GPS_OFFLINE, acknowledged=False
+        ).exists():
+            continue
+
+        window_start = now - timedelta(minutes=_offline_minutes(shift.company_id))
+        has_recent_ping = TripLocationPing.objects.filter(
+            vehicle_id=shift.vehicle_id, recorded_at__gte=window_start
+        ).exists()
+        if not has_recent_ping:
+            TripAnomalyAlert.objects.create(
+                company_id=shift.company_id,
+                shift=shift,
+                vehicle_id=shift.vehicle_id,
+                alert_type=AnomalyType.GPS_OFFLINE,
+                details=(
+                    f"Driver on active shift with no location pings in the last "
+                    f"{_offline_minutes(shift.company_id)} minute(s)."
+                ),
+                detected_at=now,
+            )
+            created += 1
+
+    logger.info("detect_offline_vehicles: created %d alert(s)", created)
     return created
 
 

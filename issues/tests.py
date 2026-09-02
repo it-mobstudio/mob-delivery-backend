@@ -67,7 +67,7 @@ class CreateIssueServiceTests(IssueTestBase):
     def test_admin_can_create_issue(self):
         issue = services.create_issue(
             trip_id=self.trip.id, issue_type="traffic_penalty", note="Fined for wrong parking",
-            actor=self.admin, severity="high",
+            actor=self.admin, severity="high", penalty_amount=Decimal("500.00"),
         )
         self.assertEqual(issue.severity, "high")
 
@@ -89,6 +89,72 @@ class CreateIssueServiceTests(IssueTestBase):
                 actor=self.driver, trip_stop_id=other["pickup_stop_id"],
             )
         self.assertEqual(ctx.exception.code, "TRIP_STOP_NOT_FOUND")
+
+
+class TrafficPenaltyTests(IssueTestBase):
+    """Point 16 gap fix — a traffic_penalty issue needs a fine amount and an
+    optional challan number, plus a way to mark it paid."""
+
+    def test_traffic_penalty_without_amount_is_rejected(self):
+        with self.assertRaises(DomainError) as ctx:
+            services.create_issue(
+                trip_id=self.trip.id, issue_type="traffic_penalty", note="Fined for wrong parking",
+                actor=self.admin,
+            )
+        self.assertEqual(ctx.exception.code, "PENALTY_AMOUNT_REQUIRED")
+
+    def test_traffic_penalty_stores_amount_and_challan_number(self):
+        issue = services.create_issue(
+            trip_id=self.trip.id, issue_type="traffic_penalty", note="Fined for wrong parking",
+            actor=self.admin, penalty_amount=Decimal("750.00"), penalty_challan_number="CH-00123",
+        )
+        self.assertEqual(issue.penalty_amount, Decimal("750.00"))
+        self.assertEqual(issue.penalty_challan_number, "CH-00123")
+        self.assertFalse(issue.penalty_paid)
+
+    def test_other_issue_types_do_not_require_a_penalty_amount(self):
+        issue = services.create_issue(
+            trip_id=self.trip.id, issue_type="unloading", note="Box was crushed", actor=self.driver
+        )
+        self.assertIsNone(issue.penalty_amount)
+
+    def test_mark_penalty_paid_sets_fields_and_rejects_double_marking(self):
+        issue = services.create_issue(
+            trip_id=self.trip.id, issue_type="traffic_penalty", note="Fined", actor=self.admin,
+            penalty_amount=Decimal("300.00"),
+        )
+        paid = services.mark_penalty_paid(issue_id=issue.id, actor=self.admin)
+        self.assertTrue(paid.penalty_paid)
+        self.assertIsNotNone(paid.penalty_paid_at)
+
+        with self.assertRaises(DomainError) as ctx:
+            services.mark_penalty_paid(issue_id=issue.id, actor=self.admin)
+        self.assertEqual(ctx.exception.code, "PENALTY_ALREADY_PAID")
+
+    def test_mark_penalty_paid_rejects_a_non_penalty_issue(self):
+        issue = services.create_issue(
+            trip_id=self.trip.id, issue_type="transit", note="Traffic jam", actor=self.driver
+        )
+        with self.assertRaises(DomainError) as ctx:
+            services.mark_penalty_paid(issue_id=issue.id, actor=self.admin)
+        self.assertEqual(ctx.exception.code, "NOT_A_PENALTY_ISSUE")
+
+    def test_mark_penalty_paid_via_http_is_admin_only(self):
+        issue = services.create_issue(
+            trip_id=self.trip.id, issue_type="traffic_penalty", note="Fined", actor=self.admin,
+            penalty_amount=Decimal("300.00"),
+        )
+
+        driver_client = APIClient()
+        driver_client.force_authenticate(user=self.driver)
+        r1 = driver_client.post(f"/api/v1/issues/{issue.id}/mark-penalty-paid", {}, format="json")
+        self.assertEqual(r1.status_code, 403)
+
+        admin_client = APIClient()
+        admin_client.force_authenticate(user=self.admin)
+        r2 = admin_client.post(f"/api/v1/issues/{issue.id}/mark-penalty-paid", {}, format="json")
+        self.assertEqual(r2.status_code, 200)
+        self.assertTrue(r2.data["penalty_paid"])
 
 
 class ResolveIssueServiceTests(IssueTestBase):

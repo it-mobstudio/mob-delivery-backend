@@ -18,6 +18,9 @@ PURPOSE_PATH_SEGMENT = {
     UploadPurpose.VEHICLE_PHOTO: "vehicles",
     UploadPurpose.VEHICLE_DOCUMENT: "vehicle-documents",
     UploadPurpose.DRIVER_DOCUMENT: "driver-documents",
+    UploadPurpose.TRIP_PHOTO: "trip-photos",
+    UploadPurpose.SHIFT_PHOTO: "shift-photos",
+    UploadPurpose.DAMAGE_PHOTO: "damage-photos",
 }
 
 PURPOSE_ALLOWED_EXTENSIONS = {
@@ -25,6 +28,11 @@ PURPOSE_ALLOWED_EXTENSIONS = {
     UploadPurpose.VEHICLE_PHOTO: IMAGE_EXTENSIONS,
     UploadPurpose.VEHICLE_DOCUMENT: DOCUMENT_EXTENSIONS,
     UploadPurpose.DRIVER_DOCUMENT: DOCUMENT_EXTENSIONS,
+    # Driver-submitted operational photos — images only, same set as
+    # VEHICLE_PHOTO, no PDF (unlike the *_DOCUMENT purposes above).
+    UploadPurpose.TRIP_PHOTO: IMAGE_EXTENSIONS,
+    UploadPurpose.SHIFT_PHOTO: IMAGE_EXTENSIONS,
+    UploadPurpose.DAMAGE_PHOTO: IMAGE_EXTENSIONS,
 }
 
 
