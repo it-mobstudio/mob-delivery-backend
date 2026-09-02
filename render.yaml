@@ -4,7 +4,20 @@
 # - One combined Celery worker+beat process instead of two separate services
 #   (fine for UAT; for real production this should split into a dedicated
 #   `beat` service so a worker restart can't ever double-schedule a beat tick).
-# - Starter-tier web/worker instances — bump if UAT load needs more.
+# - Every resource below is on Render's free compute tier ($0/month) as of
+#   the pricing checked 2026-09-02 — a card is still required on file (a
+#   refundable $1 verification charge per Render's own FAQ, not an ongoing
+#   cost), that part isn't avoidable regardless of tier. Free-tier caveats
+#   worth knowing before relying on this for anything beyond short-lived UAT:
+#     - Free web/worker instances spin down after inactivity and cold-start
+#       on the next request (tens of seconds) — fine for testers, not for a
+#       demo you can't afford a pause on.
+#     - Free Postgres/Key Value have real RAM/connection/storage caps and,
+#       historically, Render has time-limited or auto-suspended free
+#       databases after a period of inactivity — check current terms in the
+#       Render dashboard before trusting this with data you can't lose;
+#       bump to a paid `starter` plan (just change this file) once real UAT
+#       data needs to persist reliably.
 #
 # After the first deploy, run once from the Render shell (or a one-off job):
 #   python manage.py bootstrap_company --company-name "..." --admin-email "..." --admin-password "..."
@@ -17,20 +30,20 @@
 databases:
   - name: mob-delivery-db
     databaseName: mob_delivery
-    plan: starter
+    plan: free
     postgresMajorVersion: 16
 
 services:
   - type: redis
     name: mob-delivery-redis
-    plan: starter
+    plan: free
     ipAllowList: []
     maxmemoryPolicy: noeviction
 
   - type: web
     name: mob-delivery-backend
     runtime: python
-    plan: starter
+    plan: free
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
     startCommand: "daphne -b 0.0.0.0 -p $PORT mob_delivery.asgi:application"
     healthCheckPath: /api/docs/
@@ -101,7 +114,7 @@ services:
   - type: worker
     name: mob-delivery-worker
     runtime: python
-    plan: starter
+    plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "celery -A mob_delivery worker -B -l info"
     envVars:
