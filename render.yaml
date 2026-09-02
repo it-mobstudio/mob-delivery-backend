@@ -1,24 +1,38 @@
 # Render Blueprint — UAT environment.
 #
 # Kept deliberately lean for UAT cost/complexity, not scaled for production:
-# - One combined Celery worker+beat process instead of two separate services
-#   (fine for UAT; for real production this should split into a dedicated
-#   `beat` service so a worker restart can't ever double-schedule a beat tick).
 # - Every resource below is on Render's free compute tier ($0/month) as of
 #   the pricing checked 2026-09-02 — a card is still required on file (a
 #   refundable $1 verification charge per Render's own FAQ, not an ongoing
 #   cost), that part isn't avoidable regardless of tier. Free-tier caveats
 #   worth knowing before relying on this for anything beyond short-lived UAT:
-#     - Free web/worker instances spin down after inactivity and cold-start
-#       on the next request (tens of seconds) — fine for testers, not for a
-#       demo you can't afford a pause on.
+#     - Free web instances spin down after inactivity and cold-start on the
+#       next request (tens of seconds) — fine for testers, not for a demo
+#       you can't afford a pause on.
 #     - Free Postgres/Key Value have real RAM/connection/storage caps and,
 #       historically, Render has time-limited or auto-suspended free
 #       databases after a period of inactivity — check current terms in the
 #       Render dashboard before trusting this with data you can't lose;
 #       bump to a paid `starter` plan (just change this file) once real UAT
 #       data needs to persist reliably.
-#
+# - IMPORTANT: confirmed live (2026-09-02) that Render's Hobby/free workspace
+#   does NOT actually support a standalone `type: worker` service — creating
+#   one fails with "service type is not available for this plan," even
+#   though the public pricing page groups workers under the same free
+#   compute tier as web services. Worked around by running Celery worker+beat
+#   as a background process inside the free WEB service instead of a
+#   separate worker (see `startCommand` below) — this is a real compromise,
+#   not equivalent to a dedicated worker:
+#     - The web service's free-tier spin-down after inactivity takes the
+#       Celery worker down with it, so beat-scheduled jobs (DL-expiry
+#       locking, webhook retries, anomaly detection, location-ping purge)
+#       silently stop running while the service is asleep and only resume
+#       once an HTTP request wakes it back up.
+#     - Both processes share the same 512 MB RAM instance — fine for light
+#       UAT traffic, not for anything resembling real load.
+#   If background jobs need to run reliably regardless of web traffic,
+#   there's no way around a paid `starter`-or-above `type: worker` service —
+#   revisit this once that matters more than the $0 cost.
 # After the first deploy, run once from the Render shell (or a one-off job):
 #   python manage.py bootstrap_company --company-name "..." --admin-email "..." --admin-password "..."
 #   python manage.py seed_demo_data          # optional, realistic demo data for UAT
@@ -45,7 +59,7 @@ services:
     runtime: python
     plan: free
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
-    startCommand: "daphne -b 0.0.0.0 -p $PORT mob_delivery.asgi:application"
+    startCommand: "celery -A mob_delivery worker -B -l info & daphne -b 0.0.0.0 -p $PORT mob_delivery.asgi:application"
     healthCheckPath: /api/docs/
     envVars:
       - key: SECRET_KEY
@@ -110,59 +124,3 @@ services:
         value: mob-uploads
       - key: FIREBASE_CREDENTIALS_PATH
         value: "" # leave unset — push notifications stay disabled (safe no-op) until this is wired up
-
-  - type: worker
-    name: mob-delivery-worker
-    runtime: python
-    plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "celery -A mob_delivery worker -B -l info"
-    envVars:
-      - key: SECRET_KEY
-        fromService:
-          type: web
-          name: mob-delivery-backend
-          envVarKey: SECRET_KEY
-      - key: JWT_SIGNING_KEY
-        fromService:
-          type: web
-          name: mob-delivery-backend
-          envVarKey: JWT_SIGNING_KEY
-      - key: DEBUG
-        value: "False"
-      - key: ALLOWED_HOSTS
-        value: mob-delivery-backend.onrender.com
-      - key: DATABASE_URL
-        fromDatabase:
-          name: mob-delivery-db
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: mob-delivery-redis
-          property: connectionString
-      - key: CHANNEL_LAYER_REDIS_URL
-        fromService:
-          type: redis
-          name: mob-delivery-redis
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: redis
-          name: mob-delivery-redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          type: redis
-          name: mob-delivery-redis
-          property: connectionString
-      - key: MAX_UPLOAD_SIZE_MB
-        value: "10"
-      - key: AZURE_ACCOUNT_NAME
-        sync: false
-      - key: AZURE_ACCOUNT_KEY
-        sync: false
-      - key: AZURE_CONTAINER
-        value: mob-uploads
-      - key: FIREBASE_CREDENTIALS_PATH
-        value: ""
