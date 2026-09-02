@@ -59,7 +59,14 @@ services:
     runtime: python
     plan: free
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
-    startCommand: "celery -A mob_delivery worker -B -l info & daphne -b 0.0.0.0 -p $PORT mob_delivery.asgi:application"
+    # --pool=solo --concurrency=1: Celery's prefork pool defaults to one
+    # worker process per CPU (8 here), each a full Python/Django process —
+    # OOM-killed this 512MB free instance within a minute of boot (confirmed
+    # live: the worker was already restarting in "(recovery)" mode).  `solo`
+    # runs tasks in-process with no extra forks, at the cost of no task
+    # concurrency — fine for UAT's background-job volume, revisit if that
+    # volume ever grows enough to matter.
+    startCommand: "celery -A mob_delivery worker -B -l info --pool=solo & daphne -b 0.0.0.0 -p $PORT mob_delivery.asgi:application"
     healthCheckPath: /api/docs/
     envVars:
       - key: SECRET_KEY
