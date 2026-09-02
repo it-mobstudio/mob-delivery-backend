@@ -3,7 +3,7 @@ from rest_framework import serializers
 from drivers.models import Driver
 from vehicles.models import Vehicle
 
-from .models import DriverShift, PauseReason, TripAnomalyAlert, TripPause
+from .models import DriverShift, PauseReason, TripAnomalyAlert, TripLocationPing, TripPause
 
 
 class LocationPingSerializer(serializers.Serializer):
@@ -36,6 +36,13 @@ class TripPauseSerializer(serializers.ModelSerializer):
 class TimeSummarySerializer(serializers.Serializer):
     moving_minutes = serializers.IntegerField()
     paused_minutes = serializers.IntegerField()
+
+
+class TripLocationHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TripLocationPing
+        fields = ["id", "latitude", "longitude", "speed_kmph", "source", "recorded_at"]
+        read_only_fields = fields
 
 
 class StartShiftSerializer(serializers.Serializer):

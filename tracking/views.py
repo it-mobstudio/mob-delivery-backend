@@ -26,6 +26,7 @@ from .serializers import (
     StartShiftSerializer,
     TimeSummarySerializer,
     TripAnomalyAlertSerializer,
+    TripLocationHistorySerializer,
     TripPauseSerializer,
 )
 
@@ -108,6 +109,26 @@ class TripTimeSummaryView(APIView):
         trip = services.get_trip(pk, request.user.company_id)
         summary = services.get_trip_time_summary(trip)
         return Response(TimeSummarySerializer(summary).data)
+
+
+@extend_schema(
+    tags=["Admin: Trips"],
+    summary="Get a trip's full GPS ping history",
+    description=(
+        "Every recorded location ping for this trip, oldest first — the raw trail behind "
+        "the live map, usable to redraw a trip's actual route after it's finished (not just "
+        "while it's active). Subject to the same `LOCATION_PING_RETENTION_DAYS` purge as any "
+        "other ping data. Admin-only."
+    ),
+    responses={200: TripLocationHistorySerializer(many=True)},
+)
+class TripLocationHistoryView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, pk=None):
+        trip = services.get_trip(pk, request.user.company_id)
+        pings = trip.location_pings.order_by("recorded_at")
+        return Response(TripLocationHistorySerializer(pings, many=True).data)
 
 
 @extend_schema(
