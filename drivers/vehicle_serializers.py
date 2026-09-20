@@ -1,16 +1,9 @@
-import re
-
 from rest_framework import serializers
 
-from .models import (
-    Vehicle,
-    VehicleDocument,
-    VehicleDocumentType,
-    VehicleType,
-    VehicleTypeStatus,
-)
+from core.choices import VehicleDocumentType, VehicleTypeStatus
+from core.constants import REGISTRATION_NUMBER_RE
 
-REGISTRATION_NUMBER_RE = re.compile(r"^[A-Z0-9-]+$")
+from .models import Vehicle, VehicleDocument, VehicleType
 
 
 class VehicleTypeSerializer(serializers.ModelSerializer):
@@ -23,6 +16,10 @@ class VehicleTypeSerializer(serializers.ModelSerializer):
             "default_capacity_kg",
             "icon_image_url",
             "status",
+            "base_fare",
+            "per_km_rate",
+            "per_min_rate",
+            "min_fare",
             "created_at",
             "updated_at",
         ]
@@ -31,6 +28,26 @@ class VehicleTypeSerializer(serializers.ModelSerializer):
     def validate_default_capacity_kg(self, value):
         if value <= 0:
             raise serializers.ValidationError("Must be a positive number.")
+        return value
+
+    def validate_base_fare(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative.")
+        return value
+
+    def validate_per_km_rate(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative.")
+        return value
+
+    def validate_per_min_rate(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative.")
+        return value
+
+    def validate_min_fare(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative.")
         return value
 
     def validate(self, attrs):

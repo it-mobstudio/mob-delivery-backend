@@ -5,17 +5,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.exceptions import DomainError
-
+from .exceptions import DomainError
 from .serializers import UploadSerializer
-from .services import store_upload
+from .uploads import UploadService
 
 
 class UploadView(APIView):
-    """POST /api/v1/uploads — the one reusable upload endpoint for VehicleType
-    icons, Vehicle photos, and VehicleDocument scans. Returns {"url": ...};
-    the frontend passes that URL along in a separate, later call that
-    creates/updates the actual record.
+    """POST /api/v1/uploads — see core.uploads.UploadService. Returns
+    {"url": ...}; the frontend passes that URL along in a separate, later
+    call that creates/updates the actual record.
     """
 
     parser_classes = [MultiPartParser]
@@ -26,7 +24,7 @@ class UploadView(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            url = store_upload(
+            url = UploadService.store(
                 serializer.validated_data["file"],
                 serializer.validated_data["purpose"],
                 request.user.company_id,

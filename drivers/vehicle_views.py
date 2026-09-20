@@ -6,16 +6,16 @@ from rest_framework.response import Response
 
 from core.tenancy import CompanyScopedMixin
 
-from . import services
-from .filters import VehicleFilter, VehicleTypeFilter
 from .models import Vehicle, VehicleDocument, VehicleType
-from .serializers import (
+from .vehicle_filters import VehicleFilter, VehicleTypeFilter
+from .vehicle_serializers import (
     VehicleDetailSerializer,
     VehicleDocumentSerializer,
     VehicleListSerializer,
     VehicleSerializer,
     VehicleTypeSerializer,
 )
+from .vehicle_services import VehicleService
 
 
 class VehicleTypeViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
@@ -25,7 +25,7 @@ class VehicleTypeViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
     filterset_class = VehicleTypeFilter
 
     def perform_destroy(self, instance):
-        services.delete_vehicle_type(instance)
+        VehicleService.delete_vehicle_type(instance)
 
 
 class VehicleViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
@@ -50,7 +50,7 @@ class VehicleViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def disable(self, request, pk=None):
         vehicle = self.get_object()
-        services.disable_vehicle(vehicle)
+        VehicleService.disable_vehicle(vehicle)
         return Response(VehicleDetailSerializer(vehicle).data)
 
 

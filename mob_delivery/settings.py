@@ -27,13 +27,11 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
-    "django_filters",
     "drf_spectacular",
     "core",
     "accounts",
-    "uploads",
-    "vehicles",
     "drivers",
+    "trips",
 ]
 
 MIDDLEWARE = [
@@ -65,12 +63,29 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "mob_delivery.wsgi.application"
 
+POSTGRES_DB = env("POSTGRES_DB")
+POSTGRES_USER = env("POSTGRES_USER")
+POSTGRES_PASSWORD = env("POSTGRES_PASSWORD")
+POSTGRES_HOST = env("POSTGRES_HOST")
+POSTGRES_PORT = env("POSTGRES_PORT")
+POSTGRES_SSLMODE = env("POSTGRES_SSLMODE")
 
+
+print("*******")
+print(f"POSTGRES_DB: {POSTGRES_DB}", f"POSTGRES_USER: {POSTGRES_USER}", f"POSTGRES_PASSWORD: {POSTGRES_PASSWORD}", f"POSTGRES_HOST: {POSTGRES_HOST}", f"POSTGRES_PORT: {POSTGRES_PORT}", f"POSTGRES_SSLMODE: {POSTGRES_SSLMODE}")
+
+print("*******")
 # Database — DATABASE_URL-driven; defaults to SQLite if unset.
 DATABASES = {
-    "default": env.db("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": POSTGRES_DB,
+        "USER": POSTGRES_USER,
+        "PASSWORD": POSTGRES_PASSWORD,
+        "HOST": POSTGRES_HOST,
+        "PORT": POSTGRES_PORT,
+    }
 }
-
 
 AUTH_USER_MODEL = "accounts.AdminUser"
 
@@ -188,3 +203,29 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
+
+
+# Valhalla — self-hosted routing engine (see docker-compose.yml), used by
+# trips.routing.get_route for turn-by-turn distance/duration/polyline.
+# Build tiles from a Bengaluru/Karnataka OSM extract before first use (see
+# docker-compose.yml's valhalla service comment).
+VALHALLA_URL = env("VALHALLA_URL", default="http://localhost:8002")
+VALHALLA_TIMEOUT_SECONDS = env.int("VALHALLA_TIMEOUT_SECONDS", default=10)
+
+# trips.matching — how far (in km) from pickup a driver's last reported
+# location may be and still be considered for assignment.
+DRIVER_MATCH_RADIUS_KM = env.float("DRIVER_MATCH_RADIUS_KM", default=8.0)
+
+# Kafka — trip lifecycle events published by trips.events.publish_trip_event
+# for other services (analytics, notifications, partner webhooks, live
+# tracking) to consume. Never on the critical path: publish failures are
+# logged, not raised — see trips.events for why.
+KAFKA_ENABLED = env.bool("KAFKA_ENABLED", default=False)
+KAFKA_BOOTSTRAP_SERVERS = env.list("KAFKA_BOOTSTRAP_SERVERS", default=["localhost:9092"])
+KAFKA_TRIP_EVENTS_TOPIC = env("KAFKA_TRIP_EVENTS_TOPIC", default="trip-events")
+
+# trips.payments.UpiDeepLinkPaymentProvider — the VPA a COD trip's "scan to
+# pay" QR is made out to. Stand-in until a real payment gateway is wired
+# up; see trips/payments.py.
+COMPANY_UPI_VPA = env("COMPANY_UPI_VPA", default="mob-delivery@upi")
+COMPANY_UPI_PAYEE_NAME = env("COMPANY_UPI_PAYEE_NAME", default="MOB Delivery")

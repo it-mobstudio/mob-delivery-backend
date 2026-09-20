@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .constants import UploadPurpose
+from .choices import UploadPurpose
 
 
 class UploadSerializer(serializers.Serializer):

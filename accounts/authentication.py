@@ -1,7 +1,9 @@
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from .models import ApiClient, ApiClientStatus
+from core.choices import ApiClientStatus
+
+from .models import ApiClient
 
 
 class JWTMultiPrincipalAuthentication(JWTAuthentication):
@@ -30,7 +32,8 @@ class JWTMultiPrincipalAuthentication(JWTAuthentication):
             # Local import: drivers depends on accounts (Driver extends
             # core.BaseModel -> Company), so importing it at module level
             # here would be circular.
-            from drivers.models import Driver, DriverAccountStatus
+            from core.choices import DriverAccountStatus
+            from drivers.models import Driver
 
             driver_id = validated_token.get("sub")
             if not driver_id:

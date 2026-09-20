@@ -1,14 +1,11 @@
-import re
 from datetime import date
 
 from rest_framework import serializers
 
-from vehicles.models import VehicleCategory
+from core.choices import VehicleCategory, VerificationStatus
+from core.constants import OTP_RE, PHONE_NUMBER_RE
 
-from .models import Driver, VerificationStatus
-
-PHONE_NUMBER_RE = re.compile(r"^\+?[0-9]{10,15}$")
-OTP_RE = re.compile(r"^\d{6}$")
+from .models import Driver, DriverKyc
 
 
 class DriverOtpRequestSerializer(serializers.Serializer):
@@ -32,7 +29,17 @@ class DriverOtpVerifySerializer(DriverOtpRequestSerializer):
 
 class DriverSerializer(serializers.ModelSerializer):
     """Admin CRUD for the basic profile — verification statuses are managed
-    exclusively through the KYC endpoints, not this serializer."""
+    exclusively through the KYC endpoints, not this serializer. The KYC
+    fields below are read-only projections of the related DriverKyc row
+    (see Driver.kyc) — kept here, flattened, so this endpoint's response
+    shape doesn't change just because KYC moved to its own table.
+    """
+
+    aadhar_status = serializers.CharField(source="kyc.aadhar_status", read_only=True)
+    dl_status = serializers.CharField(source="kyc.dl_status", read_only=True)
+    police_status = serializers.CharField(source="kyc.police_status", read_only=True)
+    dl_expiry_date = serializers.DateField(source="kyc.dl_expiry_date", read_only=True)
+    dl_allowed_categories = serializers.JSONField(source="kyc.dl_allowed_categories", read_only=True)
 
     class Meta:
         model = Driver
@@ -54,11 +61,6 @@ class DriverSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
-            "aadhar_status",
-            "dl_status",
-            "police_status",
-            "dl_expiry_date",
-            "dl_allowed_categories",
             "account_status",
             "current_vehicle_id",
             "created_at",
@@ -91,6 +93,9 @@ class DriverSerializer(serializers.ModelSerializer):
 
 class DriverListSerializer(serializers.ModelSerializer):
     is_eligible_for_assignment = serializers.BooleanField(read_only=True)
+    aadhar_status = serializers.CharField(source="kyc.aadhar_status", read_only=True)
+    dl_status = serializers.CharField(source="kyc.dl_status", read_only=True)
+    police_status = serializers.CharField(source="kyc.police_status", read_only=True)
 
     class Meta:
         model = Driver
@@ -110,6 +115,11 @@ class DriverListSerializer(serializers.ModelSerializer):
 
 
 class DriverMeSerializer(serializers.ModelSerializer):
+    aadhar_status = serializers.CharField(source="kyc.aadhar_status", read_only=True)
+    dl_status = serializers.CharField(source="kyc.dl_status", read_only=True)
+    police_status = serializers.CharField(source="kyc.police_status", read_only=True)
+    dl_expiry_date = serializers.DateField(source="kyc.dl_expiry_date", read_only=True)
+
     class Meta:
         model = Driver
         fields = [
@@ -121,12 +131,22 @@ class DriverMeSerializer(serializers.ModelSerializer):
             "police_status",
             "dl_expiry_date",
             "current_vehicle_id",
+            "is_online",
         ]
+
+
+class DriverDutyOnSerializer(serializers.Serializer):
+    vehicle_id = serializers.UUIDField()
+
+
+class DriverLocationSerializer(serializers.Serializer):
+    lat = serializers.DecimalField(max_digits=9, decimal_places=6, min_value=-90, max_value=90)
+    lng = serializers.DecimalField(max_digits=9, decimal_places=6, min_value=-180, max_value=180)
 
 
 class DriverKycSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Driver
+        model = DriverKyc
         fields = [
             "id",
             "aadhar_doc_url",

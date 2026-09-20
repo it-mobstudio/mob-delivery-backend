@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from accounts.models import AdminRole, AdminUser, Company
+from accounts.models import AdminUser, Company
+from core.choices import AdminRole
 
 
 class Command(BaseCommand):

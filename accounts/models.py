@@ -6,13 +6,8 @@ from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 
+from core.choices import AdminRole, ApiClientStatus, CompanyStatus
 from core.models import AllObjectsManager, SoftDeleteManager, SoftDeleteModel, TimeStampedUUIDModel
-
-
-class CompanyStatus(models.TextChoices):
-    ACTIVE = "active", "Active"
-    SUSPENDED = "suspended", "Suspended"
-    INACTIVE = "inactive", "Inactive"
 
 
 class Company(TimeStampedUUIDModel, SoftDeleteModel):
@@ -27,12 +22,6 @@ class Company(TimeStampedUUIDModel, SoftDeleteModel):
 
     def __str__(self):
         return self.name
-
-
-class AdminRole(models.TextChoices):
-    OWNER = "owner", "Owner"
-    ADMIN = "admin", "Admin"
-    STAFF = "staff", "Staff"
 
 
 class AdminUserManager(BaseUserManager):
@@ -78,11 +67,6 @@ class AdminUser(TimeStampedUUIDModel, SoftDeleteModel, AbstractBaseUser, Permiss
 
     def __str__(self):
         return self.email
-
-
-class ApiClientStatus(models.TextChoices):
-    ACTIVE = "active", "Active"
-    INACTIVE = "inactive", "Inactive"
 
 
 class ApiClient(TimeStampedUUIDModel, SoftDeleteModel):
