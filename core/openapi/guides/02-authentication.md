@@ -26,6 +26,7 @@ In this documentation the three bearer schemes are named **ApiClientToken**, **A
 | Vehicle types, vehicles, vehicle documents | yes | yes | no |
 | Uploads (`POST /uploads`) | yes | yes | no |
 | **Drivers** - roster, KYC review, **driver wallets** | **no** | yes | no |
+| **Own vehicles** (`/driver/my-vehicles`) and **vehicle types for drivers** | no | no | yes |
 | **Driver app** endpoints (`/driver/...`) | no | no | yes |
 
 Calling an endpoint with the wrong kind of token returns **`403 PERMISSION_DENIED`** (not 401): you are signed in, just not as the right principal. Every operation in this reference

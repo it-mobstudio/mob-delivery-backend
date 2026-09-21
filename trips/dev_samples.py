@@ -1,89 +1,59 @@
-"""Placeholder goods for local testing: item pictures and a sample invoice PDF,
-generated with Pillow so `manage.py book_test_trip --items N --invoice` works
-offline. Written through the configured storage (local media/ in dev), and the
-URLs handed back are whatever that storage returns — relative `/media/...`
-locally, which the API resolves against the host the app reached us on.
+"""Sample goods for local testing (`manage.py book_test_trip`): real products with
+their real pictures, and a real invoice PDF - all public links, so the driver app
+shows exactly what an order from the shop looks like. Nothing is stored locally.
 """
 
-import io
+import random
+from dataclasses import dataclass
 
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
-from PIL import Image, ImageDraw, ImageFont
 
-# (name, quantity, unit, unit price) — a builder's-merchant order, since that's
-# what this platform delivers.
-SAMPLE_ITEMS = [
-    ("Cement bag 50 kg", 4, "bags", "380.00"),
-    ("TMT bar 12 mm", 20, "pcs", "95.00"),
-    ("Wall putty 20 kg", 2, "bags", "1250.00"),
-    ("Paint bucket 20 L", 1, "pcs", "4200.00"),
-    ("Plywood 8x4 ft", 6, "sheets", "1450.00"),
+def _picture(path):
+    """The shop's product picture, resized to 220 px by images.weserv.nl the way the shop itself serves it."""
+    from urllib.parse import quote
+
+    source = quote(f"https://cdn.madoverbuildings.com/products/images/{path}", safe="")
+    return f"https://images.weserv.nl/?url={source}&w=220&q=75&output=webp&fit=inside&h=220"
+
+
+@dataclass(frozen=True)
+class Product:
+    name: str
+    sku: str  # the shop's product code (also the picture's file name)
+    unit: str
+    quantity: tuple  # (least, most) - a demo order picks a random amount in between
+    image_url: str
+
+
+CATALOGUE = [
+    Product("Ultra tech Cement", "560QWI101", "bags", (5, 40), _picture("UltraTech/products/images/UltraTech/560QWI101.webp")),
+    Product("Dr. Fixit Water proofing", "564QWI108", "pcs", (1, 12), _picture("Dr.Fixit/564QWI108.webp")),
+    Product("Sika SBR Polymer Latex SBR 20kg (Pack of 1)", "564QWI151", "pack", (1, 8), _picture("564QWI151.webp")),
+    Product("Atomberg Ceiling Sleek Fan Renesa Halo smart Fan", "576QWI101", "pcs", (1, 4), _picture("Atomberg/576QWI101.webp")),
 ]
 
-_COLOURS = [(41, 115, 240), (22, 163, 106), (216, 130, 18), (148, 90, 210), (217, 77, 61)]
+# An invoice for one of the shop's own orders.
+INVOICE_URL = (
+    "https://cdn.madoverbuildings.com/public/static/pdfs/order2/OD20260921007406/"
+    "D-0926-MUMB-340-7406-01_20260921080602821649_aea173.pdf"
+)
+INVOICE_NUMBER = "D-0926-MUMB-340-7406-01"
 
 
-def _font(size):
-    return ImageFont.load_default(size=size)
-
-
-def _store(name, data):
-    if default_storage.exists(name):
-        default_storage.delete(name)  # re-runs refresh the file rather than piling up copies
-    return default_storage.url(default_storage.save(name, ContentFile(data)))
-
-
-def item_image_url(index, name):
-    """A coloured tile with the item's initials — enough to see the picture slot work."""
-    image = Image.new("RGB", (320, 320), _COLOURS[index % len(_COLOURS)])
-    draw = ImageDraw.Draw(image)
-    initials = "".join(word[0] for word in name.split()[:2]).upper()
-    draw.text((160, 160), initials, fill="white", font=_font(120), anchor="mm")
-    buffer = io.BytesIO()
-    image.save(buffer, "JPEG", quality=85)
-    return _store(f"dev-samples/item-{index}.jpg", buffer.getvalue())
-
-
-def sample_items(count):
-    """`count` item dicts shaped like the booking API's `items`, each with a picture."""
+def sample_items(count, rng=random):
+    """`count` item dicts shaped like the booking API's `items`: the shop's products in
+    order (cycling, with a "#2"... suffix, past the fourth), each with its own picture
+    and a random quantity."""
     items = []
     for index in range(count):
-        name, quantity, unit, price = SAMPLE_ITEMS[index % len(SAMPLE_ITEMS)]
+        product = CATALOGUE[index % len(CATALOGUE)]
+        round_number = index // len(CATALOGUE)
         items.append(
             {
-                "name": name if index < len(SAMPLE_ITEMS) else f"{name} #{index + 1}",
-                "quantity": quantity,
-                "unit": unit,
-                "sku": f"SKU-{1000 + index}",
-                "unit_price": price,
-                "image_url": item_image_url(index, name),
+                "name": product.name if round_number == 0 else f"{product.name} #{round_number + 1}",
+                "quantity": rng.randint(*product.quantity),
+                "unit": product.unit,
+                "sku": product.sku,
+                "image_url": product.image_url,
             }
         )
     return items
-
-
-def invoice_pdf_url(invoice_number, items):
-    """A one-page invoice as a real PDF, so Download / Share / WhatsApp have
-    something genuine to fetch."""
-    page = Image.new("RGB", (595, 842), "white")
-    draw = ImageDraw.Draw(page)
-    draw.text((40, 40), "TAX INVOICE", fill=(16, 42, 67), font=_font(28))
-    draw.text((40, 84), f"Invoice no: {invoice_number}", fill=(102, 120, 138), font=_font(15))
-    draw.text((40, 106), "MOB Delivery — sample invoice for testing", fill=(102, 120, 138), font=_font(15))
-    draw.line((40, 140, 555, 140), fill=(231, 236, 241), width=2)
-
-    y, total = 160, 0
-    for item in items:
-        line = float(item["unit_price"]) * item["quantity"]
-        total += line
-        draw.text((40, y), f"{item['quantity']} x {item['name']}", fill=(16, 42, 67), font=_font(16))
-        draw.text((555, y), f"Rs {line:,.2f}", fill=(16, 42, 67), font=_font(16), anchor="ra")
-        y += 30
-    draw.line((40, y + 6, 555, y + 6), fill=(231, 236, 241), width=2)
-    draw.text((40, y + 22), "Total", fill=(16, 42, 67), font=_font(20))
-    draw.text((555, y + 22), f"Rs {total:,.2f}", fill=(16, 42, 67), font=_font(20), anchor="ra")
-
-    buffer = io.BytesIO()
-    page.save(buffer, "PDF", resolution=72.0)
-    return _store(f"dev-samples/{invoice_number}.pdf", buffer.getvalue())

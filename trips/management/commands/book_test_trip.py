@@ -28,11 +28,12 @@ class Command(BaseCommand):
         "Books a test trip exactly as the company's system would (POST /trips) and "
         "reports who got it — for walking through the driver app's whole delivery flow "
         "without building a booking client first.\n\n"
-        "By default the order is the FULL flow: 3 items the driver must VERIFY one by one "
-        "at the drop (delivered / problem + reason, camera photo optional), a sample invoice "
-        "PDF (download / WhatsApp / share), cash on delivery (payment QR then the customer's "
-        "OTP). Use --items 0, --no-verify-items, --no-invoice or --mode prepaid to strip it "
-        "back.\n\n"
+        "By default the order is the FULL flow: the shop's four sample products (real names "
+        "and pictures, random quantities) that the driver must VERIFY one by one at the drop "
+        "(delivered / problem + reason, camera photo optional), a real invoice PDF (download / "
+        "WhatsApp / share), cash on delivery (payment QR then the customer's OTP). Use "
+        "--items N (0 for none), --no-verify-items, --no-invoice, --invoice-url URL or "
+        "--mode prepaid to change it.\n\n"
         "The pickup is placed at the driver's own last reported location (so they're the "
         "nearest driver and get it) with the drop ~4 km away. The driver must already be ON "
         "DUTY: open the app and tap 'Start duty' first."
@@ -51,8 +52,9 @@ class Command(BaseCommand):
         parser.add_argument("--customer-name", default="Asha (test customer)")
         parser.add_argument("--customer-phone", default="+919888800002", help="The delivery OTP is texted here on a COD trip.")
         parser.add_argument(
-            "--items", type=int, default=3, metavar="N",
-            help="Attach N sample items (name, quantity, picture) to the order (default: %(default)s; 0 for none).",
+            "--items", type=int, default=len(dev_samples.CATALOGUE), metavar="N",
+            help="How many of the sample products to put on the order, each with a random quantity "
+                 "(default: %(default)s, the whole catalogue; 0 for none; past 4 they repeat).",
         )
         parser.add_argument(
             "--verify-items", action=argparse.BooleanOptionalAction, default=None,
@@ -60,7 +62,11 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             "--invoice", action=argparse.BooleanOptionalAction, default=True,
-            help="Attach a sample invoice PDF with Download / WhatsApp / Share (default: on).",
+            help="Attach an invoice PDF with Download / WhatsApp / Share (default: on).",
+        )
+        parser.add_argument(
+            "--invoice-url", default=None,
+            help="Use this invoice link instead of the sample one (only with an invoice).",
         )
 
     def handle(self, *args, **options):
@@ -93,8 +99,8 @@ class Command(BaseCommand):
         if verify_items and item_count == 0:
             raise CommandError("--verify-items needs at least one item: pass --items N (N ≥ 1).")
         items = dev_samples.sample_items(item_count) if item_count else None
-        invoice_number = f"INV-{reference[5:]}" if options["invoice"] else ""
-        invoice_url = dev_samples.invoice_pdf_url(invoice_number, items or dev_samples.sample_items(2)) if invoice_number else ""
+        invoice_number = dev_samples.INVOICE_NUMBER if options["invoice"] else ""
+        invoice_url = (options["invoice_url"] or dev_samples.INVOICE_URL) if options["invoice"] else ""
 
         try:
             trip = TripService.create_trip(

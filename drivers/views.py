@@ -232,7 +232,7 @@ class DriverDutyStartView(APIView):
             lat=serializer.validated_data.get("lat"),
             lng=serializer.validated_data.get("lng"),
         )
-        return Response(DriverMeSerializer(driver).data)
+        return Response(DriverMeSerializer(driver, context={"request": request}).data)
 
 
 class DriverDutyEndView(APIView):
@@ -242,7 +242,7 @@ class DriverDutyEndView(APIView):
 
     def post(self, request, *args, **kwargs):
         driver = DriverService.go_offline(request.user)
-        return Response(DriverMeSerializer(driver).data)
+        return Response(DriverMeSerializer(driver, context={"request": request}).data)
 
 
 class DriverLocationView(APIView):
@@ -267,10 +267,11 @@ class DriverVehicleListView(APIView):
     permission_classes = [IsDriverUser]
 
     def get(self, request, *args, **kwargs):
-        vehicles = DriverService.available_vehicles(request.user)
-        data = DriverVehicleSummarySerializer(vehicles, many=True).data
-        for row in data:
+        vehicles = list(DriverService.available_vehicles(request.user))
+        data = DriverVehicleSummarySerializer(vehicles, many=True, context={"request": request}).data
+        for row, vehicle in zip(data, vehicles):
             row["is_current"] = str(row["id"]) == str(request.user.current_vehicle_id)
+            row["is_own"] = vehicle.owner_driver_id == request.user.id
         return Response({"vehicles": data})
 
 

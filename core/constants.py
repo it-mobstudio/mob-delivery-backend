@@ -33,6 +33,9 @@ UPI_ID_RE = re.compile(r"^[A-Za-z0-9._-]{2,256}@[A-Za-z][A-Za-z0-9.-]{1,64}$")
 DRIVER_MIN_AGE_YEARS = 18
 DRIVER_MAX_AGE_YEARS = 80
 
+# Vehicles a driver can register for themselves, and pictures per vehicle.
+DRIVER_MAX_VEHICLES = 10
+VEHICLE_MAX_PHOTOS = 6
 # trips -----------------------------------------------------------------
 
 FARE_ROUNDING_CENTS = "0.01"  # str, not Decimal — Decimal isn't module-safe to share

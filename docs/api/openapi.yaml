@@ -2978,6 +2978,1072 @@ paths:
             body: form,
           });
           console.log(response.status, await response.json());
+  /driver/my-vehicles:
+    get:
+      operationId: listMyVehicles
+      description: |-
+        The vehicles this driver registered, newest first, each with its pictures. (`GET /driver/vehicles` is different: it lists what the driver may take **on duty**, which includes the company's fleet.)
+
+        **Who may call this:** **Driver** - a driver token only.
+
+        **Own vehicles.** A driver can register their own vehicle(s) - up to **10**, each with up to **6 pictures** - and then take any of them on duty, next to the company's fleet
+        vehicles. Only the driver who registered a vehicle can see, change or use it; the company sees it in its fleet with `owner_driver_id` set and can disable it.
+      summary: My vehicles
+      tags:
+      - Driver vehicles
+      security:
+      - DriverToken: []
+      responses:
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTAUTHENTICATED:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_AUTHENTICATED
+                      message: Authentication credentials were not provided.
+                  summary: NOT_AUTHENTICATED
+                TOKENNOTVALID:
+                  value:
+                    success: false
+                    error:
+                      code: TOKEN_NOT_VALID
+                      message: Given token not valid for any token type
+                  summary: TOKEN_NOT_VALID
+          description: |-
+            One of:
+            - `NOT_AUTHENTICATED` - No `Authorization` header was sent.
+            - `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                PERMISSIONDENIED:
+                  value:
+                    success: false
+                    error:
+                      code: PERMISSION_DENIED
+                      message: You do not have permission to perform this action.
+                  summary: PERMISSION_DENIED
+          description: '`PERMISSION_DENIED` - You are signed in, but this kind of
+            token may not use this endpoint (e.g. a driver token on a company endpoint,
+            or the reverse).'
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverOwnVehicles'
+              examples:
+                Mine:
+                  value:
+                    vehicles:
+                    - id: 8f0c2b5e-3a1d-4e57-9c0a-6d1f2e7b9a44
+                      vehicle_type:
+                        id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
+                        name: Bike
+                        category: two_wheeler
+                        icon_image_url: null
+                      registration_number: KA05MN7788
+                      capacity_kg: '20.00'
+                      photo_url: https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg
+                      photos:
+                      - id: b1d7c0a2-52c4-4a58-8a0e-0b3c7f1e2d10
+                        url: https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg
+                      - id: e4a9f3d8-7b21-4c96-b0d5-9a8e1c2f4b67
+                        url: https://your-server.example.com/media/3b79.../vehicles/a93e....jpg
+                      status: active
+                      is_current: false
+                      created_at: '2026-09-21T09:20:11.482910Z'
+                  summary: One registered vehicle
+          description: Success.
+      x-codeSamples:
+      - lang: Shell
+        label: cURL
+        source: |-
+          curl -X GET "$BASE_URL/driver/my-vehicles" \
+            -H "Authorization: Bearer $DRIVER_TOKEN"
+      - lang: Python
+        label: Python
+        source: |-
+          import requests
+
+          BASE_URL = "http://localhost:8000/api/v1"
+          DRIVER_TOKEN = "..."  # see the Authentication guide
+
+          response = requests.get(
+              f"{BASE_URL}/driver/my-vehicles",
+              headers={"Authorization": f"Bearer {DRIVER_TOKEN}"},
+          )
+          print(response.status_code, response.json())
+      - lang: JavaScript
+        label: JavaScript
+        source: |-
+          const BASE_URL = "http://localhost:8000/api/v1";
+          const DRIVER_TOKEN = "..."; // see the Authentication guide
+
+          const response = await fetch(`${BASE_URL}/driver/my-vehicles`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },
+          });
+          console.log(response.status, await response.json());
+    post:
+      operationId: registerMyVehicle
+      description: |-
+        Registers a vehicle for the driver. **Required:** `vehicle_type_id` and `registration_number`. **Optional:** `capacity_kg` (defaults to the type's) and `photos`.
+
+        Send it as **`multipart/form-data`**, repeating the `photos` part once per picture:
+
+        ```bash
+        curl -X POST "$BASE_URL/driver/my-vehicles" -H "Authorization: Bearer $DRIVER_TOKEN" \
+          -F "vehicle_type_id=725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13" -F "registration_number=KA05MN7788" \
+          -F "photos=@front.jpg" -F "photos=@side.jpg" -F "photos=@back.jpg"
+        ```
+
+        The plate is upper-cased and must be letters, digits and hyphens (no spaces), unique in the company. All pictures are checked **before** anything is saved, so one bad file adds nothing.
+        The first picture becomes the vehicle's main one. A driver can register this even while still being onboarded; going on duty still needs their documents verified.
+
+        **Who may call this:** **Driver** - a driver token only.
+
+        **Own vehicles.** A driver can register their own vehicle(s) - up to **10**, each with up to **6 pictures** - and then take any of them on duty, next to the company's fleet
+        vehicles. Only the driver who registered a vehicle can see, change or use it; the company sees it in its fleet with `owner_driver_id` set and can disable it.
+      summary: Add a vehicle
+      tags:
+      - Driver vehicles
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DriverVehicleWriteRequest'
+        required: true
+      security:
+      - DriverToken: []
+      responses:
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                INVALIDUPLOAD:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_UPLOAD
+                      message: 'Unsupported file type ''.pdf'' for purpose ''vehicle_photo''.
+                        Allowed: [''jpeg'', ''jpg'', ''png'', ''webp''].'
+                  summary: INVALID_UPLOAD
+                INVALID:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID
+                      message: Request could not be processed.
+                      details:
+                        field:
+                        - This field is required.
+                  summary: INVALID
+          description: |-
+            One of:
+            - `INVALID_UPLOAD` - The file isn't an acceptable image/PDF (wrong type, too large, or corrupt).
+            - `INVALID` - The request body, query string or form is missing a required field or has a value that isn't acceptable. `details` names every offending field.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTAUTHENTICATED:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_AUTHENTICATED
+                      message: Authentication credentials were not provided.
+                  summary: NOT_AUTHENTICATED
+                TOKENNOTVALID:
+                  value:
+                    success: false
+                    error:
+                      code: TOKEN_NOT_VALID
+                      message: Given token not valid for any token type
+                  summary: TOKEN_NOT_VALID
+          description: |-
+            One of:
+            - `NOT_AUTHENTICATED` - No `Authorization` header was sent.
+            - `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                PERMISSIONDENIED:
+                  value:
+                    success: false
+                    error:
+                      code: PERMISSION_DENIED
+                      message: You do not have permission to perform this action.
+                  summary: PERMISSION_DENIED
+          description: '`PERMISSION_DENIED` - You are signed in, but this kind of
+            token may not use this endpoint (e.g. a driver token on a company endpoint,
+            or the reverse).'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                VEHICLELIMITREACHED:
+                  value:
+                    success: false
+                    error:
+                      code: VEHICLE_LIMIT_REACHED
+                      message: You can register up to 10 vehicles. Remove one to add
+                        another.
+                  summary: VEHICLE_LIMIT_REACHED
+          description: '`VEHICLE_LIMIT_REACHED` - The driver already has the maximum
+            number of vehicles they can register (10).'
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverOwnVehicle'
+              examples:
+                Registered:
+                  value:
+                    id: 8f0c2b5e-3a1d-4e57-9c0a-6d1f2e7b9a44
+                    vehicle_type:
+                      id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
+                      name: Bike
+                      category: two_wheeler
+                      icon_image_url: null
+                    registration_number: KA05MN7788
+                    capacity_kg: '20.00'
+                    photo_url: https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg
+                    photos:
+                    - id: b1d7c0a2-52c4-4a58-8a0e-0b3c7f1e2d10
+                      url: https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg
+                    - id: e4a9f3d8-7b21-4c96-b0d5-9a8e1c2f4b67
+                      url: https://your-server.example.com/media/3b79.../vehicles/a93e....jpg
+                    status: active
+                    is_current: false
+                    created_at: '2026-09-21T09:20:11.482910Z'
+                  summary: Registered with two pictures
+          description: Created.
+      x-codeSamples:
+      - lang: Shell
+        label: cURL
+        source: |-
+          curl -X POST "$BASE_URL/driver/my-vehicles" \
+            -H "Authorization: Bearer $DRIVER_TOKEN" \
+            -F 'vehicle_type_id=3fa85f64-5717-4562-b3fc-2c963f66afa6' \
+            -F 'registration_number=string'
+      - lang: Python
+        label: Python
+        source: |-
+          import requests
+
+          BASE_URL = "http://localhost:8000/api/v1"
+          DRIVER_TOKEN = "..."  # see the Authentication guide
+
+          response = requests.post(
+              f"{BASE_URL}/driver/my-vehicles",
+              headers={"Authorization": f"Bearer {DRIVER_TOKEN}"},
+              data={"vehicle_type_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "registration_number": "string"},
+          )
+          print(response.status_code, response.json())
+      - lang: JavaScript
+        label: JavaScript
+        source: |-
+          const BASE_URL = "http://localhost:8000/api/v1";
+          const DRIVER_TOKEN = "..."; // see the Authentication guide
+
+          const form = new FormData();
+          form.append("vehicle_type_id", "3fa85f64-5717-4562-b3fc-2c963f66afa6");
+          form.append("registration_number", "string");
+
+          const response = await fetch(`${BASE_URL}/driver/my-vehicles`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },
+            body: form,
+          });
+          console.log(response.status, await response.json());
+  /driver/my-vehicles/{id}:
+    get:
+      operationId: getMyVehicle
+      description: |-
+        A vehicle the driver registered, with its pictures. Someone else's vehicle is a plain `404`.
+
+        **Who may call this:** **Driver** - a driver token only.
+      summary: One of my vehicles
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: The vehicle's id (UUID) - from `GET /driver/my-vehicles`.
+        required: true
+      tags:
+      - Driver vehicles
+      security:
+      - DriverToken: []
+      responses:
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTAUTHENTICATED:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_AUTHENTICATED
+                      message: Authentication credentials were not provided.
+                  summary: NOT_AUTHENTICATED
+                TOKENNOTVALID:
+                  value:
+                    success: false
+                    error:
+                      code: TOKEN_NOT_VALID
+                      message: Given token not valid for any token type
+                  summary: TOKEN_NOT_VALID
+          description: |-
+            One of:
+            - `NOT_AUTHENTICATED` - No `Authorization` header was sent.
+            - `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                PERMISSIONDENIED:
+                  value:
+                    success: false
+                    error:
+                      code: PERMISSION_DENIED
+                      message: You do not have permission to perform this action.
+                  summary: PERMISSION_DENIED
+          description: '`PERMISSION_DENIED` - You are signed in, but this kind of
+            token may not use this endpoint (e.g. a driver token on a company endpoint,
+            or the reverse).'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTFOUND:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_FOUND
+                      message: No Trip matches the given query.
+                  summary: NOT_FOUND
+          description: '`NOT_FOUND` - No such resource - or it belongs to another
+            company. The API never confirms that other companies'' data exists.'
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverOwnVehicle'
+              examples:
+                Vehicle:
+                  value:
+                    id: 8f0c2b5e-3a1d-4e57-9c0a-6d1f2e7b9a44
+                    vehicle_type:
+                      id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
+                      name: Bike
+                      category: two_wheeler
+                      icon_image_url: null
+                    registration_number: KA05MN7788
+                    capacity_kg: '20.00'
+                    photo_url: https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg
+                    photos:
+                    - id: b1d7c0a2-52c4-4a58-8a0e-0b3c7f1e2d10
+                      url: https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg
+                    - id: e4a9f3d8-7b21-4c96-b0d5-9a8e1c2f4b67
+                      url: https://your-server.example.com/media/3b79.../vehicles/a93e....jpg
+                    status: active
+                    is_current: false
+                    created_at: '2026-09-21T09:20:11.482910Z'
+                  summary: A vehicle
+          description: Success.
+      x-codeSamples:
+      - lang: Shell
+        label: cURL
+        source: |-
+          curl -X GET "$BASE_URL/driver/my-vehicles/${MY_VEHICLE_ID}" \
+            -H "Authorization: Bearer $DRIVER_TOKEN"
+      - lang: Python
+        label: Python
+        source: |-
+          import requests
+
+          BASE_URL = "http://localhost:8000/api/v1"
+          DRIVER_TOKEN = "..."  # see the Authentication guide
+
+          response = requests.get(
+              f"{BASE_URL}/driver/my-vehicles/{MY_VEHICLE_ID}",
+              headers={"Authorization": f"Bearer {DRIVER_TOKEN}"},
+          )
+          print(response.status_code, response.json())
+      - lang: JavaScript
+        label: JavaScript
+        source: |-
+          const BASE_URL = "http://localhost:8000/api/v1";
+          const DRIVER_TOKEN = "..."; // see the Authentication guide
+
+          const response = await fetch(`${BASE_URL}/driver/my-vehicles/${MY_VEHICLE_ID}`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },
+          });
+          console.log(response.status, await response.json());
+    patch:
+      operationId: updateMyVehicle
+      description: |-
+        Changes only the fields sent: the plate (to fix a typo), the capacity, or the type. Pictures have their own endpoints.
+
+        **Who may call this:** **Driver** - a driver token only.
+      summary: Correct a vehicle
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: The vehicle's id (UUID) - from `GET /driver/my-vehicles`.
+        required: true
+      tags:
+      - Driver vehicles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDriverVehicleUpdateRequest'
+            examples:
+              FixThePlate:
+                value:
+                  registration_number: KA05MN7789
+                summary: Fix the plate
+              ChangeTheCapacity:
+                value:
+                  capacity_kg: '35.5'
+                summary: Change the capacity
+      security:
+      - DriverToken: []
+      responses:
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                INVALID:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID
+                      message: Request could not be processed.
+                      details:
+                        field:
+                        - This field is required.
+                  summary: INVALID
+          description: '`INVALID` - The request body, query string or form is missing
+            a required field or has a value that isn''t acceptable. `details` names
+            every offending field.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTAUTHENTICATED:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_AUTHENTICATED
+                      message: Authentication credentials were not provided.
+                  summary: NOT_AUTHENTICATED
+                TOKENNOTVALID:
+                  value:
+                    success: false
+                    error:
+                      code: TOKEN_NOT_VALID
+                      message: Given token not valid for any token type
+                  summary: TOKEN_NOT_VALID
+          description: |-
+            One of:
+            - `NOT_AUTHENTICATED` - No `Authorization` header was sent.
+            - `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                PERMISSIONDENIED:
+                  value:
+                    success: false
+                    error:
+                      code: PERMISSION_DENIED
+                      message: You do not have permission to perform this action.
+                  summary: PERMISSION_DENIED
+          description: '`PERMISSION_DENIED` - You are signed in, but this kind of
+            token may not use this endpoint (e.g. a driver token on a company endpoint,
+            or the reverse).'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTFOUND:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_FOUND
+                      message: No Trip matches the given query.
+                  summary: NOT_FOUND
+          description: '`NOT_FOUND` - No such resource - or it belongs to another
+            company. The API never confirms that other companies'' data exists.'
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverOwnVehicle'
+              examples:
+                Updated:
+                  value:
+                    id: 8f0c2b5e-3a1d-4e57-9c0a-6d1f2e7b9a44
+                    vehicle_type:
+                      id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
+                      name: Bike
+                      category: two_wheeler
+                      icon_image_url: null
+                    registration_number: KA05MN7788
+                    capacity_kg: '20.00'
+                    photo_url: https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg
+                    photos:
+                    - id: b1d7c0a2-52c4-4a58-8a0e-0b3c7f1e2d10
+                      url: https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg
+                    - id: e4a9f3d8-7b21-4c96-b0d5-9a8e1c2f4b67
+                      url: https://your-server.example.com/media/3b79.../vehicles/a93e....jpg
+                    status: active
+                    is_current: false
+                    created_at: '2026-09-21T09:20:11.482910Z'
+                  summary: Updated
+          description: Success.
+      x-codeSamples:
+      - lang: Shell
+        label: cURL
+        source: |-
+          curl -X PATCH "$BASE_URL/driver/my-vehicles/${MY_VEHICLE_ID}" \
+            -H "Authorization: Bearer $DRIVER_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "registration_number": "KA05MN7789"
+            }'
+      - lang: Python
+        label: Python
+        source: |-
+          import requests
+
+          BASE_URL = "http://localhost:8000/api/v1"
+          DRIVER_TOKEN = "..."  # see the Authentication guide
+
+          response = requests.patch(
+              f"{BASE_URL}/driver/my-vehicles/{MY_VEHICLE_ID}",
+              headers={"Authorization": f"Bearer {DRIVER_TOKEN}"},
+              json={
+                  "registration_number": "KA05MN7789"
+              },
+          )
+          print(response.status_code, response.json())
+      - lang: JavaScript
+        label: JavaScript
+        source: |-
+          const BASE_URL = "http://localhost:8000/api/v1";
+          const DRIVER_TOKEN = "..."; // see the Authentication guide
+
+          const response = await fetch(`${BASE_URL}/driver/my-vehicles/${MY_VEHICLE_ID}`, {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${DRIVER_TOKEN}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              "registration_number": "KA05MN7789"
+            }),
+          });
+          console.log(response.status, await response.json());
+    delete:
+      operationId: removeMyVehicle
+      description: |-
+        Retires the vehicle: it drops out of the driver's list and the company's fleet, and its plate can be registered again. Past trips keep their record.
+
+        Refused while the driver is **on duty with it** (`VEHICLE_ON_DUTY` - go off duty first) or while a **trip is using it** (`VEHICLE_HAS_ACTIVE_TRIP`).
+
+        **Who may call this:** **Driver** - a driver token only.
+      summary: Remove a vehicle
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: The vehicle's id (UUID) - from `GET /driver/my-vehicles`.
+        required: true
+      tags:
+      - Driver vehicles
+      security:
+      - DriverToken: []
+      responses:
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTAUTHENTICATED:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_AUTHENTICATED
+                      message: Authentication credentials were not provided.
+                  summary: NOT_AUTHENTICATED
+                TOKENNOTVALID:
+                  value:
+                    success: false
+                    error:
+                      code: TOKEN_NOT_VALID
+                      message: Given token not valid for any token type
+                  summary: TOKEN_NOT_VALID
+          description: |-
+            One of:
+            - `NOT_AUTHENTICATED` - No `Authorization` header was sent.
+            - `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                PERMISSIONDENIED:
+                  value:
+                    success: false
+                    error:
+                      code: PERMISSION_DENIED
+                      message: You do not have permission to perform this action.
+                  summary: PERMISSION_DENIED
+          description: '`PERMISSION_DENIED` - You are signed in, but this kind of
+            token may not use this endpoint (e.g. a driver token on a company endpoint,
+            or the reverse).'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTFOUND:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_FOUND
+                      message: No Trip matches the given query.
+                  summary: NOT_FOUND
+          description: '`NOT_FOUND` - No such resource - or it belongs to another
+            company. The API never confirms that other companies'' data exists.'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                VEHICLEONDUTY:
+                  value:
+                    success: false
+                    error:
+                      code: VEHICLE_ON_DUTY
+                      message: You're on duty with this vehicle. Go off duty before
+                        removing it.
+                  summary: VEHICLE_ON_DUTY
+                VEHICLEHASACTIVETRIP:
+                  value:
+                    success: false
+                    error:
+                      code: VEHICLE_HAS_ACTIVE_TRIP
+                      message: This vehicle has an active trip and cannot be disabled.
+                  summary: VEHICLE_HAS_ACTIVE_TRIP
+          description: |-
+            One of:
+            - `VEHICLE_ON_DUTY` - The driver tried to remove the vehicle they are on duty with.
+            - `VEHICLE_HAS_ACTIVE_TRIP` - The vehicle can't be disabled while a trip is using it.
+        '204':
+          description: Removed. No body.
+      x-codeSamples:
+      - lang: Shell
+        label: cURL
+        source: |-
+          curl -X DELETE "$BASE_URL/driver/my-vehicles/${MY_VEHICLE_ID}" \
+            -H "Authorization: Bearer $DRIVER_TOKEN"
+      - lang: Python
+        label: Python
+        source: |-
+          import requests
+
+          BASE_URL = "http://localhost:8000/api/v1"
+          DRIVER_TOKEN = "..."  # see the Authentication guide
+
+          response = requests.delete(
+              f"{BASE_URL}/driver/my-vehicles/{MY_VEHICLE_ID}",
+              headers={"Authorization": f"Bearer {DRIVER_TOKEN}"},
+          )
+          print(response.status_code, response.json())
+      - lang: JavaScript
+        label: JavaScript
+        source: |-
+          const BASE_URL = "http://localhost:8000/api/v1";
+          const DRIVER_TOKEN = "..."; // see the Authentication guide
+
+          const response = await fetch(`${BASE_URL}/driver/my-vehicles/${MY_VEHICLE_ID}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },
+          });
+          console.log(response.status, await response.json());
+  /driver/my-vehicles/{id}/photos:
+    post:
+      operationId: addMyVehiclePhoto
+      description: |-
+        Adds one picture to a vehicle (max 6 - `PHOTO_LIMIT_REACHED` beyond that). If it is the vehicle's first, it becomes the main picture. Send as `multipart/form-data`. Returns the whole vehicle.
+
+        **Who may call this:** **Driver** - a driver token only.
+      summary: Add a picture
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: The vehicle's id (UUID) - from `GET /driver/my-vehicles`.
+        required: true
+      tags:
+      - Driver vehicles
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DriverVehiclePhotoUploadRequest'
+        required: true
+      security:
+      - DriverToken: []
+      responses:
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                INVALIDUPLOAD:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_UPLOAD
+                      message: 'Unsupported file type ''.pdf'' for purpose ''vehicle_photo''.
+                        Allowed: [''jpeg'', ''jpg'', ''png'', ''webp''].'
+                  summary: INVALID_UPLOAD
+                INVALID:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID
+                      message: Request could not be processed.
+                      details:
+                        field:
+                        - This field is required.
+                  summary: INVALID
+          description: |-
+            One of:
+            - `INVALID_UPLOAD` - The file isn't an acceptable image/PDF (wrong type, too large, or corrupt).
+            - `INVALID` - The request body, query string or form is missing a required field or has a value that isn't acceptable. `details` names every offending field.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTAUTHENTICATED:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_AUTHENTICATED
+                      message: Authentication credentials were not provided.
+                  summary: NOT_AUTHENTICATED
+                TOKENNOTVALID:
+                  value:
+                    success: false
+                    error:
+                      code: TOKEN_NOT_VALID
+                      message: Given token not valid for any token type
+                  summary: TOKEN_NOT_VALID
+          description: |-
+            One of:
+            - `NOT_AUTHENTICATED` - No `Authorization` header was sent.
+            - `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                PERMISSIONDENIED:
+                  value:
+                    success: false
+                    error:
+                      code: PERMISSION_DENIED
+                      message: You do not have permission to perform this action.
+                  summary: PERMISSION_DENIED
+          description: '`PERMISSION_DENIED` - You are signed in, but this kind of
+            token may not use this endpoint (e.g. a driver token on a company endpoint,
+            or the reverse).'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTFOUND:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_FOUND
+                      message: No Trip matches the given query.
+                  summary: NOT_FOUND
+          description: '`NOT_FOUND` - No such resource - or it belongs to another
+            company. The API never confirms that other companies'' data exists.'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                PHOTOLIMITREACHED:
+                  value:
+                    success: false
+                    error:
+                      code: PHOTO_LIMIT_REACHED
+                      message: A vehicle can have up to 6 photos. Remove one to add
+                        another.
+                  summary: PHOTO_LIMIT_REACHED
+          description: '`PHOTO_LIMIT_REACHED` - The vehicle already has the maximum
+            number of pictures (6).'
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverOwnVehicle'
+              examples:
+                WithPhoto:
+                  value:
+                    id: 8f0c2b5e-3a1d-4e57-9c0a-6d1f2e7b9a44
+                    vehicle_type:
+                      id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
+                      name: Bike
+                      category: two_wheeler
+                      icon_image_url: null
+                    registration_number: KA05MN7788
+                    capacity_kg: '20.00'
+                    photo_url: https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg
+                    photos:
+                    - id: b1d7c0a2-52c4-4a58-8a0e-0b3c7f1e2d10
+                      url: https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg
+                    - id: e4a9f3d8-7b21-4c96-b0d5-9a8e1c2f4b67
+                      url: https://your-server.example.com/media/3b79.../vehicles/a93e....jpg
+                    status: active
+                    is_current: false
+                    created_at: '2026-09-21T09:20:11.482910Z'
+                  summary: The vehicle with the new picture
+          description: Created.
+      x-codeSamples:
+      - lang: Shell
+        label: cURL
+        source: |-
+          curl -X POST "$BASE_URL/driver/my-vehicles/${MY_VEHICLE_ID}/photos" \
+            -H "Authorization: Bearer $DRIVER_TOKEN" \
+            -F 'photo=@/path/to/photo.jpg'
+      - lang: Python
+        label: Python
+        source: |-
+          import requests
+
+          BASE_URL = "http://localhost:8000/api/v1"
+          DRIVER_TOKEN = "..."  # see the Authentication guide
+
+          response = requests.post(
+              f"{BASE_URL}/driver/my-vehicles/{MY_VEHICLE_ID}/photos",
+              headers={"Authorization": f"Bearer {DRIVER_TOKEN}"},
+              files={"photo": open("photo.jpg", "rb")},
+          )
+          print(response.status_code, response.json())
+      - lang: JavaScript
+        label: JavaScript
+        source: |-
+          const BASE_URL = "http://localhost:8000/api/v1";
+          const DRIVER_TOKEN = "..."; // see the Authentication guide
+
+          const form = new FormData();
+          form.append("photo", fileInput.files[0]);
+
+          const response = await fetch(`${BASE_URL}/driver/my-vehicles/${MY_VEHICLE_ID}/photos`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },
+            body: form,
+          });
+          console.log(response.status, await response.json());
+  /driver/my-vehicles/{id}/photos/{photo_id}:
+    delete:
+      operationId: removeMyVehiclePhoto
+      description: |-
+        Removes one picture. If it was the main one, the next picture becomes the main one (or `photo_url` becomes `null` when none is left). Returns the whole vehicle.
+
+        **Who may call this:** **Driver** - a driver token only.
+      summary: Remove a picture
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: The vehicle's id (UUID) - from `GET /driver/my-vehicles`.
+        required: true
+      - in: path
+        name: photo_id
+        schema:
+          type: string
+          format: uuid
+        description: The picture's id (UUID) - one of the vehicle's `photos[].id`.
+        required: true
+      tags:
+      - Driver vehicles
+      security:
+      - DriverToken: []
+      responses:
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTAUTHENTICATED:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_AUTHENTICATED
+                      message: Authentication credentials were not provided.
+                  summary: NOT_AUTHENTICATED
+                TOKENNOTVALID:
+                  value:
+                    success: false
+                    error:
+                      code: TOKEN_NOT_VALID
+                      message: Given token not valid for any token type
+                  summary: TOKEN_NOT_VALID
+          description: |-
+            One of:
+            - `NOT_AUTHENTICATED` - No `Authorization` header was sent.
+            - `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                PERMISSIONDENIED:
+                  value:
+                    success: false
+                    error:
+                      code: PERMISSION_DENIED
+                      message: You do not have permission to perform this action.
+                  summary: PERMISSION_DENIED
+          description: '`PERMISSION_DENIED` - You are signed in, but this kind of
+            token may not use this endpoint (e.g. a driver token on a company endpoint,
+            or the reverse).'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTFOUND:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_FOUND
+                      message: No Trip matches the given query.
+                  summary: NOT_FOUND
+          description: '`NOT_FOUND` - No such resource - or it belongs to another
+            company. The API never confirms that other companies'' data exists.'
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverOwnVehicle'
+              examples:
+                WithoutPhoto:
+                  value:
+                    id: 8f0c2b5e-3a1d-4e57-9c0a-6d1f2e7b9a44
+                    vehicle_type:
+                      id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
+                      name: Bike
+                      category: two_wheeler
+                      icon_image_url: null
+                    registration_number: KA05MN7788
+                    capacity_kg: '20.00'
+                    photo_url: https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg
+                    photos:
+                    - id: b1d7c0a2-52c4-4a58-8a0e-0b3c7f1e2d10
+                      url: https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg
+                    - id: e4a9f3d8-7b21-4c96-b0d5-9a8e1c2f4b67
+                      url: https://your-server.example.com/media/3b79.../vehicles/a93e....jpg
+                    status: active
+                    is_current: false
+                    created_at: '2026-09-21T09:20:11.482910Z'
+                  summary: The vehicle after the removal
+          description: Success.
+      x-codeSamples:
+      - lang: Shell
+        label: cURL
+        source: |-
+          curl -X DELETE "$BASE_URL/driver/my-vehicles/${MY_VEHICLE_ID}/photos/${PHOTO_ID}" \
+            -H "Authorization: Bearer $DRIVER_TOKEN"
+      - lang: Python
+        label: Python
+        source: |-
+          import requests
+
+          BASE_URL = "http://localhost:8000/api/v1"
+          DRIVER_TOKEN = "..."  # see the Authentication guide
+
+          response = requests.delete(
+              f"{BASE_URL}/driver/my-vehicles/{MY_VEHICLE_ID}/photos/{PHOTO_ID}",
+              headers={"Authorization": f"Bearer {DRIVER_TOKEN}"},
+          )
+          print(response.status_code, response.json())
+      - lang: JavaScript
+        label: JavaScript
+        source: |-
+          const BASE_URL = "http://localhost:8000/api/v1";
+          const DRIVER_TOKEN = "..."; // see the Authentication guide
+
+          const response = await fetch(`${BASE_URL}/driver/my-vehicles/${MY_VEHICLE_ID}/photos/${PHOTO_ID}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },
+          });
+          console.log(response.status, await response.json());
   /driver/stats:
     get:
       operationId: driverGetStats
@@ -6035,6 +7101,105 @@ paths:
             headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },
           });
           console.log(response.status, await response.json());
+  /driver/vehicle-types:
+    get:
+      operationId: driverListVehicleTypes
+      description: |-
+        The company's **active** vehicle types (Bike, Tempo, ...), for the "add a vehicle" form. Send the chosen type's `id` as `vehicle_type_id` when registering a vehicle.
+
+        **Who may call this:** **Driver** - a driver token only.
+      summary: Vehicle types to choose from
+      tags:
+      - Driver vehicles
+      security:
+      - DriverToken: []
+      responses:
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTAUTHENTICATED:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_AUTHENTICATED
+                      message: Authentication credentials were not provided.
+                  summary: NOT_AUTHENTICATED
+                TOKENNOTVALID:
+                  value:
+                    success: false
+                    error:
+                      code: TOKEN_NOT_VALID
+                      message: Given token not valid for any token type
+                  summary: TOKEN_NOT_VALID
+          description: |-
+            One of:
+            - `NOT_AUTHENTICATED` - No `Authorization` header was sent.
+            - `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                PERMISSIONDENIED:
+                  value:
+                    success: false
+                    error:
+                      code: PERMISSION_DENIED
+                      message: You do not have permission to perform this action.
+                  summary: PERMISSION_DENIED
+          description: '`PERMISSION_DENIED` - You are signed in, but this kind of
+            token may not use this endpoint (e.g. a driver token on a company endpoint,
+            or the reverse).'
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverVehicleTypes'
+              examples:
+                Types:
+                  value:
+                    vehicle_types:
+                    - id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
+                      name: Bike
+                      category: two_wheeler
+                      default_capacity_kg: '20.00'
+                      icon_image_url: null
+                  summary: Two types the company runs
+          description: Success.
+      x-codeSamples:
+      - lang: Shell
+        label: cURL
+        source: |-
+          curl -X GET "$BASE_URL/driver/vehicle-types" \
+            -H "Authorization: Bearer $DRIVER_TOKEN"
+      - lang: Python
+        label: Python
+        source: |-
+          import requests
+
+          BASE_URL = "http://localhost:8000/api/v1"
+          DRIVER_TOKEN = "..."  # see the Authentication guide
+
+          response = requests.get(
+              f"{BASE_URL}/driver/vehicle-types",
+              headers={"Authorization": f"Bearer {DRIVER_TOKEN}"},
+          )
+          print(response.status_code, response.json())
+      - lang: JavaScript
+        label: JavaScript
+        source: |-
+          const BASE_URL = "http://localhost:8000/api/v1";
+          const DRIVER_TOKEN = "..."; // see the Authentication guide
+
+          const response = await fetch(`${BASE_URL}/driver/vehicle-types`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },
+          });
+          console.log(response.status, await response.json());
   /driver/vehicles:
     get:
       operationId: driverListVehicles
@@ -6101,6 +7266,7 @@ paths:
                     - capacity_kg: '20.00'
                       id: 34dbaab9-e77f-466a-93f3-3637131968ea
                       is_current: false
+                      is_own: false
                       photo_url: null
                       registration_number: KA01AB1234
                       status: active
@@ -11424,6 +12590,7 @@ paths:
                       created_at: '2026-09-21T09:34:07.475156Z'
                       current_driver_id: null
                       id: 34dbaab9-e77f-466a-93f3-3637131968ea
+                      owner_driver_id: null
                       photo_url: null
                       registration_number: KA01AB1234
                       status: active
@@ -11574,6 +12741,7 @@ paths:
                     created_at: '2026-09-21T09:34:07.475156Z'
                     current_driver_id: null
                     id: 34dbaab9-e77f-466a-93f3-3637131968ea
+                    owner_driver_id: null
                     photo_url: null
                     registration_number: KA01AB1234
                     status: active
@@ -11719,7 +12887,9 @@ paths:
                       id: 108c1dce-a1e9-4af5-b110-cb6dee144fd6
                       updated_at: '2026-09-21T09:36:18.308255Z'
                     id: 34dbaab9-e77f-466a-93f3-3637131968ea
+                    owner_driver_id: null
                     photo_url: null
+                    photos: []
                     registration_number: KA01AB1234
                     status: active
                     updated_at: '2026-09-21T09:34:51.835866Z'
@@ -11880,6 +13050,7 @@ paths:
                     created_at: '2026-09-21T09:34:07.475156Z'
                     current_driver_id: null
                     id: 34dbaab9-e77f-466a-93f3-3637131968ea
+                    owner_driver_id: null
                     photo_url: null
                     registration_number: KA01AB1234
                     status: active
@@ -12049,6 +13220,7 @@ paths:
                     created_at: '2026-09-21T09:34:07.475156Z'
                     current_driver_id: null
                     id: 34dbaab9-e77f-466a-93f3-3637131968ea
+                    owner_driver_id: null
                     photo_url: null
                     registration_number: KA01AB1234
                     status: active
@@ -12316,7 +13488,9 @@ paths:
                       id: 108c1dce-a1e9-4af5-b110-cb6dee144fd6
                       updated_at: '2026-09-21T09:36:18.308255Z'
                     id: 34dbaab9-e77f-466a-93f3-3637131968ea
+                    owner_driver_id: null
                     photo_url: null
+                    photos: []
                     registration_number: KA01AB1234
                     status: active
                     updated_at: '2026-09-21T09:34:51.835866Z'
@@ -13407,8 +14581,8 @@ components:
         photo_url:
           type: string
           format: uri
-          readOnly: true
           nullable: true
+          readOnly: true
           description: URL of the vehicle's photo, or `null`.
         status:
           allOf:
@@ -13423,10 +14597,15 @@ components:
         is_current:
           type: boolean
           description: This is the vehicle the driver is on duty with right now.
+        is_own:
+          type: boolean
+          description: The driver registered this vehicle themselves (as opposed to
+            the company's fleet).
       required:
       - capacity_kg
       - id
       - is_current
+      - is_own
       - photo_url
       - registration_number
       - status
@@ -13905,6 +15084,78 @@ components:
       required:
       - otp
       - phone_number
+    DriverOwnVehicle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: The vehicle's id (UUID).
+        vehicle_type:
+          allOf:
+          - $ref: '#/components/schemas/VehicleTypeSummary'
+          readOnly: true
+          description: The kind of vehicle (name, category, icon).
+        registration_number:
+          type: string
+          readOnly: true
+          description: The registration plate, upper-cased.
+        capacity_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Load capacity in kg (decimal string).
+        photo_url:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          description: The main picture (the first one added), or `null` when there
+            are none.
+        photos:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehiclePhoto'
+          readOnly: true
+          description: Every picture, in the order they were added.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/VehicleStatusEnum'
+          readOnly: true
+          description: '`active`, `maintenance` or `disabled`. The company can disable
+            a vehicle.'
+        is_current:
+          type: boolean
+          readOnly: true
+          description: '`true` for the vehicle the driver is on duty with (or last
+            was).'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: When the vehicle was registered (ISO 8601, UTC).
+      required:
+      - capacity_kg
+      - created_at
+      - id
+      - is_current
+      - photo_url
+      - photos
+      - registration_number
+      - status
+      - vehicle_type
+    DriverOwnVehicles:
+      type: object
+      properties:
+        vehicles:
+          type: array
+          items:
+            $ref: '#/components/schemas/DriverOwnVehicle'
+          description: The driver's own vehicles, newest first. Never more than 10.
+      required:
+      - vehicles
     DriverPayoutSummary:
       type: object
       properties:
@@ -14503,6 +15754,16 @@ components:
       - total_fare
       - vehicle
       - vehicle_type
+    DriverVehiclePhotoUploadRequest:
+      type: object
+      properties:
+        photo:
+          type: string
+          format: binary
+          description: One picture (`jpg`, `jpeg`, `png` or `webp`, up to 10 MB).
+            Required.
+      required:
+      - photo
     DriverVehicleSummary:
       type: object
       properties:
@@ -14525,8 +15786,8 @@ components:
         photo_url:
           type: string
           format: uri
-          readOnly: true
           nullable: true
+          readOnly: true
           description: URL of the vehicle's photo, or `null`.
         status:
           allOf:
@@ -14545,6 +15806,88 @@ components:
       - registration_number
       - status
       - vehicle_type
+    DriverVehicleType:
+      type: object
+      description: A kind of vehicle the company runs - what a driver picks when adding
+        theirs.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: The vehicle type's id (UUID) - send it as `vehicle_type_id`
+            when adding a vehicle.
+        name:
+          type: string
+          readOnly: true
+          description: Display name, e.g. `Bike`.
+        category:
+          allOf:
+          - $ref: '#/components/schemas/VehicleCategoryEnum'
+          readOnly: true
+          description: '`two_wheeler`, `three_wheeler` or `four_wheeler`. The driver''s
+            licence must cover it to go on duty with a vehicle of this type.'
+        default_capacity_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          readOnly: true
+          description: The load capacity a vehicle of this type gets unless the driver
+            enters another.
+        icon_image_url:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          description: URL of the type's icon, or `null`.
+      required:
+      - category
+      - default_capacity_kg
+      - icon_image_url
+      - id
+      - name
+    DriverVehicleTypes:
+      type: object
+      properties:
+        vehicle_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/DriverVehicleType'
+          description: The company's active vehicle types.
+      required:
+      - vehicle_types
+    DriverVehicleWriteRequest:
+      type: object
+      properties:
+        vehicle_type_id:
+          type: string
+          format: uuid
+          description: The kind of vehicle - an `id` from `GET /driver/vehicle-types`.
+            Required.
+        registration_number:
+          type: string
+          minLength: 1
+          maxLength: 20
+          description: The registration plate. Required. Upper-cased for you; letters,
+            digits and hyphens only (no spaces); unique in the company; up to 20 characters.
+        capacity_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          description: Load capacity in kg (decimal, above 0). Optional - defaults
+            to the vehicle type's `default_capacity_kg`.
+        photos:
+          type: array
+          items:
+            type: string
+            format: binary
+          maxItems: 6
+          description: 'Pictures of the vehicle: repeat the `photos` part once per
+            file (up to 6; `jpg`, `jpeg`, `png` or `webp`, 10 MB each). Optional.
+            The first becomes the main picture.'
+      required:
+      - registration_number
+      - vehicle_type_id
     Error:
       type: object
       properties:
@@ -15018,6 +16361,25 @@ components:
           maxLength: 20
           description: That person's number (up to 20 characters). **Required** when
             you create a driver.
+    PatchedDriverVehicleUpdateRequest:
+      type: object
+      description: 'PATCH: the same fields, all optional; pictures have their own
+        endpoints.'
+      properties:
+        vehicle_type_id:
+          type: string
+          format: uuid
+          description: Change the vehicle's type - an `id` from `GET /driver/vehicle-types`.
+        registration_number:
+          type: string
+          minLength: 1
+          maxLength: 20
+          description: Correct the plate (same rules as when adding).
+        capacity_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          description: Change the load capacity in kg (decimal, above 0).
     PatchedVehicleDocumentRequest:
       type: object
       properties:
@@ -16222,6 +17584,13 @@ components:
           nullable: true
           description: The driver last put on this vehicle by going on duty (a driver
             id), or `null`. Maintained by the system; read-only.
+        owner_driver_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+          description: The driver who registered this vehicle themselves, or `null`
+            for the company's own fleet. Only that driver can take it on duty. Read-only.
         created_at:
           type: string
           format: date-time
@@ -16236,6 +17605,7 @@ components:
       - created_at
       - current_driver_id
       - id
+      - owner_driver_id
       - registration_number
       - status
       - updated_at
@@ -16275,13 +17645,10 @@ components:
           description: Load capacity in kg (decimal, above 0). Optional - defaults
             to the vehicle type's `default_capacity_kg`.
         photo_url:
+          type: string
+          format: uri
           nullable: true
-          oneOf:
-          - type: string
-            format: uri
-            maxLength: 200
-          - type: string
-            maxLength: 0
+          readOnly: true
           description: 'URL of a photo of the vehicle (upload with `purpose: vehicle_photo`).
             Optional.'
         status:
@@ -16295,6 +17662,13 @@ components:
           nullable: true
           description: The driver last put on this vehicle by going on duty (a driver
             id), or `null`. Maintained by the system; read-only.
+        owner_driver_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+          description: The driver who registered this vehicle themselves, or `null`
+            for the company's own fleet. Only that driver can take it on duty. Read-only.
         created_at:
           type: string
           format: date-time
@@ -16311,11 +17685,21 @@ components:
             $ref: '#/components/schemas/VehicleDocument'
           readOnly: true
           description: The vehicle's documents, newest first.
+        photos:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehiclePhoto'
+          readOnly: true
+          description: Every picture of the vehicle (drivers can add several; the
+            company fleet usually has none besides `photo_url`).
       required:
       - capacity_kg
       - created_at
       - documents
       - id
+      - owner_driver_id
+      - photo_url
+      - photos
       - registration_number
       - updated_at
       - vehicle_type
@@ -16424,13 +17808,10 @@ components:
           description: Load capacity in kg (decimal, above 0). Optional - defaults
             to the vehicle type's `default_capacity_kg`.
         photo_url:
+          type: string
+          format: uri
           nullable: true
-          oneOf:
-          - type: string
-            format: uri
-            maxLength: 200
-          - type: string
-            maxLength: 0
+          readOnly: true
           description: 'URL of a photo of the vehicle (upload with `purpose: vehicle_photo`).
             Optional.'
         status:
@@ -16444,6 +17825,13 @@ components:
           nullable: true
           description: The driver last put on this vehicle by going on duty (a driver
             id), or `null`. Maintained by the system; read-only.
+        owner_driver_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+          description: The driver who registered this vehicle themselves, or `null`
+            for the company's own fleet. Only that driver can take it on duty. Read-only.
         created_at:
           type: string
           format: date-time
@@ -16458,9 +17846,28 @@ components:
       - capacity_kg
       - created_at
       - id
+      - owner_driver_id
+      - photo_url
       - registration_number
       - updated_at
       - vehicle_type
+    VehiclePhoto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: The picture's id (UUID) - use it to remove it.
+        url:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          description: Absolute URL of the picture.
+      required:
+      - id
+      - url
     VehicleRequest:
       type: object
       properties:
@@ -17158,6 +18565,7 @@ tags:
     | Vehicle types, vehicles, vehicle documents | yes | yes | no |
     | Uploads (`POST /uploads`) | yes | yes | no |
     | **Drivers** - roster, KYC review, **driver wallets** | **no** | yes | no |
+    | **Own vehicles** (`/driver/my-vehicles`) and **vehicle types for drivers** | no | no | yes |
     | **Driver app** endpoints (`/driver/...`) | no | no | yes |
 
     Calling an endpoint with the wrong kind of token returns **`403 PERMISSION_DENIED`** (not 401): you are signed in, just not as the right principal. Every operation in this reference
@@ -17290,6 +18698,16 @@ tags:
     - URLs the API returns for stored files are **absolute** (`https://...`) so they open in a browser or the driver's phone as they are. Don't build file URLs yourself.
     - Only `http(s)` links are accepted in URL fields.
     - Uploads are checked by content, not just the file name, and limited to 10 MB.
+
+    ## Calling from a browser (CORS)
+
+    Server-to-server calls and the native mobile apps are not affected. A **web app running in a browser** on a different origin (a Flutter web build on `https://app.example.com`, say) can only call
+    the API if that origin is on the server's allow-list: whoever runs the server sets **`CORS_ALLOWED_ORIGINS`** to the exact origins - scheme + host (+ port), no path, no `*` - for example
+    `CORS_ALLOWED_ORIGINS=https://app.example.com,https://admin.example.com`. For those origins the server answers the browser's preflight (`OPTIONS`) and adds `Access-Control-Allow-Origin` to every reply,
+    errors included, so the page can read them.
+
+    Tokens travel in the `Authorization` header, never in cookies, so credentials are not allowed cross-origin. If the browser console says *"blocked by CORS policy ... No 'Access-Control-Allow-Origin'
+    header"*, the origin isn't on the list (or the server wasn't restarted after adding it). And never put an API client secret in a browser app.
 
     ## Multi-tenancy
 
@@ -17425,6 +18843,9 @@ tags:
     | `VEHICLE_CATEGORY_NOT_ALLOWED` | 403 | The driver's verified licence doesn't cover this vehicle's category. | Choose a vehicle from `GET /driver/vehicles` (it lists only what the driver may take). |
     | `VEHICLE_IN_USE` | 409 | Another driver is on duty with this vehicle. | Pick another vehicle. |
     | `VEHICLE_NOT_ACTIVE` | 409 | The vehicle has been disabled by the company. | Pick another vehicle. |
+    | `VEHICLE_LIMIT_REACHED` | 409 | The driver already has the maximum number of vehicles they can register (10). | Remove one (`DELETE /driver/my-vehicles/{id}`) before adding another. |
+    | `PHOTO_LIMIT_REACHED` | 409 | The vehicle already has the maximum number of pictures (6). | Remove one (`DELETE /driver/my-vehicles/{id}/photos/{photo_id}`) before adding another. |
+    | `VEHICLE_ON_DUTY` | 409 | The driver tried to remove the vehicle they are on duty with. | Go off duty (`POST /driver/duty/end`) first. |
 
     ### Driver onboarding
 
@@ -17809,6 +19230,24 @@ tags:
     curl -X POST "$BASE_URL/driver/duty/start" -H "Authorization: Bearer $DRIVER_TOKEN" -H "Content-Type: application/json" \
       -d '{"vehicle_id": "34dbaab9-e77f-466a-93f3-3637131968ea", "lat": "12.971600", "lng": "77.594600"}'
     ```
+
+    ### Your own vehicles (optional)
+
+    A driver with their own bike or auto registers it once, with pictures, and can then take it on duty like any fleet vehicle:
+
+    ```bash
+    # which vehicle types does the company run?
+    curl "$BASE_URL/driver/vehicle-types" -H "Authorization: Bearer $DRIVER_TOKEN"
+
+    # add a vehicle with pictures (multipart: repeat "photos" once per picture, up to 6)
+    curl -X POST "$BASE_URL/driver/my-vehicles" -H "Authorization: Bearer $DRIVER_TOKEN" \
+      -F "vehicle_type_id=725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13" -F "registration_number=KA05MN7788" \
+      -F "photos=@front.jpg" -F "photos=@side.jpg"
+
+    curl "$BASE_URL/driver/my-vehicles" -H "Authorization: Bearer $DRIVER_TOKEN"     # mine, with pictures
+    ```
+
+    Up to 10 vehicles per driver. They appear in `GET /driver/vehicles` (flagged `is_own`) next to the company's fleet; nobody else can use them.
 
     From now on, send the position **every 15-30 seconds** while on duty:
 
@@ -18214,6 +19653,12 @@ tags:
     - Verifying the **licence** also needs the `expiry_date` you read off it (in the future) and the `allowed_categories` it covers: that decides which vehicles the driver may take (`two_wheeler`, `three_wheeler`, `four_wheeler`).
     - When a verified licence's expiry date passes, the driver's account is **locked** automatically (`ACCOUNT_LOCKED`) until a new licence is verified.
 
+    ### Vehicles and pictures
+
+    A driver can also **register their own vehicles** - several, each with up to 6 pictures - with `POST /driver/my-vehicles` (see *Driver app walkthrough*), even before they are approved. Going on duty still needs
+    the documents verified and a licence that covers the vehicle's category. The company sees these in its fleet (`GET /vehicles`) with `owner_driver_id` set, and can disable any of them.
+    The driver's own **photo** is `POST /driver/me/photo`, and they can replace it whenever they like.
+
     ## The wallet
 
     Every driver has a **wallet**: a running ledger of what the company owes them.
@@ -18279,6 +19724,9 @@ tags:
 - name: Driver duty & location
   description: Going on and off duty with a vehicle, and sending GPS pings so trips
     can be matched.
+- name: Driver vehicles
+  description: 'The driver''s own vehicles: add several, each with pictures, and take
+    any of them on duty. The company''s fleet vehicles stay available alongside.'
 - name: Driver trips
   description: 'The trip the driver is working on, its history, and the step-by-step
     lifecycle actions: arrive, start, complete, cancel.'
@@ -18324,6 +19772,7 @@ x-tagGroups:
   - Driver sign-in
   - Driver profile & onboarding
   - Driver duty & location
+  - Driver vehicles
   - Driver trips
   - Driver payments
   - Item verification

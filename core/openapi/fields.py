@@ -331,6 +331,49 @@ FIELDS.update({
     },
 })
 
+FIELDS.update({
+    "DriverVehicleType": {
+        "id": "The vehicle type's id (UUID) - send it as `vehicle_type_id` when adding a vehicle.",
+        "name": "Display name, e.g. `Bike`.",
+        "category": "`two_wheeler`, `three_wheeler` or `four_wheeler`. The driver's licence must cover it to go on duty with a vehicle of this type.",
+        "default_capacity_kg": "The load capacity a vehicle of this type gets unless the driver enters another.",
+        "icon_image_url": "URL of the type's icon, or `null`.",
+    },
+    "VehiclePhoto": {
+        "id": "The picture's id (UUID) - use it to remove it.",
+        "url": "Absolute URL of the picture.",
+    },
+    "DriverOwnVehicle": {
+        "id": "The vehicle's id (UUID).",
+        "vehicle_type": "The kind of vehicle (name, category, icon).",
+        "registration_number": "The registration plate, upper-cased.",
+        "capacity_kg": "Load capacity in kg (decimal string).",
+        "photo_url": "The main picture (the first one added), or `null` when there are none.",
+        "photos": "Every picture, in the order they were added.",
+        "status": "`active`, `maintenance` or `disabled`. The company can disable a vehicle.",
+        "is_current": "`true` for the vehicle the driver is on duty with (or last was).",
+        "created_at": "When the vehicle was registered (ISO 8601, UTC).",
+    },
+    "DriverVehicleWrite": {
+        "vehicle_type_id": "The kind of vehicle - an `id` from `GET /driver/vehicle-types`. Required.",
+        "registration_number": "The registration plate. Required. Upper-cased for you; letters, digits and hyphens only (no spaces); unique in the company; up to 20 characters.",
+        "capacity_kg": "Load capacity in kg (decimal, above 0). Optional - defaults to the vehicle type's `default_capacity_kg`.",
+        "photos": "Pictures of the vehicle: repeat the `photos` part once per file (up to 6; `jpg`, `jpeg`, `png` or `webp`, 10 MB each). Optional. The first becomes the main picture.",
+    },
+    "DriverVehicleUpdate": {
+        "vehicle_type_id": "Change the vehicle's type - an `id` from `GET /driver/vehicle-types`.",
+        "registration_number": "Correct the plate (same rules as when adding).",
+        "capacity_kg": "Change the load capacity in kg (decimal, above 0).",
+    },
+    "DriverVehiclePhotoUpload": {"photo": "One picture (`jpg`, `jpeg`, `png` or `webp`, up to 10 MB). Required."},
+    "DriverOwnVehicles": {"vehicles": "The driver's own vehicles, newest first. Never more than 10."},
+    "DriverVehicleTypes": {"vehicle_types": "The company's active vehicle types."},
+})
+FIELDS["Vehicle"].update({
+    "owner_driver_id": "The driver who registered this vehicle themselves, or `null` for the company's own fleet. Only that driver can take it on duty. Read-only.",
+    "photos": "Every picture of the vehicle (drivers can add several; the company fleet usually has none besides `photo_url`).",
+})
+
 
 def lookup(schema, field):
     """The documented meaning of `schema.field`, or None."""

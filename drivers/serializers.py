@@ -150,6 +150,7 @@ class DriverListSerializer(serializers.ModelSerializer):
 
 class DriverVehicleSummarySerializer(serializers.ModelSerializer):
     vehicle_type = VehicleTypeSummarySerializer(read_only=True)
+    photo_url = MediaUrlField()
 
     class Meta:
         model = Vehicle
@@ -252,7 +253,7 @@ class DriverMeSerializer(serializers.ModelSerializer):
         if driver.current_vehicle_id is None:
             return None
         vehicle = Vehicle.objects.select_related("vehicle_type").filter(pk=driver.current_vehicle_id).first()
-        return DriverVehicleSummarySerializer(vehicle).data if vehicle else None
+        return DriverVehicleSummarySerializer(vehicle, context=self.context).data if vehicle else None
 
     @extend_schema_field(DriverKycSummarySerializer)
     def get_kyc(self, driver):
@@ -611,9 +612,10 @@ class DriverSessionSerializer(serializers.Serializer):
 
 class DriverAvailableVehicleSerializer(DriverVehicleSummarySerializer):
     is_current = serializers.BooleanField(help_text="This is the vehicle the driver is on duty with right now.")
+    is_own = serializers.BooleanField(help_text="The driver registered this vehicle themselves (as opposed to the company's fleet).")
 
     class Meta(DriverVehicleSummarySerializer.Meta):
-        fields = DriverVehicleSummarySerializer.Meta.fields + ["is_current"]
+        fields = DriverVehicleSummarySerializer.Meta.fields + ["is_current", "is_own"]
         read_only_fields = fields
 
 

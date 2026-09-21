@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from accounts.models import Company
@@ -243,6 +244,9 @@ class DriverService:
         return (
             Vehicle.objects.select_related("vehicle_type")
             .filter(
+                # The company's own fleet, or a vehicle this driver registered —
+                # never one that belongs to another driver.
+                Q(owner_driver__isnull=True) | Q(owner_driver=driver),
                 company_id=driver.company_id,
                 status=VehicleStatus.ACTIVE,
                 vehicle_type__category__in=allowed_categories,

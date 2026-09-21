@@ -206,6 +206,13 @@ class Vehicle(BaseModel):
     # queries need to join through (mirrors Driver.current_vehicle_id).
     current_driver_id = models.UUIDField(null=True, blank=True)
 
+    # Set when a driver registered the vehicle themselves (POST /driver/my-vehicles):
+    # only that driver can take it on duty or manage it. The company's own fleet
+    # leaves it empty and any eligible driver may use those.
+    owner_driver = models.ForeignKey(
+        "Driver", null=True, blank=True, on_delete=models.SET_NULL, related_name="own_vehicles"
+    )
+
     class Meta:
         ordering = ["-created_at"]
         constraints = [
@@ -218,6 +225,21 @@ class Vehicle(BaseModel):
 
     def __str__(self):
         return self.registration_number
+
+
+class VehiclePhoto(BaseModel):
+    """One picture of a vehicle (front, side, number plate ...). `Vehicle.photo_url`
+    keeps pointing at the first one so anything that shows "the" vehicle photo
+    keeps working."""
+
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name="photos")
+    url = models.URLField(max_length=500)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+    def __str__(self):
+        return f"Photo of {self.vehicle.registration_number}"
 
 
 class VehicleDocument(BaseModel):

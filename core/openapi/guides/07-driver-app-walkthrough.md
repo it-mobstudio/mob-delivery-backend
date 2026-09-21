@@ -87,6 +87,24 @@ curl -X POST "$BASE_URL/driver/duty/start" -H "Authorization: Bearer $DRIVER_TOK
   -d '{"vehicle_id": "34dbaab9-e77f-466a-93f3-3637131968ea", "lat": "12.971600", "lng": "77.594600"}'
 ```
 
+### Your own vehicles (optional)
+
+A driver with their own bike or auto registers it once, with pictures, and can then take it on duty like any fleet vehicle:
+
+```bash
+# which vehicle types does the company run?
+curl "$BASE_URL/driver/vehicle-types" -H "Authorization: Bearer $DRIVER_TOKEN"
+
+# add a vehicle with pictures (multipart: repeat "photos" once per picture, up to 6)
+curl -X POST "$BASE_URL/driver/my-vehicles" -H "Authorization: Bearer $DRIVER_TOKEN" \
+  -F "vehicle_type_id=725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13" -F "registration_number=KA05MN7788" \
+  -F "photos=@front.jpg" -F "photos=@side.jpg"
+
+curl "$BASE_URL/driver/my-vehicles" -H "Authorization: Bearer $DRIVER_TOKEN"     # mine, with pictures
+```
+
+Up to 10 vehicles per driver. They appear in `GET /driver/vehicles` (flagged `is_own`) next to the company's fleet; nobody else can use them.
+
 From now on, send the position **every 15-30 seconds** while on duty:
 
 ```bash

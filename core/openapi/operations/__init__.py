@@ -9,6 +9,7 @@ from . import (  # noqa: F401
     driver_payments,
     driver_profile,
     driver_trips,
+    driver_vehicles,
     drivers_admin,
     fleet,
     trips,

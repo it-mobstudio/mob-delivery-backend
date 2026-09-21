@@ -83,6 +83,16 @@ Comma-separated values (`status=completed,cancelled`) are supported only where t
 - Only `http(s)` links are accepted in URL fields.
 - Uploads are checked by content, not just the file name, and limited to 10 MB.
 
+## Calling from a browser (CORS)
+
+Server-to-server calls and the native mobile apps are not affected. A **web app running in a browser** on a different origin (a Flutter web build on `https://app.example.com`, say) can only call
+the API if that origin is on the server's allow-list: whoever runs the server sets **`CORS_ALLOWED_ORIGINS`** to the exact origins - scheme + host (+ port), no path, no `*` - for example
+`CORS_ALLOWED_ORIGINS=https://app.example.com,https://admin.example.com`. For those origins the server answers the browser's preflight (`OPTIONS`) and adds `Access-Control-Allow-Origin` to every reply,
+errors included, so the page can read them.
+
+Tokens travel in the `Authorization` header, never in cookies, so credentials are not allowed cross-origin. If the browser console says *"blocked by CORS policy ... No 'Access-Control-Allow-Origin'
+header"*, the origin isn't on the list (or the server wasn't restarted after adding it). And never put an API client secret in a browser app.
+
 ## Multi-tenancy
 
 Every token belongs to exactly one company. You can only read and change that company's data, and never need to send a company id. A resource of another company is indistinguishable from one that

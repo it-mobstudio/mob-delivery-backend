@@ -2,8 +2,9 @@ from rest_framework import serializers
 
 from core.choices import VehicleDocumentType, VehicleTypeStatus
 from core.constants import REGISTRATION_NUMBER_RE
+from core.serializers import MediaUrlField
 
-from .models import Vehicle, VehicleDocument, VehicleType
+from .models import Vehicle, VehicleDocument, VehiclePhoto, VehicleType
 
 
 class VehicleTypeSerializer(serializers.ModelSerializer):
@@ -90,7 +91,17 @@ class VehicleDocumentSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class VehiclePhotoSerializer(serializers.ModelSerializer):
+    url = MediaUrlField()
+
+    class Meta:
+        model = VehiclePhoto
+        fields = ["id", "url"]
+        read_only_fields = fields
+
+
 class VehicleSerializer(serializers.ModelSerializer):
+    owner_driver_id = serializers.UUIDField(read_only=True, allow_null=True)
     vehicle_type_id = serializers.PrimaryKeyRelatedField(
         source="vehicle_type", queryset=VehicleType.objects.none(), write_only=True
     )
@@ -106,6 +117,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             "photo_url",
             "status",
             "current_driver_id",
+            "owner_driver_id",
             "created_at",
             "updated_at",
         ]
@@ -165,6 +177,10 @@ class VehicleSerializer(serializers.ModelSerializer):
 
 class VehicleListSerializer(serializers.ModelSerializer):
     vehicle_type = VehicleTypeSummarySerializer(read_only=True)
+    # Driver-registered vehicles keep their pictures as stored paths; the company
+    # gets absolute URLs that open anywhere.
+    photo_url = MediaUrlField()
+    owner_driver_id = serializers.UUIDField(read_only=True, allow_null=True)
 
     class Meta:
         model = Vehicle
@@ -176,6 +192,7 @@ class VehicleListSerializer(serializers.ModelSerializer):
             "photo_url",
             "status",
             "current_driver_id",
+            "owner_driver_id",
             "created_at",
             "updated_at",
         ]
@@ -183,6 +200,7 @@ class VehicleListSerializer(serializers.ModelSerializer):
 
 class VehicleDetailSerializer(VehicleListSerializer):
     documents = VehicleDocumentSerializer(many=True, read_only=True)
+    photos = VehiclePhotoSerializer(many=True, read_only=True)
 
     class Meta(VehicleListSerializer.Meta):
-        fields = VehicleListSerializer.Meta.fields + ["documents"]
+        fields = VehicleListSerializer.Meta.fields + ["documents", "photos"]

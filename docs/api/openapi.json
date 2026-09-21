@@ -3234,6 +3234,1263 @@
                 ]
             }
         },
+        "/driver/my-vehicles": {
+            "get": {
+                "operationId": "listMyVehicles",
+                "description": "The vehicles this driver registered, newest first, each with its pictures. (`GET /driver/vehicles` is different: it lists what the driver may take **on duty**, which includes the company's fleet.)\n\n**Who may call this:** **Driver** - a driver token only.\n\n**Own vehicles.** A driver can register their own vehicle(s) - up to **10**, each with up to **6 pictures** - and then take any of them on duty, next to the company's fleet\nvehicles. Only the driver who registered a vehicle can see, change or use it; the company sees it in its fleet with `owner_driver_id` set and can disable it.",
+                "summary": "My vehicles",
+                "tags": [
+                    "Driver vehicles"
+                ],
+                "security": [
+                    {
+                        "DriverToken": []
+                    }
+                ],
+                "responses": {
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTAUTHENTICATED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_AUTHENTICATED",
+                                                "message": "Authentication credentials were not provided."
+                                            }
+                                        },
+                                        "summary": "NOT_AUTHENTICATED"
+                                    },
+                                    "TOKENNOTVALID": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "TOKEN_NOT_VALID",
+                                                "message": "Given token not valid for any token type"
+                                            }
+                                        },
+                                        "summary": "TOKEN_NOT_VALID"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "One of:\n- `NOT_AUTHENTICATED` - No `Authorization` header was sent.\n- `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment."
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "PERMISSIONDENIED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "PERMISSION_DENIED",
+                                                "message": "You do not have permission to perform this action."
+                                            }
+                                        },
+                                        "summary": "PERMISSION_DENIED"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`PERMISSION_DENIED` - You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse)."
+                    },
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DriverOwnVehicles"
+                                },
+                                "examples": {
+                                    "Mine": {
+                                        "value": {
+                                            "vehicles": [
+                                                {
+                                                    "id": "8f0c2b5e-3a1d-4e57-9c0a-6d1f2e7b9a44",
+                                                    "vehicle_type": {
+                                                        "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+                                                        "name": "Bike",
+                                                        "category": "two_wheeler",
+                                                        "icon_image_url": null
+                                                    },
+                                                    "registration_number": "KA05MN7788",
+                                                    "capacity_kg": "20.00",
+                                                    "photo_url": "https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg",
+                                                    "photos": [
+                                                        {
+                                                            "id": "b1d7c0a2-52c4-4a58-8a0e-0b3c7f1e2d10",
+                                                            "url": "https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg"
+                                                        },
+                                                        {
+                                                            "id": "e4a9f3d8-7b21-4c96-b0d5-9a8e1c2f4b67",
+                                                            "url": "https://your-server.example.com/media/3b79.../vehicles/a93e....jpg"
+                                                        }
+                                                    ],
+                                                    "status": "active",
+                                                    "is_current": false,
+                                                    "created_at": "2026-09-21T09:20:11.482910Z"
+                                                }
+                                            ]
+                                        },
+                                        "summary": "One registered vehicle"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Success."
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "Shell",
+                        "label": "cURL",
+                        "source": "curl -X GET \"$BASE_URL/driver/my-vehicles\" \\\n  -H \"Authorization: Bearer $DRIVER_TOKEN\""
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python",
+                        "source": "import requests\n\nBASE_URL = \"http://localhost:8000/api/v1\"\nDRIVER_TOKEN = \"...\"  # see the Authentication guide\n\nresponse = requests.get(\n    f\"{BASE_URL}/driver/my-vehicles\",\n    headers={\"Authorization\": f\"Bearer {DRIVER_TOKEN}\"},\n)\nprint(response.status_code, response.json())"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript",
+                        "source": "const BASE_URL = \"http://localhost:8000/api/v1\";\nconst DRIVER_TOKEN = \"...\"; // see the Authentication guide\n\nconst response = await fetch(`${BASE_URL}/driver/my-vehicles`, {\n  method: \"GET\",\n  headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },\n});\nconsole.log(response.status, await response.json());"
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "registerMyVehicle",
+                "description": "Registers a vehicle for the driver. **Required:** `vehicle_type_id` and `registration_number`. **Optional:** `capacity_kg` (defaults to the type's) and `photos`.\n\nSend it as **`multipart/form-data`**, repeating the `photos` part once per picture:\n\n```bash\ncurl -X POST \"$BASE_URL/driver/my-vehicles\" -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -F \"vehicle_type_id=725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13\" -F \"registration_number=KA05MN7788\" \\\n  -F \"photos=@front.jpg\" -F \"photos=@side.jpg\" -F \"photos=@back.jpg\"\n```\n\nThe plate is upper-cased and must be letters, digits and hyphens (no spaces), unique in the company. All pictures are checked **before** anything is saved, so one bad file adds nothing.\nThe first picture becomes the vehicle's main one. A driver can register this even while still being onboarded; going on duty still needs their documents verified.\n\n**Who may call this:** **Driver** - a driver token only.\n\n**Own vehicles.** A driver can register their own vehicle(s) - up to **10**, each with up to **6 pictures** - and then take any of them on duty, next to the company's fleet\nvehicles. Only the driver who registered a vehicle can see, change or use it; the company sees it in its fleet with `owner_driver_id` set and can disable it.",
+                "summary": "Add a vehicle",
+                "tags": [
+                    "Driver vehicles"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DriverVehicleWriteRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "DriverToken": []
+                    }
+                ],
+                "responses": {
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "INVALIDUPLOAD": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "INVALID_UPLOAD",
+                                                "message": "Unsupported file type '.pdf' for purpose 'vehicle_photo'. Allowed: ['jpeg', 'jpg', 'png', 'webp']."
+                                            }
+                                        },
+                                        "summary": "INVALID_UPLOAD"
+                                    },
+                                    "INVALID": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "INVALID",
+                                                "message": "Request could not be processed.",
+                                                "details": {
+                                                    "field": [
+                                                        "This field is required."
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "summary": "INVALID"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "One of:\n- `INVALID_UPLOAD` - The file isn't an acceptable image/PDF (wrong type, too large, or corrupt).\n- `INVALID` - The request body, query string or form is missing a required field or has a value that isn't acceptable. `details` names every offending field."
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTAUTHENTICATED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_AUTHENTICATED",
+                                                "message": "Authentication credentials were not provided."
+                                            }
+                                        },
+                                        "summary": "NOT_AUTHENTICATED"
+                                    },
+                                    "TOKENNOTVALID": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "TOKEN_NOT_VALID",
+                                                "message": "Given token not valid for any token type"
+                                            }
+                                        },
+                                        "summary": "TOKEN_NOT_VALID"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "One of:\n- `NOT_AUTHENTICATED` - No `Authorization` header was sent.\n- `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment."
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "PERMISSIONDENIED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "PERMISSION_DENIED",
+                                                "message": "You do not have permission to perform this action."
+                                            }
+                                        },
+                                        "summary": "PERMISSION_DENIED"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`PERMISSION_DENIED` - You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse)."
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "VEHICLELIMITREACHED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "VEHICLE_LIMIT_REACHED",
+                                                "message": "You can register up to 10 vehicles. Remove one to add another."
+                                            }
+                                        },
+                                        "summary": "VEHICLE_LIMIT_REACHED"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`VEHICLE_LIMIT_REACHED` - The driver already has the maximum number of vehicles they can register (10)."
+                    },
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DriverOwnVehicle"
+                                },
+                                "examples": {
+                                    "Registered": {
+                                        "value": {
+                                            "id": "8f0c2b5e-3a1d-4e57-9c0a-6d1f2e7b9a44",
+                                            "vehicle_type": {
+                                                "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+                                                "name": "Bike",
+                                                "category": "two_wheeler",
+                                                "icon_image_url": null
+                                            },
+                                            "registration_number": "KA05MN7788",
+                                            "capacity_kg": "20.00",
+                                            "photo_url": "https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg",
+                                            "photos": [
+                                                {
+                                                    "id": "b1d7c0a2-52c4-4a58-8a0e-0b3c7f1e2d10",
+                                                    "url": "https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg"
+                                                },
+                                                {
+                                                    "id": "e4a9f3d8-7b21-4c96-b0d5-9a8e1c2f4b67",
+                                                    "url": "https://your-server.example.com/media/3b79.../vehicles/a93e....jpg"
+                                                }
+                                            ],
+                                            "status": "active",
+                                            "is_current": false,
+                                            "created_at": "2026-09-21T09:20:11.482910Z"
+                                        },
+                                        "summary": "Registered with two pictures"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Created."
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "Shell",
+                        "label": "cURL",
+                        "source": "curl -X POST \"$BASE_URL/driver/my-vehicles\" \\\n  -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -F 'vehicle_type_id=3fa85f64-5717-4562-b3fc-2c963f66afa6' \\\n  -F 'registration_number=string'"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python",
+                        "source": "import requests\n\nBASE_URL = \"http://localhost:8000/api/v1\"\nDRIVER_TOKEN = \"...\"  # see the Authentication guide\n\nresponse = requests.post(\n    f\"{BASE_URL}/driver/my-vehicles\",\n    headers={\"Authorization\": f\"Bearer {DRIVER_TOKEN}\"},\n    data={\"vehicle_type_id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\", \"registration_number\": \"string\"},\n)\nprint(response.status_code, response.json())"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript",
+                        "source": "const BASE_URL = \"http://localhost:8000/api/v1\";\nconst DRIVER_TOKEN = \"...\"; // see the Authentication guide\n\nconst form = new FormData();\nform.append(\"vehicle_type_id\", \"3fa85f64-5717-4562-b3fc-2c963f66afa6\");\nform.append(\"registration_number\", \"string\");\n\nconst response = await fetch(`${BASE_URL}/driver/my-vehicles`, {\n  method: \"POST\",\n  headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },\n  body: form,\n});\nconsole.log(response.status, await response.json());"
+                    }
+                ]
+            }
+        },
+        "/driver/my-vehicles/{id}": {
+            "get": {
+                "operationId": "getMyVehicle",
+                "description": "A vehicle the driver registered, with its pictures. Someone else's vehicle is a plain `404`.\n\n**Who may call this:** **Driver** - a driver token only.",
+                "summary": "One of my vehicles",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The vehicle's id (UUID) - from `GET /driver/my-vehicles`.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "Driver vehicles"
+                ],
+                "security": [
+                    {
+                        "DriverToken": []
+                    }
+                ],
+                "responses": {
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTAUTHENTICATED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_AUTHENTICATED",
+                                                "message": "Authentication credentials were not provided."
+                                            }
+                                        },
+                                        "summary": "NOT_AUTHENTICATED"
+                                    },
+                                    "TOKENNOTVALID": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "TOKEN_NOT_VALID",
+                                                "message": "Given token not valid for any token type"
+                                            }
+                                        },
+                                        "summary": "TOKEN_NOT_VALID"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "One of:\n- `NOT_AUTHENTICATED` - No `Authorization` header was sent.\n- `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment."
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "PERMISSIONDENIED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "PERMISSION_DENIED",
+                                                "message": "You do not have permission to perform this action."
+                                            }
+                                        },
+                                        "summary": "PERMISSION_DENIED"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`PERMISSION_DENIED` - You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse)."
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTFOUND": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "No Trip matches the given query."
+                                            }
+                                        },
+                                        "summary": "NOT_FOUND"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`NOT_FOUND` - No such resource - or it belongs to another company. The API never confirms that other companies' data exists."
+                    },
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DriverOwnVehicle"
+                                },
+                                "examples": {
+                                    "Vehicle": {
+                                        "value": {
+                                            "id": "8f0c2b5e-3a1d-4e57-9c0a-6d1f2e7b9a44",
+                                            "vehicle_type": {
+                                                "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+                                                "name": "Bike",
+                                                "category": "two_wheeler",
+                                                "icon_image_url": null
+                                            },
+                                            "registration_number": "KA05MN7788",
+                                            "capacity_kg": "20.00",
+                                            "photo_url": "https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg",
+                                            "photos": [
+                                                {
+                                                    "id": "b1d7c0a2-52c4-4a58-8a0e-0b3c7f1e2d10",
+                                                    "url": "https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg"
+                                                },
+                                                {
+                                                    "id": "e4a9f3d8-7b21-4c96-b0d5-9a8e1c2f4b67",
+                                                    "url": "https://your-server.example.com/media/3b79.../vehicles/a93e....jpg"
+                                                }
+                                            ],
+                                            "status": "active",
+                                            "is_current": false,
+                                            "created_at": "2026-09-21T09:20:11.482910Z"
+                                        },
+                                        "summary": "A vehicle"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Success."
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "Shell",
+                        "label": "cURL",
+                        "source": "curl -X GET \"$BASE_URL/driver/my-vehicles/${MY_VEHICLE_ID}\" \\\n  -H \"Authorization: Bearer $DRIVER_TOKEN\""
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python",
+                        "source": "import requests\n\nBASE_URL = \"http://localhost:8000/api/v1\"\nDRIVER_TOKEN = \"...\"  # see the Authentication guide\n\nresponse = requests.get(\n    f\"{BASE_URL}/driver/my-vehicles/{MY_VEHICLE_ID}\",\n    headers={\"Authorization\": f\"Bearer {DRIVER_TOKEN}\"},\n)\nprint(response.status_code, response.json())"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript",
+                        "source": "const BASE_URL = \"http://localhost:8000/api/v1\";\nconst DRIVER_TOKEN = \"...\"; // see the Authentication guide\n\nconst response = await fetch(`${BASE_URL}/driver/my-vehicles/${MY_VEHICLE_ID}`, {\n  method: \"GET\",\n  headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },\n});\nconsole.log(response.status, await response.json());"
+                    }
+                ]
+            },
+            "patch": {
+                "operationId": "updateMyVehicle",
+                "description": "Changes only the fields sent: the plate (to fix a typo), the capacity, or the type. Pictures have their own endpoints.\n\n**Who may call this:** **Driver** - a driver token only.",
+                "summary": "Correct a vehicle",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The vehicle's id (UUID) - from `GET /driver/my-vehicles`.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "Driver vehicles"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedDriverVehicleUpdateRequest"
+                            },
+                            "examples": {
+                                "FixThePlate": {
+                                    "value": {
+                                        "registration_number": "KA05MN7789"
+                                    },
+                                    "summary": "Fix the plate"
+                                },
+                                "ChangeTheCapacity": {
+                                    "value": {
+                                        "capacity_kg": "35.5"
+                                    },
+                                    "summary": "Change the capacity"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "DriverToken": []
+                    }
+                ],
+                "responses": {
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "INVALID": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "INVALID",
+                                                "message": "Request could not be processed.",
+                                                "details": {
+                                                    "field": [
+                                                        "This field is required."
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "summary": "INVALID"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`INVALID` - The request body, query string or form is missing a required field or has a value that isn't acceptable. `details` names every offending field."
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTAUTHENTICATED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_AUTHENTICATED",
+                                                "message": "Authentication credentials were not provided."
+                                            }
+                                        },
+                                        "summary": "NOT_AUTHENTICATED"
+                                    },
+                                    "TOKENNOTVALID": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "TOKEN_NOT_VALID",
+                                                "message": "Given token not valid for any token type"
+                                            }
+                                        },
+                                        "summary": "TOKEN_NOT_VALID"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "One of:\n- `NOT_AUTHENTICATED` - No `Authorization` header was sent.\n- `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment."
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "PERMISSIONDENIED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "PERMISSION_DENIED",
+                                                "message": "You do not have permission to perform this action."
+                                            }
+                                        },
+                                        "summary": "PERMISSION_DENIED"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`PERMISSION_DENIED` - You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse)."
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTFOUND": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "No Trip matches the given query."
+                                            }
+                                        },
+                                        "summary": "NOT_FOUND"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`NOT_FOUND` - No such resource - or it belongs to another company. The API never confirms that other companies' data exists."
+                    },
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DriverOwnVehicle"
+                                },
+                                "examples": {
+                                    "Updated": {
+                                        "value": {
+                                            "id": "8f0c2b5e-3a1d-4e57-9c0a-6d1f2e7b9a44",
+                                            "vehicle_type": {
+                                                "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+                                                "name": "Bike",
+                                                "category": "two_wheeler",
+                                                "icon_image_url": null
+                                            },
+                                            "registration_number": "KA05MN7788",
+                                            "capacity_kg": "20.00",
+                                            "photo_url": "https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg",
+                                            "photos": [
+                                                {
+                                                    "id": "b1d7c0a2-52c4-4a58-8a0e-0b3c7f1e2d10",
+                                                    "url": "https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg"
+                                                },
+                                                {
+                                                    "id": "e4a9f3d8-7b21-4c96-b0d5-9a8e1c2f4b67",
+                                                    "url": "https://your-server.example.com/media/3b79.../vehicles/a93e....jpg"
+                                                }
+                                            ],
+                                            "status": "active",
+                                            "is_current": false,
+                                            "created_at": "2026-09-21T09:20:11.482910Z"
+                                        },
+                                        "summary": "Updated"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Success."
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "Shell",
+                        "label": "cURL",
+                        "source": "curl -X PATCH \"$BASE_URL/driver/my-vehicles/${MY_VEHICLE_ID}\" \\\n  -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"registration_number\": \"KA05MN7789\"\n  }'"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python",
+                        "source": "import requests\n\nBASE_URL = \"http://localhost:8000/api/v1\"\nDRIVER_TOKEN = \"...\"  # see the Authentication guide\n\nresponse = requests.patch(\n    f\"{BASE_URL}/driver/my-vehicles/{MY_VEHICLE_ID}\",\n    headers={\"Authorization\": f\"Bearer {DRIVER_TOKEN}\"},\n    json={\n        \"registration_number\": \"KA05MN7789\"\n    },\n)\nprint(response.status_code, response.json())"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript",
+                        "source": "const BASE_URL = \"http://localhost:8000/api/v1\";\nconst DRIVER_TOKEN = \"...\"; // see the Authentication guide\n\nconst response = await fetch(`${BASE_URL}/driver/my-vehicles/${MY_VEHICLE_ID}`, {\n  method: \"PATCH\",\n  headers: { Authorization: `Bearer ${DRIVER_TOKEN}`, \"Content-Type\": \"application/json\" },\n  body: JSON.stringify({\n    \"registration_number\": \"KA05MN7789\"\n  }),\n});\nconsole.log(response.status, await response.json());"
+                    }
+                ]
+            },
+            "delete": {
+                "operationId": "removeMyVehicle",
+                "description": "Retires the vehicle: it drops out of the driver's list and the company's fleet, and its plate can be registered again. Past trips keep their record.\n\nRefused while the driver is **on duty with it** (`VEHICLE_ON_DUTY` - go off duty first) or while a **trip is using it** (`VEHICLE_HAS_ACTIVE_TRIP`).\n\n**Who may call this:** **Driver** - a driver token only.",
+                "summary": "Remove a vehicle",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The vehicle's id (UUID) - from `GET /driver/my-vehicles`.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "Driver vehicles"
+                ],
+                "security": [
+                    {
+                        "DriverToken": []
+                    }
+                ],
+                "responses": {
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTAUTHENTICATED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_AUTHENTICATED",
+                                                "message": "Authentication credentials were not provided."
+                                            }
+                                        },
+                                        "summary": "NOT_AUTHENTICATED"
+                                    },
+                                    "TOKENNOTVALID": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "TOKEN_NOT_VALID",
+                                                "message": "Given token not valid for any token type"
+                                            }
+                                        },
+                                        "summary": "TOKEN_NOT_VALID"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "One of:\n- `NOT_AUTHENTICATED` - No `Authorization` header was sent.\n- `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment."
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "PERMISSIONDENIED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "PERMISSION_DENIED",
+                                                "message": "You do not have permission to perform this action."
+                                            }
+                                        },
+                                        "summary": "PERMISSION_DENIED"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`PERMISSION_DENIED` - You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse)."
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTFOUND": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "No Trip matches the given query."
+                                            }
+                                        },
+                                        "summary": "NOT_FOUND"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`NOT_FOUND` - No such resource - or it belongs to another company. The API never confirms that other companies' data exists."
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "VEHICLEONDUTY": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "VEHICLE_ON_DUTY",
+                                                "message": "You're on duty with this vehicle. Go off duty before removing it."
+                                            }
+                                        },
+                                        "summary": "VEHICLE_ON_DUTY"
+                                    },
+                                    "VEHICLEHASACTIVETRIP": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "VEHICLE_HAS_ACTIVE_TRIP",
+                                                "message": "This vehicle has an active trip and cannot be disabled."
+                                            }
+                                        },
+                                        "summary": "VEHICLE_HAS_ACTIVE_TRIP"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "One of:\n- `VEHICLE_ON_DUTY` - The driver tried to remove the vehicle they are on duty with.\n- `VEHICLE_HAS_ACTIVE_TRIP` - The vehicle can't be disabled while a trip is using it."
+                    },
+                    "204": {
+                        "description": "Removed. No body."
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "Shell",
+                        "label": "cURL",
+                        "source": "curl -X DELETE \"$BASE_URL/driver/my-vehicles/${MY_VEHICLE_ID}\" \\\n  -H \"Authorization: Bearer $DRIVER_TOKEN\""
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python",
+                        "source": "import requests\n\nBASE_URL = \"http://localhost:8000/api/v1\"\nDRIVER_TOKEN = \"...\"  # see the Authentication guide\n\nresponse = requests.delete(\n    f\"{BASE_URL}/driver/my-vehicles/{MY_VEHICLE_ID}\",\n    headers={\"Authorization\": f\"Bearer {DRIVER_TOKEN}\"},\n)\nprint(response.status_code, response.json())"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript",
+                        "source": "const BASE_URL = \"http://localhost:8000/api/v1\";\nconst DRIVER_TOKEN = \"...\"; // see the Authentication guide\n\nconst response = await fetch(`${BASE_URL}/driver/my-vehicles/${MY_VEHICLE_ID}`, {\n  method: \"DELETE\",\n  headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },\n});\nconsole.log(response.status, await response.json());"
+                    }
+                ]
+            }
+        },
+        "/driver/my-vehicles/{id}/photos": {
+            "post": {
+                "operationId": "addMyVehiclePhoto",
+                "description": "Adds one picture to a vehicle (max 6 - `PHOTO_LIMIT_REACHED` beyond that). If it is the vehicle's first, it becomes the main picture. Send as `multipart/form-data`. Returns the whole vehicle.\n\n**Who may call this:** **Driver** - a driver token only.",
+                "summary": "Add a picture",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The vehicle's id (UUID) - from `GET /driver/my-vehicles`.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "Driver vehicles"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DriverVehiclePhotoUploadRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "DriverToken": []
+                    }
+                ],
+                "responses": {
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "INVALIDUPLOAD": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "INVALID_UPLOAD",
+                                                "message": "Unsupported file type '.pdf' for purpose 'vehicle_photo'. Allowed: ['jpeg', 'jpg', 'png', 'webp']."
+                                            }
+                                        },
+                                        "summary": "INVALID_UPLOAD"
+                                    },
+                                    "INVALID": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "INVALID",
+                                                "message": "Request could not be processed.",
+                                                "details": {
+                                                    "field": [
+                                                        "This field is required."
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "summary": "INVALID"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "One of:\n- `INVALID_UPLOAD` - The file isn't an acceptable image/PDF (wrong type, too large, or corrupt).\n- `INVALID` - The request body, query string or form is missing a required field or has a value that isn't acceptable. `details` names every offending field."
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTAUTHENTICATED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_AUTHENTICATED",
+                                                "message": "Authentication credentials were not provided."
+                                            }
+                                        },
+                                        "summary": "NOT_AUTHENTICATED"
+                                    },
+                                    "TOKENNOTVALID": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "TOKEN_NOT_VALID",
+                                                "message": "Given token not valid for any token type"
+                                            }
+                                        },
+                                        "summary": "TOKEN_NOT_VALID"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "One of:\n- `NOT_AUTHENTICATED` - No `Authorization` header was sent.\n- `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment."
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "PERMISSIONDENIED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "PERMISSION_DENIED",
+                                                "message": "You do not have permission to perform this action."
+                                            }
+                                        },
+                                        "summary": "PERMISSION_DENIED"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`PERMISSION_DENIED` - You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse)."
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTFOUND": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "No Trip matches the given query."
+                                            }
+                                        },
+                                        "summary": "NOT_FOUND"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`NOT_FOUND` - No such resource - or it belongs to another company. The API never confirms that other companies' data exists."
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "PHOTOLIMITREACHED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "PHOTO_LIMIT_REACHED",
+                                                "message": "A vehicle can have up to 6 photos. Remove one to add another."
+                                            }
+                                        },
+                                        "summary": "PHOTO_LIMIT_REACHED"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`PHOTO_LIMIT_REACHED` - The vehicle already has the maximum number of pictures (6)."
+                    },
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DriverOwnVehicle"
+                                },
+                                "examples": {
+                                    "WithPhoto": {
+                                        "value": {
+                                            "id": "8f0c2b5e-3a1d-4e57-9c0a-6d1f2e7b9a44",
+                                            "vehicle_type": {
+                                                "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+                                                "name": "Bike",
+                                                "category": "two_wheeler",
+                                                "icon_image_url": null
+                                            },
+                                            "registration_number": "KA05MN7788",
+                                            "capacity_kg": "20.00",
+                                            "photo_url": "https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg",
+                                            "photos": [
+                                                {
+                                                    "id": "b1d7c0a2-52c4-4a58-8a0e-0b3c7f1e2d10",
+                                                    "url": "https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg"
+                                                },
+                                                {
+                                                    "id": "e4a9f3d8-7b21-4c96-b0d5-9a8e1c2f4b67",
+                                                    "url": "https://your-server.example.com/media/3b79.../vehicles/a93e....jpg"
+                                                }
+                                            ],
+                                            "status": "active",
+                                            "is_current": false,
+                                            "created_at": "2026-09-21T09:20:11.482910Z"
+                                        },
+                                        "summary": "The vehicle with the new picture"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Created."
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "Shell",
+                        "label": "cURL",
+                        "source": "curl -X POST \"$BASE_URL/driver/my-vehicles/${MY_VEHICLE_ID}/photos\" \\\n  -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -F 'photo=@/path/to/photo.jpg'"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python",
+                        "source": "import requests\n\nBASE_URL = \"http://localhost:8000/api/v1\"\nDRIVER_TOKEN = \"...\"  # see the Authentication guide\n\nresponse = requests.post(\n    f\"{BASE_URL}/driver/my-vehicles/{MY_VEHICLE_ID}/photos\",\n    headers={\"Authorization\": f\"Bearer {DRIVER_TOKEN}\"},\n    files={\"photo\": open(\"photo.jpg\", \"rb\")},\n)\nprint(response.status_code, response.json())"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript",
+                        "source": "const BASE_URL = \"http://localhost:8000/api/v1\";\nconst DRIVER_TOKEN = \"...\"; // see the Authentication guide\n\nconst form = new FormData();\nform.append(\"photo\", fileInput.files[0]);\n\nconst response = await fetch(`${BASE_URL}/driver/my-vehicles/${MY_VEHICLE_ID}/photos`, {\n  method: \"POST\",\n  headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },\n  body: form,\n});\nconsole.log(response.status, await response.json());"
+                    }
+                ]
+            }
+        },
+        "/driver/my-vehicles/{id}/photos/{photo_id}": {
+            "delete": {
+                "operationId": "removeMyVehiclePhoto",
+                "description": "Removes one picture. If it was the main one, the next picture becomes the main one (or `photo_url` becomes `null` when none is left). Returns the whole vehicle.\n\n**Who may call this:** **Driver** - a driver token only.",
+                "summary": "Remove a picture",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The vehicle's id (UUID) - from `GET /driver/my-vehicles`.",
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "photo_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The picture's id (UUID) - one of the vehicle's `photos[].id`.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "Driver vehicles"
+                ],
+                "security": [
+                    {
+                        "DriverToken": []
+                    }
+                ],
+                "responses": {
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTAUTHENTICATED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_AUTHENTICATED",
+                                                "message": "Authentication credentials were not provided."
+                                            }
+                                        },
+                                        "summary": "NOT_AUTHENTICATED"
+                                    },
+                                    "TOKENNOTVALID": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "TOKEN_NOT_VALID",
+                                                "message": "Given token not valid for any token type"
+                                            }
+                                        },
+                                        "summary": "TOKEN_NOT_VALID"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "One of:\n- `NOT_AUTHENTICATED` - No `Authorization` header was sent.\n- `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment."
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "PERMISSIONDENIED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "PERMISSION_DENIED",
+                                                "message": "You do not have permission to perform this action."
+                                            }
+                                        },
+                                        "summary": "PERMISSION_DENIED"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`PERMISSION_DENIED` - You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse)."
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTFOUND": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "No Trip matches the given query."
+                                            }
+                                        },
+                                        "summary": "NOT_FOUND"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`NOT_FOUND` - No such resource - or it belongs to another company. The API never confirms that other companies' data exists."
+                    },
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DriverOwnVehicle"
+                                },
+                                "examples": {
+                                    "WithoutPhoto": {
+                                        "value": {
+                                            "id": "8f0c2b5e-3a1d-4e57-9c0a-6d1f2e7b9a44",
+                                            "vehicle_type": {
+                                                "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+                                                "name": "Bike",
+                                                "category": "two_wheeler",
+                                                "icon_image_url": null
+                                            },
+                                            "registration_number": "KA05MN7788",
+                                            "capacity_kg": "20.00",
+                                            "photo_url": "https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg",
+                                            "photos": [
+                                                {
+                                                    "id": "b1d7c0a2-52c4-4a58-8a0e-0b3c7f1e2d10",
+                                                    "url": "https://your-server.example.com/media/3b79.../vehicles/6f1c....jpg"
+                                                },
+                                                {
+                                                    "id": "e4a9f3d8-7b21-4c96-b0d5-9a8e1c2f4b67",
+                                                    "url": "https://your-server.example.com/media/3b79.../vehicles/a93e....jpg"
+                                                }
+                                            ],
+                                            "status": "active",
+                                            "is_current": false,
+                                            "created_at": "2026-09-21T09:20:11.482910Z"
+                                        },
+                                        "summary": "The vehicle after the removal"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Success."
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "Shell",
+                        "label": "cURL",
+                        "source": "curl -X DELETE \"$BASE_URL/driver/my-vehicles/${MY_VEHICLE_ID}/photos/${PHOTO_ID}\" \\\n  -H \"Authorization: Bearer $DRIVER_TOKEN\""
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python",
+                        "source": "import requests\n\nBASE_URL = \"http://localhost:8000/api/v1\"\nDRIVER_TOKEN = \"...\"  # see the Authentication guide\n\nresponse = requests.delete(\n    f\"{BASE_URL}/driver/my-vehicles/{MY_VEHICLE_ID}/photos/{PHOTO_ID}\",\n    headers={\"Authorization\": f\"Bearer {DRIVER_TOKEN}\"},\n)\nprint(response.status_code, response.json())"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript",
+                        "source": "const BASE_URL = \"http://localhost:8000/api/v1\";\nconst DRIVER_TOKEN = \"...\"; // see the Authentication guide\n\nconst response = await fetch(`${BASE_URL}/driver/my-vehicles/${MY_VEHICLE_ID}/photos/${PHOTO_ID}`, {\n  method: \"DELETE\",\n  headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },\n});\nconsole.log(response.status, await response.json());"
+                    }
+                ]
+            }
+        },
         "/driver/stats": {
             "get": {
                 "operationId": "driverGetStats",
@@ -6781,6 +8038,120 @@
                 ]
             }
         },
+        "/driver/vehicle-types": {
+            "get": {
+                "operationId": "driverListVehicleTypes",
+                "description": "The company's **active** vehicle types (Bike, Tempo, ...), for the \"add a vehicle\" form. Send the chosen type's `id` as `vehicle_type_id` when registering a vehicle.\n\n**Who may call this:** **Driver** - a driver token only.",
+                "summary": "Vehicle types to choose from",
+                "tags": [
+                    "Driver vehicles"
+                ],
+                "security": [
+                    {
+                        "DriverToken": []
+                    }
+                ],
+                "responses": {
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "NOTAUTHENTICATED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "NOT_AUTHENTICATED",
+                                                "message": "Authentication credentials were not provided."
+                                            }
+                                        },
+                                        "summary": "NOT_AUTHENTICATED"
+                                    },
+                                    "TOKENNOTVALID": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "TOKEN_NOT_VALID",
+                                                "message": "Given token not valid for any token type"
+                                            }
+                                        },
+                                        "summary": "TOKEN_NOT_VALID"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "One of:\n- `NOT_AUTHENTICATED` - No `Authorization` header was sent.\n- `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment."
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "examples": {
+                                    "PERMISSIONDENIED": {
+                                        "value": {
+                                            "success": false,
+                                            "error": {
+                                                "code": "PERMISSION_DENIED",
+                                                "message": "You do not have permission to perform this action."
+                                            }
+                                        },
+                                        "summary": "PERMISSION_DENIED"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "`PERMISSION_DENIED` - You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse)."
+                    },
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DriverVehicleTypes"
+                                },
+                                "examples": {
+                                    "Types": {
+                                        "value": {
+                                            "vehicle_types": [
+                                                {
+                                                    "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+                                                    "name": "Bike",
+                                                    "category": "two_wheeler",
+                                                    "default_capacity_kg": "20.00",
+                                                    "icon_image_url": null
+                                                }
+                                            ]
+                                        },
+                                        "summary": "Two types the company runs"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Success."
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "Shell",
+                        "label": "cURL",
+                        "source": "curl -X GET \"$BASE_URL/driver/vehicle-types\" \\\n  -H \"Authorization: Bearer $DRIVER_TOKEN\""
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python",
+                        "source": "import requests\n\nBASE_URL = \"http://localhost:8000/api/v1\"\nDRIVER_TOKEN = \"...\"  # see the Authentication guide\n\nresponse = requests.get(\n    f\"{BASE_URL}/driver/vehicle-types\",\n    headers={\"Authorization\": f\"Bearer {DRIVER_TOKEN}\"},\n)\nprint(response.status_code, response.json())"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript",
+                        "source": "const BASE_URL = \"http://localhost:8000/api/v1\";\nconst DRIVER_TOKEN = \"...\"; // see the Authentication guide\n\nconst response = await fetch(`${BASE_URL}/driver/vehicle-types`, {\n  method: \"GET\",\n  headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },\n});\nconsole.log(response.status, await response.json());"
+                    }
+                ]
+            }
+        },
         "/driver/vehicles": {
             "get": {
                 "operationId": "driverListVehicles",
@@ -6863,6 +8234,7 @@
                                                     "capacity_kg": "20.00",
                                                     "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
                                                     "is_current": false,
+                                                    "is_own": false,
                                                     "photo_url": null,
                                                     "registration_number": "KA01AB1234",
                                                     "status": "active",
@@ -12720,6 +14092,7 @@
                                                     "created_at": "2026-09-21T09:34:07.475156Z",
                                                     "current_driver_id": null,
                                                     "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+                                                    "owner_driver_id": null,
                                                     "photo_url": null,
                                                     "registration_number": "KA01AB1234",
                                                     "status": "active",
@@ -12897,6 +14270,7 @@
                                             "created_at": "2026-09-21T09:34:07.475156Z",
                                             "current_driver_id": null,
                                             "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+                                            "owner_driver_id": null,
                                             "photo_url": null,
                                             "registration_number": "KA01AB1234",
                                             "status": "active",
@@ -13057,7 +14431,9 @@
                                                 }
                                             ],
                                             "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+                                            "owner_driver_id": null,
                                             "photo_url": null,
+                                            "photos": [],
                                             "registration_number": "KA01AB1234",
                                             "status": "active",
                                             "updated_at": "2026-09-21T09:34:51.835866Z",
@@ -13258,6 +14634,7 @@
                                             "created_at": "2026-09-21T09:34:07.475156Z",
                                             "current_driver_id": null,
                                             "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+                                            "owner_driver_id": null,
                                             "photo_url": null,
                                             "registration_number": "KA01AB1234",
                                             "status": "active",
@@ -13450,6 +14827,7 @@
                                             "created_at": "2026-09-21T09:34:07.475156Z",
                                             "current_driver_id": null,
                                             "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+                                            "owner_driver_id": null,
                                             "photo_url": null,
                                             "registration_number": "KA01AB1234",
                                             "status": "active",
@@ -13758,7 +15136,9 @@
                                                 }
                                             ],
                                             "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+                                            "owner_driver_id": null,
                                             "photo_url": null,
+                                            "photos": [],
                                             "registration_number": "KA01AB1234",
                                             "status": "active",
                                             "updated_at": "2026-09-21T09:34:51.835866Z",
@@ -14911,8 +16291,8 @@
                     "photo_url": {
                         "type": "string",
                         "format": "uri",
-                        "readOnly": true,
                         "nullable": true,
+                        "readOnly": true,
                         "description": "URL of the vehicle's photo, or `null`."
                     },
                     "status": {
@@ -14936,12 +16316,17 @@
                     "is_current": {
                         "type": "boolean",
                         "description": "This is the vehicle the driver is on duty with right now."
+                    },
+                    "is_own": {
+                        "type": "boolean",
+                        "description": "The driver registered this vehicle themselves (as opposed to the company's fleet)."
                     }
                 },
                 "required": [
                     "capacity_kg",
                     "id",
                     "is_current",
+                    "is_own",
                     "photo_url",
                     "registration_number",
                     "status",
@@ -15534,6 +16919,99 @@
                 "required": [
                     "otp",
                     "phone_number"
+                ]
+            },
+            "DriverOwnVehicle": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true,
+                        "description": "The vehicle's id (UUID)."
+                    },
+                    "vehicle_type": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/VehicleTypeSummary"
+                            }
+                        ],
+                        "readOnly": true,
+                        "description": "The kind of vehicle (name, category, icon)."
+                    },
+                    "registration_number": {
+                        "type": "string",
+                        "readOnly": true,
+                        "description": "The registration plate, upper-cased."
+                    },
+                    "capacity_kg": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,2})?$",
+                        "readOnly": true,
+                        "description": "Load capacity in kg (decimal string)."
+                    },
+                    "photo_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true,
+                        "readOnly": true,
+                        "description": "The main picture (the first one added), or `null` when there are none."
+                    },
+                    "photos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/VehiclePhoto"
+                        },
+                        "readOnly": true,
+                        "description": "Every picture, in the order they were added."
+                    },
+                    "status": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/VehicleStatusEnum"
+                            }
+                        ],
+                        "readOnly": true,
+                        "description": "`active`, `maintenance` or `disabled`. The company can disable a vehicle."
+                    },
+                    "is_current": {
+                        "type": "boolean",
+                        "readOnly": true,
+                        "description": "`true` for the vehicle the driver is on duty with (or last was)."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "description": "When the vehicle was registered (ISO 8601, UTC)."
+                    }
+                },
+                "required": [
+                    "capacity_kg",
+                    "created_at",
+                    "id",
+                    "is_current",
+                    "photo_url",
+                    "photos",
+                    "registration_number",
+                    "status",
+                    "vehicle_type"
+                ]
+            },
+            "DriverOwnVehicles": {
+                "type": "object",
+                "properties": {
+                    "vehicles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DriverOwnVehicle"
+                        },
+                        "description": "The driver's own vehicles, newest first. Never more than 10."
+                    }
+                },
+                "required": [
+                    "vehicles"
                 ]
             },
             "DriverPayoutSummary": {
@@ -16249,6 +17727,19 @@
                     "vehicle_type"
                 ]
             },
+            "DriverVehiclePhotoUploadRequest": {
+                "type": "object",
+                "properties": {
+                    "photo": {
+                        "type": "string",
+                        "format": "binary",
+                        "description": "One picture (`jpg`, `jpeg`, `png` or `webp`, up to 10 MB). Required."
+                    }
+                },
+                "required": [
+                    "photo"
+                ]
+            },
             "DriverVehicleSummary": {
                 "type": "object",
                 "properties": {
@@ -16273,8 +17764,8 @@
                     "photo_url": {
                         "type": "string",
                         "format": "uri",
-                        "readOnly": true,
                         "nullable": true,
+                        "readOnly": true,
                         "description": "URL of the vehicle's photo, or `null`."
                     },
                     "status": {
@@ -16303,6 +17794,103 @@
                     "registration_number",
                     "status",
                     "vehicle_type"
+                ]
+            },
+            "DriverVehicleType": {
+                "type": "object",
+                "description": "A kind of vehicle the company runs - what a driver picks when adding theirs.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true,
+                        "description": "The vehicle type's id (UUID) - send it as `vehicle_type_id` when adding a vehicle."
+                    },
+                    "name": {
+                        "type": "string",
+                        "readOnly": true,
+                        "description": "Display name, e.g. `Bike`."
+                    },
+                    "category": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/VehicleCategoryEnum"
+                            }
+                        ],
+                        "readOnly": true,
+                        "description": "`two_wheeler`, `three_wheeler` or `four_wheeler`. The driver's licence must cover it to go on duty with a vehicle of this type."
+                    },
+                    "default_capacity_kg": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,2})?$",
+                        "readOnly": true,
+                        "description": "The load capacity a vehicle of this type gets unless the driver enters another."
+                    },
+                    "icon_image_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true,
+                        "readOnly": true,
+                        "description": "URL of the type's icon, or `null`."
+                    }
+                },
+                "required": [
+                    "category",
+                    "default_capacity_kg",
+                    "icon_image_url",
+                    "id",
+                    "name"
+                ]
+            },
+            "DriverVehicleTypes": {
+                "type": "object",
+                "properties": {
+                    "vehicle_types": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DriverVehicleType"
+                        },
+                        "description": "The company's active vehicle types."
+                    }
+                },
+                "required": [
+                    "vehicle_types"
+                ]
+            },
+            "DriverVehicleWriteRequest": {
+                "type": "object",
+                "properties": {
+                    "vehicle_type_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "The kind of vehicle - an `id` from `GET /driver/vehicle-types`. Required."
+                    },
+                    "registration_number": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20,
+                        "description": "The registration plate. Required. Upper-cased for you; letters, digits and hyphens only (no spaces); unique in the company; up to 20 characters."
+                    },
+                    "capacity_kg": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,2})?$",
+                        "description": "Load capacity in kg (decimal, above 0). Optional - defaults to the vehicle type's `default_capacity_kg`."
+                    },
+                    "photos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "binary"
+                        },
+                        "maxItems": 6,
+                        "description": "Pictures of the vehicle: repeat the `photos` part once per file (up to 6; `jpg`, `jpeg`, `png` or `webp`, 10 MB each). Optional. The first becomes the main picture."
+                    }
+                },
+                "required": [
+                    "registration_number",
+                    "vehicle_type_id"
                 ]
             },
             "Error": {
@@ -16877,6 +18465,29 @@
                         "minLength": 1,
                         "maxLength": 20,
                         "description": "That person's number (up to 20 characters). **Required** when you create a driver."
+                    }
+                }
+            },
+            "PatchedDriverVehicleUpdateRequest": {
+                "type": "object",
+                "description": "PATCH: the same fields, all optional; pictures have their own endpoints.",
+                "properties": {
+                    "vehicle_type_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Change the vehicle's type - an `id` from `GET /driver/vehicle-types`."
+                    },
+                    "registration_number": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20,
+                        "description": "Correct the plate (same rules as when adding)."
+                    },
+                    "capacity_kg": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,2})?$",
+                        "description": "Change the load capacity in kg (decimal, above 0)."
                     }
                 }
             },
@@ -18280,6 +19891,13 @@
                         "nullable": true,
                         "description": "The driver last put on this vehicle by going on duty (a driver id), or `null`. Maintained by the system; read-only."
                     },
+                    "owner_driver_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true,
+                        "nullable": true,
+                        "description": "The driver who registered this vehicle themselves, or `null` for the company's own fleet. Only that driver can take it on duty. Read-only."
+                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
@@ -18297,6 +19915,7 @@
                     "created_at",
                     "current_driver_id",
                     "id",
+                    "owner_driver_id",
                     "registration_number",
                     "status",
                     "updated_at"
@@ -18341,18 +19960,10 @@
                         "description": "Load capacity in kg (decimal, above 0). Optional - defaults to the vehicle type's `default_capacity_kg`."
                     },
                     "photo_url": {
+                        "type": "string",
+                        "format": "uri",
                         "nullable": true,
-                        "oneOf": [
-                            {
-                                "type": "string",
-                                "format": "uri",
-                                "maxLength": 200
-                            },
-                            {
-                                "type": "string",
-                                "maxLength": 0
-                            }
-                        ],
+                        "readOnly": true,
                         "description": "URL of a photo of the vehicle (upload with `purpose: vehicle_photo`). Optional."
                     },
                     "status": {
@@ -18368,6 +19979,13 @@
                         "format": "uuid",
                         "nullable": true,
                         "description": "The driver last put on this vehicle by going on duty (a driver id), or `null`. Maintained by the system; read-only."
+                    },
+                    "owner_driver_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true,
+                        "nullable": true,
+                        "description": "The driver who registered this vehicle themselves, or `null` for the company's own fleet. Only that driver can take it on duty. Read-only."
                     },
                     "created_at": {
                         "type": "string",
@@ -18388,6 +20006,14 @@
                         },
                         "readOnly": true,
                         "description": "The vehicle's documents, newest first."
+                    },
+                    "photos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/VehiclePhoto"
+                        },
+                        "readOnly": true,
+                        "description": "Every picture of the vehicle (drivers can add several; the company fleet usually has none besides `photo_url`)."
                     }
                 },
                 "required": [
@@ -18395,6 +20021,9 @@
                     "created_at",
                     "documents",
                     "id",
+                    "owner_driver_id",
+                    "photo_url",
+                    "photos",
                     "registration_number",
                     "updated_at",
                     "vehicle_type"
@@ -18521,18 +20150,10 @@
                         "description": "Load capacity in kg (decimal, above 0). Optional - defaults to the vehicle type's `default_capacity_kg`."
                     },
                     "photo_url": {
+                        "type": "string",
+                        "format": "uri",
                         "nullable": true,
-                        "oneOf": [
-                            {
-                                "type": "string",
-                                "format": "uri",
-                                "maxLength": 200
-                            },
-                            {
-                                "type": "string",
-                                "maxLength": 0
-                            }
-                        ],
+                        "readOnly": true,
                         "description": "URL of a photo of the vehicle (upload with `purpose: vehicle_photo`). Optional."
                     },
                     "status": {
@@ -18548,6 +20169,13 @@
                         "format": "uuid",
                         "nullable": true,
                         "description": "The driver last put on this vehicle by going on duty (a driver id), or `null`. Maintained by the system; read-only."
+                    },
+                    "owner_driver_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true,
+                        "nullable": true,
+                        "description": "The driver who registered this vehicle themselves, or `null` for the company's own fleet. Only that driver can take it on duty. Read-only."
                     },
                     "created_at": {
                         "type": "string",
@@ -18566,9 +20194,33 @@
                     "capacity_kg",
                     "created_at",
                     "id",
+                    "owner_driver_id",
+                    "photo_url",
                     "registration_number",
                     "updated_at",
                     "vehicle_type"
+                ]
+            },
+            "VehiclePhoto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true,
+                        "description": "The picture's id (UUID) - use it to remove it."
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true,
+                        "readOnly": true,
+                        "description": "Absolute URL of the picture."
+                    }
+                },
+                "required": [
+                    "id",
+                    "url"
                 ]
             },
             "VehicleRequest": {
@@ -19272,17 +20924,17 @@
         },
         {
             "name": "Authentication",
-            "description": "## Overview\n\nEvery endpoint except sign-in itself needs a **bearer token**:\n\n```\nAuthorization: Bearer <token>\n```\n\nThere are **three kinds of token** - one for each kind of caller (a *principal*). Each token is tied to one company, and the server decides what you may do from the\nkind of token you present.\n\n| Principal | Who it is | How to get a token | Lifetime | Renew with |\n|---|---|---|---|---|\n| **API client** | A company's **backend** (server-to-server integration) | `POST /auth/client-token` with a client id + secret | 60 minutes | Request a new one - **no refresh token** |\n| **Admin** | A person using the company's **admin panel** | `POST /auth/login` with email + password | access 60 min, refresh 7 days | `POST /auth/refresh` |\n| **Driver** | A person using the **driver app** | `POST /driver/auth/otp/request`, then `.../otp/verify` (SMS code) | access 60 min, refresh 30 days | `POST /driver/auth/refresh` |\n\nIn this documentation the three bearer schemes are named **ApiClientToken**, **AdminToken** and **DriverToken**. In Swagger UI, click **Authorize** and paste the token into the matching box\n(they are all \"Bearer\" tokens - only the source differs).\n\n## Who can call what\n\n| Area | API client | Admin | Driver |\n|---|:-:|:-:|:-:|\n| Trips - estimate, book, list, read, assign, cancel | yes | yes | no |\n| Vehicle types, vehicles, vehicle documents | yes | yes | no |\n| Uploads (`POST /uploads`) | yes | yes | no |\n| **Drivers** - roster, KYC review, **driver wallets** | **no** | yes | no |\n| **Driver app** endpoints (`/driver/...`) | no | no | yes |\n\nCalling an endpoint with the wrong kind of token returns **`403 PERMISSION_DENIED`** (not 401): you are signed in, just not as the right principal. Every operation in this reference\nstates **\"Who may call this\"**.\n\n## For a server-to-server integration (API client)\n\n```bash\ncurl -X POST \"$BASE_URL/auth/client-token\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"client_id\": \"0b1c3a52-6f0e-4d3e-9a55-1f2b7c9d4e10\", \"client_secret\": \"sk_live_...\"}'\n```\n\n```json\n{ \"access\": \"eyJhbGciOiJIUzI1NiIs...\", \"expires_in\": 3600 }\n```\n\n- Keep the **client secret on your server**. Never put it in a web page or mobile app. It is shown once when the client is created; if it is lost, have a new client created.\n- Cache the token and reuse it until it is about to expire (`expires_in` seconds). When any call returns **`401 TOKEN_NOT_VALID`**, fetch a new token and retry once.\n- API clients are created by the platform operator for your company; ask them for your client id and secret.\n\n## For the admin panel\n\n`POST /auth/login` with `email` and `password` returns an `access` and a `refresh` token. Use `access` on every call; before it expires (or when you get `401 TOKEN_NOT_VALID`) trade the\n`refresh` token at `POST /auth/refresh` for a new `access` token. When the refresh token itself expires, the person signs in again.\n\n## For the driver app\n\nDrivers have no passwords. They sign in with their **phone number and an SMS code**:\n\n1. `POST /driver/auth/otp/request` with the phone number - the driver gets a 6-digit code (valid 5 minutes).\n2. `POST /driver/auth/otp/verify` with the phone and the code - you get an `accessToken`, a `refreshToken` and the driver's profile.\n3. Send `Authorization: Bearer <accessToken>` on every driver call.\n4. Before the access token expires, `POST /driver/auth/refresh` returns a **new pair** - store both tokens again. A driver stays signed in for up to 30 days without another SMS.\n5. `POST /driver/auth/logout` revokes the refresh token.\n\nThe full flow is in *Driver app walkthrough*.\n\n## Things that trip people up\n\n- **Sign-in endpoints ignore any `Authorization` header**, so a stale token left in your HTTP client's default headers can't stop you getting a new one.\n- **`401` vs `403`.** `401` means *we don't accept your token* (missing, expired, malformed - `NOT_AUTHENTICATED` or `TOKEN_NOT_VALID`): get a new token. `403` means *your token is fine but is the\n  wrong kind, or the action isn't yours* (`PERMISSION_DENIED`, `NOT_YOUR_TRIP`): a new token won't help.\n- **An account that gets disabled stops working immediately**, even with an unexpired token: the token is re-checked against the account on every request.\n- **Tokens are not interchangeable across environments.** A token from staging is `TOKEN_NOT_VALID` in production.",
+            "description": "## Overview\n\nEvery endpoint except sign-in itself needs a **bearer token**:\n\n```\nAuthorization: Bearer <token>\n```\n\nThere are **three kinds of token** - one for each kind of caller (a *principal*). Each token is tied to one company, and the server decides what you may do from the\nkind of token you present.\n\n| Principal | Who it is | How to get a token | Lifetime | Renew with |\n|---|---|---|---|---|\n| **API client** | A company's **backend** (server-to-server integration) | `POST /auth/client-token` with a client id + secret | 60 minutes | Request a new one - **no refresh token** |\n| **Admin** | A person using the company's **admin panel** | `POST /auth/login` with email + password | access 60 min, refresh 7 days | `POST /auth/refresh` |\n| **Driver** | A person using the **driver app** | `POST /driver/auth/otp/request`, then `.../otp/verify` (SMS code) | access 60 min, refresh 30 days | `POST /driver/auth/refresh` |\n\nIn this documentation the three bearer schemes are named **ApiClientToken**, **AdminToken** and **DriverToken**. In Swagger UI, click **Authorize** and paste the token into the matching box\n(they are all \"Bearer\" tokens - only the source differs).\n\n## Who can call what\n\n| Area | API client | Admin | Driver |\n|---|:-:|:-:|:-:|\n| Trips - estimate, book, list, read, assign, cancel | yes | yes | no |\n| Vehicle types, vehicles, vehicle documents | yes | yes | no |\n| Uploads (`POST /uploads`) | yes | yes | no |\n| **Drivers** - roster, KYC review, **driver wallets** | **no** | yes | no |\n| **Own vehicles** (`/driver/my-vehicles`) and **vehicle types for drivers** | no | no | yes |\n| **Driver app** endpoints (`/driver/...`) | no | no | yes |\n\nCalling an endpoint with the wrong kind of token returns **`403 PERMISSION_DENIED`** (not 401): you are signed in, just not as the right principal. Every operation in this reference\nstates **\"Who may call this\"**.\n\n## For a server-to-server integration (API client)\n\n```bash\ncurl -X POST \"$BASE_URL/auth/client-token\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"client_id\": \"0b1c3a52-6f0e-4d3e-9a55-1f2b7c9d4e10\", \"client_secret\": \"sk_live_...\"}'\n```\n\n```json\n{ \"access\": \"eyJhbGciOiJIUzI1NiIs...\", \"expires_in\": 3600 }\n```\n\n- Keep the **client secret on your server**. Never put it in a web page or mobile app. It is shown once when the client is created; if it is lost, have a new client created.\n- Cache the token and reuse it until it is about to expire (`expires_in` seconds). When any call returns **`401 TOKEN_NOT_VALID`**, fetch a new token and retry once.\n- API clients are created by the platform operator for your company; ask them for your client id and secret.\n\n## For the admin panel\n\n`POST /auth/login` with `email` and `password` returns an `access` and a `refresh` token. Use `access` on every call; before it expires (or when you get `401 TOKEN_NOT_VALID`) trade the\n`refresh` token at `POST /auth/refresh` for a new `access` token. When the refresh token itself expires, the person signs in again.\n\n## For the driver app\n\nDrivers have no passwords. They sign in with their **phone number and an SMS code**:\n\n1. `POST /driver/auth/otp/request` with the phone number - the driver gets a 6-digit code (valid 5 minutes).\n2. `POST /driver/auth/otp/verify` with the phone and the code - you get an `accessToken`, a `refreshToken` and the driver's profile.\n3. Send `Authorization: Bearer <accessToken>` on every driver call.\n4. Before the access token expires, `POST /driver/auth/refresh` returns a **new pair** - store both tokens again. A driver stays signed in for up to 30 days without another SMS.\n5. `POST /driver/auth/logout` revokes the refresh token.\n\nThe full flow is in *Driver app walkthrough*.\n\n## Things that trip people up\n\n- **Sign-in endpoints ignore any `Authorization` header**, so a stale token left in your HTTP client's default headers can't stop you getting a new one.\n- **`401` vs `403`.** `401` means *we don't accept your token* (missing, expired, malformed - `NOT_AUTHENTICATED` or `TOKEN_NOT_VALID`): get a new token. `403` means *your token is fine but is the\n  wrong kind, or the action isn't yours* (`PERMISSION_DENIED`, `NOT_YOUR_TRIP`): a new token won't help.\n- **An account that gets disabled stops working immediately**, even with an unexpired token: the token is re-checked against the account on every request.\n- **Tokens are not interchangeable across environments.** A token from staging is `TOKEN_NOT_VALID` in production.",
             "x-traitTag": true
         },
         {
             "name": "Conventions",
-            "description": "## Requests and responses\n\n- **JSON everywhere.** Send `Content-Type: application/json` and read JSON back. The exceptions are the **file-upload** endpoints (`POST /uploads`, the driver's document/photo uploads and item verification), which take\n  `multipart/form-data`.\n- **HTTPS only in production.** Tokens travel in a header; never send them over plain HTTP.\n- **Field names are `snake_case`.** (One exception: the driver sign-in responses use `camelCase` - `accessToken`, `refreshToken` - because the driver app was built against that shape.)\n- **Unknown fields in a request are ignored**, not rejected. Fields marked *required* must be present; everything else may be omitted.\n\n## Status codes\n\n| Code | Meaning |\n|---|---|\n| `200` | OK - the body is the result. |\n| `201` | Created - the body is the new resource. |\n| `204` | Done - there is no body (deletes). |\n| `400` | The request was malformed or a field is invalid (`INVALID`, `PARSE_ERROR`, or a specific code). Nothing was changed. |\n| `401` | No or unacceptable token. |\n| `403` | Signed in, but not allowed. |\n| `404` | Not found - or belongs to another company. |\n| `409` | The request is well-formed but conflicts with the current state (wrong trip status, already paid, ...). |\n| `422` | The request is understood but can't be priced/processed (e.g. `FARE_NOT_CONFIGURED`). |\n| `429` | Too soon - wait and retry (delivery OTP resend). |\n| `502` / `503` | An upstream service (routing engine, payment provider) is failing. Retry shortly. |\n\nErrors always use the same envelope - see *Errors*.\n\n## Identifiers\n\nEvery resource has a **UUID** id (`\"5920b157-27b4-43c2-a3a9-8d9fd7f0e3db\"`). Treat it as an opaque string. Your own order number goes in a trip's `reference_id`.\n\n## Dates and times\n\n- **Timestamps** are ISO 8601 in **UTC** with a trailing `Z` and microsecond precision: `\"2026-09-21T09:41:05.554924Z\"`. Parse them as instants; convert to local time for display.\n- **Dates** (a licence expiry, a date of birth) are `YYYY-MM-DD`.\n- Where a request needs the caller's local day boundary (the driver's \"today\"), it takes `utc_offset_minutes` - minutes **east** of UTC (India: `330`).\n\n## Money\n\n- The currency is **INR** (`\"currency\": \"INR\"`) everywhere.\n- On **records** (a trip's fares, a wallet entry) amounts are **decimal strings** with two places: `\"85.00\"`. Parse them as decimals, not floats.\n- In **calculated answers** (`POST /trips/estimate`, the payment QR's `amount`, a payout's balance summary) amounts are JSON **numbers**: `85.0`. Each field's page says which.\n- Razorpay itself works in **paise** (1/100 rupee); the API converts for you. You only meet paise in the raw Razorpay webhook body.\n\n## Coordinates\n\n`lat` is -90 to 90 and `lng` is -180 to 180, in decimal degrees, with **up to 6 decimal places**. In JSON you may send them as numbers or as strings; they come back as strings\n(`\"12.975000\"`). Route polylines are encoded at **6 decimal places** (`polyline_precision: 6`), not the 5 used by Google - pass that precision to your decoder or the route will be drawn in the wrong place.\n\n## Phone numbers\n\nInternational format with the country code: `+919876543210`. The API accepts 10-15 digits with an optional leading `+`, and stores what you send - so send the same form every time\n(a driver signs in with the exact number the company registered).\n\n## Pagination\n\nLists are paginated, **20 per page** by default, newest first.\n\n| Query parameter | Meaning |\n|---|---|\n| `page` | Page number, starting at 1. |\n| `page_size` | Items per page: default 20, **maximum 100**. |\n\n```json\n{\n  \"count\": 137,\n  \"next\": \"https://your-server/api/v1/trips?page=2\",\n  \"previous\": null,\n  \"results\": [ ... ]\n}\n```\n\n`count` is the total across all pages. Follow `next` until it is `null`.\n\n## Filtering\n\nWhere an endpoint supports filters they are plain query parameters listed on its page (`GET /trips?status=assigned&driver=<id>`). Several filters combine with AND.\nComma-separated values (`status=completed,cancelled`) are supported only where the endpoint says so.\n\n## Files and media URLs\n\n- Upload a file with `POST /uploads` (multipart) and pass the **URL it returns** to whatever field wants a file (`invoice_url`, `photo_url`, `file_url`, ...).\n- URLs the API returns for stored files are **absolute** (`https://...`) so they open in a browser or the driver's phone as they are. Don't build file URLs yourself.\n- Only `http(s)` links are accepted in URL fields.\n- Uploads are checked by content, not just the file name, and limited to 10 MB.\n\n## Multi-tenancy\n\nEvery token belongs to exactly one company. You can only read and change that company's data, and never need to send a company id. A resource of another company is indistinguishable from one that\ndoesn't exist: `404 NOT_FOUND`.\n\n## Rate limits and retries\n\nThe API applies no global rate limit, but a few calls are deliberately throttled (the delivery OTP can be re-sent once per 30 seconds per trip). Be considerate: poll a trip every 5-15 seconds, not in a tight loop.\nA request that fails with `502`/`503` should have had no lasting effect - it is safe to retry it. A request that **times out** may or may not have been processed: for creations (booking), look before you retry.",
+            "description": "## Requests and responses\n\n- **JSON everywhere.** Send `Content-Type: application/json` and read JSON back. The exceptions are the **file-upload** endpoints (`POST /uploads`, the driver's document/photo uploads and item verification), which take\n  `multipart/form-data`.\n- **HTTPS only in production.** Tokens travel in a header; never send them over plain HTTP.\n- **Field names are `snake_case`.** (One exception: the driver sign-in responses use `camelCase` - `accessToken`, `refreshToken` - because the driver app was built against that shape.)\n- **Unknown fields in a request are ignored**, not rejected. Fields marked *required* must be present; everything else may be omitted.\n\n## Status codes\n\n| Code | Meaning |\n|---|---|\n| `200` | OK - the body is the result. |\n| `201` | Created - the body is the new resource. |\n| `204` | Done - there is no body (deletes). |\n| `400` | The request was malformed or a field is invalid (`INVALID`, `PARSE_ERROR`, or a specific code). Nothing was changed. |\n| `401` | No or unacceptable token. |\n| `403` | Signed in, but not allowed. |\n| `404` | Not found - or belongs to another company. |\n| `409` | The request is well-formed but conflicts with the current state (wrong trip status, already paid, ...). |\n| `422` | The request is understood but can't be priced/processed (e.g. `FARE_NOT_CONFIGURED`). |\n| `429` | Too soon - wait and retry (delivery OTP resend). |\n| `502` / `503` | An upstream service (routing engine, payment provider) is failing. Retry shortly. |\n\nErrors always use the same envelope - see *Errors*.\n\n## Identifiers\n\nEvery resource has a **UUID** id (`\"5920b157-27b4-43c2-a3a9-8d9fd7f0e3db\"`). Treat it as an opaque string. Your own order number goes in a trip's `reference_id`.\n\n## Dates and times\n\n- **Timestamps** are ISO 8601 in **UTC** with a trailing `Z` and microsecond precision: `\"2026-09-21T09:41:05.554924Z\"`. Parse them as instants; convert to local time for display.\n- **Dates** (a licence expiry, a date of birth) are `YYYY-MM-DD`.\n- Where a request needs the caller's local day boundary (the driver's \"today\"), it takes `utc_offset_minutes` - minutes **east** of UTC (India: `330`).\n\n## Money\n\n- The currency is **INR** (`\"currency\": \"INR\"`) everywhere.\n- On **records** (a trip's fares, a wallet entry) amounts are **decimal strings** with two places: `\"85.00\"`. Parse them as decimals, not floats.\n- In **calculated answers** (`POST /trips/estimate`, the payment QR's `amount`, a payout's balance summary) amounts are JSON **numbers**: `85.0`. Each field's page says which.\n- Razorpay itself works in **paise** (1/100 rupee); the API converts for you. You only meet paise in the raw Razorpay webhook body.\n\n## Coordinates\n\n`lat` is -90 to 90 and `lng` is -180 to 180, in decimal degrees, with **up to 6 decimal places**. In JSON you may send them as numbers or as strings; they come back as strings\n(`\"12.975000\"`). Route polylines are encoded at **6 decimal places** (`polyline_precision: 6`), not the 5 used by Google - pass that precision to your decoder or the route will be drawn in the wrong place.\n\n## Phone numbers\n\nInternational format with the country code: `+919876543210`. The API accepts 10-15 digits with an optional leading `+`, and stores what you send - so send the same form every time\n(a driver signs in with the exact number the company registered).\n\n## Pagination\n\nLists are paginated, **20 per page** by default, newest first.\n\n| Query parameter | Meaning |\n|---|---|\n| `page` | Page number, starting at 1. |\n| `page_size` | Items per page: default 20, **maximum 100**. |\n\n```json\n{\n  \"count\": 137,\n  \"next\": \"https://your-server/api/v1/trips?page=2\",\n  \"previous\": null,\n  \"results\": [ ... ]\n}\n```\n\n`count` is the total across all pages. Follow `next` until it is `null`.\n\n## Filtering\n\nWhere an endpoint supports filters they are plain query parameters listed on its page (`GET /trips?status=assigned&driver=<id>`). Several filters combine with AND.\nComma-separated values (`status=completed,cancelled`) are supported only where the endpoint says so.\n\n## Files and media URLs\n\n- Upload a file with `POST /uploads` (multipart) and pass the **URL it returns** to whatever field wants a file (`invoice_url`, `photo_url`, `file_url`, ...).\n- URLs the API returns for stored files are **absolute** (`https://...`) so they open in a browser or the driver's phone as they are. Don't build file URLs yourself.\n- Only `http(s)` links are accepted in URL fields.\n- Uploads are checked by content, not just the file name, and limited to 10 MB.\n\n## Calling from a browser (CORS)\n\nServer-to-server calls and the native mobile apps are not affected. A **web app running in a browser** on a different origin (a Flutter web build on `https://app.example.com`, say) can only call\nthe API if that origin is on the server's allow-list: whoever runs the server sets **`CORS_ALLOWED_ORIGINS`** to the exact origins - scheme + host (+ port), no path, no `*` - for example\n`CORS_ALLOWED_ORIGINS=https://app.example.com,https://admin.example.com`. For those origins the server answers the browser's preflight (`OPTIONS`) and adds `Access-Control-Allow-Origin` to every reply,\nerrors included, so the page can read them.\n\nTokens travel in the `Authorization` header, never in cookies, so credentials are not allowed cross-origin. If the browser console says *\"blocked by CORS policy ... No 'Access-Control-Allow-Origin'\nheader\"*, the origin isn't on the list (or the server wasn't restarted after adding it). And never put an API client secret in a browser app.\n\n## Multi-tenancy\n\nEvery token belongs to exactly one company. You can only read and change that company's data, and never need to send a company id. A resource of another company is indistinguishable from one that\ndoesn't exist: `404 NOT_FOUND`.\n\n## Rate limits and retries\n\nThe API applies no global rate limit, but a few calls are deliberately throttled (the delivery OTP can be re-sent once per 30 seconds per trip). Be considerate: poll a trip every 5-15 seconds, not in a tight loop.\nA request that fails with `502`/`503` should have had no lasting effect - it is safe to retry it. A request that **times out** may or may not have been processed: for creations (booking), look before you retry.",
             "x-traitTag": true
         },
         {
             "name": "Errors",
-            "description": "## The error envelope\n\nEvery error - from a validation failure to a business rule - has the same shape:\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"TRIP_NOT_CANCELLABLE\",\n    \"message\": \"A trip in status 'in_progress' cannot be cancelled.\"\n  }\n}\n```\n\n| Field | Meaning |\n|---|---|\n| `success` | Always `false` for an error. (Successful responses don't have this wrapper: the body **is** the resource.) |\n| `error.code` | A **stable, machine-readable** code. **Branch on this.** |\n| `error.message` | A sentence for people. Safe to show a user, but it may be reworded - **never match on it.** |\n| `error.details` | Only for `INVALID`: an object naming every bad field, `{\"field\": [\"problem\", ...]}`. |\n\n## Validation errors: `INVALID`\n\nWhen a request has bad or missing fields you get **HTTP 400** with code `INVALID` and a `details` object listing **every** problem at once, so you can fix them in one go. Nothing is changed.\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"INVALID\",\n    \"message\": \"Request could not be processed.\",\n    \"details\": {\n      \"pickup\": [\"This field is required.\"],\n      \"drop\": {\"contact_phone\": [\"Required for a COD trip - the finalizing OTP is sent to this number.\"]}\n    }\n  }\n}\n```\n\nNested objects appear under their own field name; list items are keyed by position.\n\n## Handling errors well\n\n1. **Look at the HTTP status first** - it tells you the *class* of problem (fix the request, get a new token, retry later).\n2. **Then `error.code`** - it tells you exactly which rule. Show the `message` to people, but decide behaviour from the `code`.\n3. **`5xx` and `429` are retryable** with a pause. `4xx` are not - repeating the same request gives the same error. The exception is `401 TOKEN_NOT_VALID`: get a new token, then retry once.\n4. **`409` means \"the world is not in the state this call needs\"** - fetch the resource and look at its current status before deciding what to do.\n\n## Every error code\n\nThe table below is generated from the same catalogue the endpoint pages use, so it is always complete. Each endpoint page lists the codes that **it** can return.\n\n### General\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `INVALID` | 400 | The request body, query string or form is missing a required field or has a value that isn't acceptable. `details` names every offending field. | Read `error.details` (`{field: [problems]}`), fix each field and resend. Nothing was changed. |\n| `PARSE_ERROR` | 400 | The body could not be parsed - usually malformed JSON, or a `Content-Type` that doesn't match the body. | Send valid JSON with `Content-Type: application/json` (or `multipart/form-data` on the upload endpoints). |\n| `UNSUPPORTED_MEDIA_TYPE` | 415 | The endpoint doesn't accept the `Content-Type` you sent (e.g. JSON sent to a file-upload endpoint). | Use the content type shown on the endpoint's request body (`multipart/form-data` for uploads). |\n| `NOT_FOUND` | 404 | No such resource - or it belongs to another company. The API never confirms that other companies' data exists. | Check the id. If it came from this API it may have been deleted, or the token belongs to a different company. |\n| `METHOD_NOT_ALLOWED` | 405 | The path exists but not for that HTTP method. | Use the method shown in this documentation. |\n\n### Authentication & access\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `NOT_AUTHENTICATED` | 401 | No `Authorization` header was sent. | Send `Authorization: Bearer <access token>`. See the Authentication guide. |\n| `TOKEN_NOT_VALID` | 401 | The bearer token is expired, malformed, or was signed by another environment. | Get a new token (API clients: `POST /auth/client-token`; admins and drivers: use the refresh endpoint). |\n| `AUTHENTICATION_FAILED` | 401 | Wrong credentials (client id/secret, email/password), or the account behind a valid token is inactive. | Check the credentials. For an API client, confirm it is still active in the admin panel. |\n| `PERMISSION_DENIED` | 403 | You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse). | Use the right principal for the endpoint - each operation lists who may call it. |\n| `NOT_YOUR_TRIP` | 403 | A driver called a trip endpoint for a trip that isn't assigned to them. | Only act on trips returned by `GET /driver/trips/active` or `GET /driver/trips`. |\n| `INVALID_REFRESH_TOKEN` | 401 | The driver's refresh token has expired or was already used up. | Send the driver through the OTP login again. |\n| `INVALID_OTP` | 400 | The login OTP is wrong or has expired (OTPs last 5 minutes). | Ask for a new OTP with `POST /driver/auth/otp/request`. |\n| `DRIVER_NOT_FOUND` | 404 | Sign-up is closed on this server and no driver is registered with this phone number. (When sign-up is open, an unknown number simply becomes a new driver.) | Ask the company to register the driver (`POST /drivers`), or check the number (`+919000000001`). |\n| `DRIVER_PHONE_AMBIGUOUS` | 409 | The same phone number belongs to drivers in more than one company, so the login can't tell which one to use. | Contact support - phone numbers must be unique across companies. |\n| `ACCOUNT_DISABLED` | 403 | The company has disabled this driver. | Nothing to retry - the company has to re-enable the driver. |\n| `ACCOUNT_LOCKED` | 403 | The driver's account is locked because their driving licence has expired. | The driver has to submit a valid licence, then the company re-verifies it. |\n\n### Trips\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `VEHICLE_TYPE_NOT_FOUND` | 404 | `vehicle_type_id` doesn't match an active vehicle type of your company. | List your vehicle types with `GET /vehicle-types` and use one of those ids. |\n| `FARE_NOT_CONFIGURED` | 422 | The vehicle type has no fare card, so a price can't be calculated. | Configure the fare fields on the vehicle type (`base_fare`, `per_km_rate`, ...). |\n| `ROUTING_UNAVAILABLE` | 503 | The routing engine couldn't route between the pickup and the drop (out of coverage, or the engine is down). | Check the coordinates are inside the served area; otherwise retry shortly. |\n| `TRIP_NOT_RETRYABLE` | 409 | You tried to (re)assign a trip that isn't in `no_driver_available`. | Only trips with status `no_driver_available` can be assigned again. |\n| `TRIP_NOT_CANCELLABLE` | 409 | The trip is past the point where it can be cancelled (in progress, completed, or already cancelled). | Trips can be cancelled up to `arrived_at_pickup`. Fetch the trip to see its current status. |\n| `INVALID_TRIP_STATUS_TRANSITION` | 409 | The driver action isn't valid for the trip's current status (e.g. `start` before `arrive`). | Fetch the trip and follow the lifecycle: arrive -> start -> (pay) -> complete. |\n| `TRIP_NOT_ACTIVE` | 409 | Navigation was requested for a trip that has nothing left to navigate to (completed or cancelled). | Stop asking for navigation once the trip is finished. |\n| `DRIVER_HAS_ACTIVE_TRIP` | 409 | The driver can't do this (go off duty, change vehicle, delete the account, be disabled) while a trip is active. | Complete or cancel the active trip first. |\n| `INVALID_DELIVERY_OTP` | 400 | The delivery OTP the driver entered is wrong or has expired (valid for 5 minutes). | Re-enter it, or resend it with `POST /driver/trips/{id}/delivery-otp/resend`. |\n| `OTP_ALREADY_REQUESTED` | 429 | A delivery OTP was sent for this trip less than 30 seconds ago. | Wait for the cool-down (30 s) and try again. |\n\n### Payments\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `NOT_COD_TRIP` | 409 | A payment step was used on a prepaid trip. Prepaid trips take no payment at the drop. | Skip payment for `payment_mode = prepaid` and complete the trip directly. |\n| `TRIP_NOT_IN_PROGRESS` | 409 | The payment code is only available once the delivery has started (`in_progress`). | Call `start` first. |\n| `ALREADY_PAID` | 409 | The trip's fare has already been paid (the customer scanned an earlier code, or it was collected already). | Nothing to collect - go on to the delivery OTP and `complete`. |\n| `PAYMENT_NOT_RECEIVED` | 409 | The driver asked the server to confirm the payment, and the payment provider has no payment for this trip's code yet (or it was for less than the fare). | Not a fault: ask the customer to scan and pay, then check again in a moment. |\n| `PAYMENT_NOT_COLLECTED` | 409 | `complete` was called on a COD trip before its payment was confirmed. | Show the payment code and wait for the payment before completing. |\n| `PAYMENT_PROVIDER_ERROR` | 502 | The payment provider (Razorpay) refused a request or sent an answer that couldn't be read. The message says why. | Retry once; if it persists, contact the platform operator with the message. |\n| `PAYMENT_PROVIDER_UNAVAILABLE` | 503 | The payment provider couldn't be reached or is failing. | Retry in a moment. Nothing was charged and the trip is unchanged. |\n| `PAYMENT_PROVIDER_NOT_CONFIGURED` | 503 | This server has no (valid) payment-provider keys - or the keys are valid but Razorpay's QR Codes product isn't activated on the account (Razorpay answers \"The requested URL was not found\" for that). | Operator action: set the Razorpay keys, and if they are set, ask Razorpay support to activate QR Codes on the account (see the Payments guide). |\n\n### Items & invoices\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `ITEMS_NOT_VERIFIED` | 409 | The order asked for its items to be verified (`verify_items: true`) and some are still unanswered. Payment and completion are blocked until every item is marked delivered / not delivered. | Have the driver answer each item (`POST /driver/trips/{id}/items/{item_id}/verify`), then retry. |\n| `ITEM_NOT_FOUND` | 404 | `item_id` isn't an item of this trip. | Use the ids in the trip's `items` array. |\n| `VERIFICATION_NOT_REQUESTED` | 409 | The driver tried to verify items on an order created without `verify_items`. | Only orders created with `verify_items: true` have a verification step. |\n\n### Driver duty & vehicles\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `DRIVER_NOT_ELIGIBLE` | 403 | The driver can't go on duty: KYC isn't fully verified or the account isn't active. | Finish onboarding and wait for the company's approval (see `onboarding_status` on `GET /driver/me`). |\n| `VEHICLE_CATEGORY_NOT_ALLOWED` | 403 | The driver's verified licence doesn't cover this vehicle's category. | Choose a vehicle from `GET /driver/vehicles` (it lists only what the driver may take). |\n| `VEHICLE_IN_USE` | 409 | Another driver is on duty with this vehicle. | Pick another vehicle. |\n| `VEHICLE_NOT_ACTIVE` | 409 | The vehicle has been disabled by the company. | Pick another vehicle. |\n\n### Driver onboarding\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `PROFILE_LOCKED` | 409 | Name and date of birth can't change once the driver's ID has been verified. | Ask the company's support to correct it. |\n| `KYC_ALREADY_VERIFIED` | 409 | The driver tried to re-submit a document the company already verified. | Nothing to do; contact support if it must change. |\n\n### Uploads & webhooks\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `INVALID_UPLOAD` | 400 | The file isn't an acceptable image/PDF (wrong type, too large, or corrupt). | Send a JPEG/PNG/WebP (or a PDF where documents allow it) within the size limit. |\n| `INVALID_SIGNATURE` | 400 | The webhook's `X-Razorpay-Signature` doesn't match the body - it wasn't sent by Razorpay (or the secret is wrong). | Only Razorpay should call this endpoint. Check `RAZORPAY_WEBHOOK_SECRET` matches the secret in the Razorpay dashboard. |\n| `INVALID_PAYLOAD` | 400 | The webhook body isn't a JSON object. | Razorpay always sends JSON; this only happens with hand-made requests. |\n| `WEBHOOK_NOT_CONFIGURED` | 503 | The server has no webhook secret, so it can't tell real Razorpay calls from fake ones and refuses all of them. | Operator action: set `RAZORPAY_WEBHOOK_SECRET`. |\n\n### Wallet & payouts\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `INVALID_AMOUNT` | 400 | A wallet entry's amount is zero, or isn't positive for a payout, bonus or penalty (the server applies the sign for those kinds). | Send a positive amount for `payout`, `bonus` and `penalty`. Only `adjustment` may be negative, and none may be zero. |\n| `INVALID_KIND` | 400 | A trip-earning entry was posted by hand. Earnings are credited automatically when a trip completes. (The request schema doesn't allow `trip_earning`, so an ordinary client gets `INVALID` first.) | Post only `payout`, `bonus`, `penalty` or `adjustment`. |\n| `INSUFFICIENT_BALANCE` | 409 | The payout is more than what the company currently owes the driver. | Read `GET /drivers/{id}/wallet` and pay out at most the `balance`. |\n| `WALLET_BALANCE_PENDING` | 409 | The driver tried to delete their account while the company still owes them money. | The company pays the balance out first, then the driver can delete the account. |\n\n### Fleet\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `VEHICLE_HAS_ACTIVE_TRIP` | 409 | The vehicle can't be disabled while a trip is using it. | Wait until the trip is finished, then disable it. |\n| `VEHICLE_TYPE_IN_USE` | 409 | The vehicle type can't be deleted while vehicles still use it. | Re-assign or remove those vehicles first (or mark the type inactive instead of deleting). |",
+            "description": "## The error envelope\n\nEvery error - from a validation failure to a business rule - has the same shape:\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"TRIP_NOT_CANCELLABLE\",\n    \"message\": \"A trip in status 'in_progress' cannot be cancelled.\"\n  }\n}\n```\n\n| Field | Meaning |\n|---|---|\n| `success` | Always `false` for an error. (Successful responses don't have this wrapper: the body **is** the resource.) |\n| `error.code` | A **stable, machine-readable** code. **Branch on this.** |\n| `error.message` | A sentence for people. Safe to show a user, but it may be reworded - **never match on it.** |\n| `error.details` | Only for `INVALID`: an object naming every bad field, `{\"field\": [\"problem\", ...]}`. |\n\n## Validation errors: `INVALID`\n\nWhen a request has bad or missing fields you get **HTTP 400** with code `INVALID` and a `details` object listing **every** problem at once, so you can fix them in one go. Nothing is changed.\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"INVALID\",\n    \"message\": \"Request could not be processed.\",\n    \"details\": {\n      \"pickup\": [\"This field is required.\"],\n      \"drop\": {\"contact_phone\": [\"Required for a COD trip - the finalizing OTP is sent to this number.\"]}\n    }\n  }\n}\n```\n\nNested objects appear under their own field name; list items are keyed by position.\n\n## Handling errors well\n\n1. **Look at the HTTP status first** - it tells you the *class* of problem (fix the request, get a new token, retry later).\n2. **Then `error.code`** - it tells you exactly which rule. Show the `message` to people, but decide behaviour from the `code`.\n3. **`5xx` and `429` are retryable** with a pause. `4xx` are not - repeating the same request gives the same error. The exception is `401 TOKEN_NOT_VALID`: get a new token, then retry once.\n4. **`409` means \"the world is not in the state this call needs\"** - fetch the resource and look at its current status before deciding what to do.\n\n## Every error code\n\nThe table below is generated from the same catalogue the endpoint pages use, so it is always complete. Each endpoint page lists the codes that **it** can return.\n\n### General\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `INVALID` | 400 | The request body, query string or form is missing a required field or has a value that isn't acceptable. `details` names every offending field. | Read `error.details` (`{field: [problems]}`), fix each field and resend. Nothing was changed. |\n| `PARSE_ERROR` | 400 | The body could not be parsed - usually malformed JSON, or a `Content-Type` that doesn't match the body. | Send valid JSON with `Content-Type: application/json` (or `multipart/form-data` on the upload endpoints). |\n| `UNSUPPORTED_MEDIA_TYPE` | 415 | The endpoint doesn't accept the `Content-Type` you sent (e.g. JSON sent to a file-upload endpoint). | Use the content type shown on the endpoint's request body (`multipart/form-data` for uploads). |\n| `NOT_FOUND` | 404 | No such resource - or it belongs to another company. The API never confirms that other companies' data exists. | Check the id. If it came from this API it may have been deleted, or the token belongs to a different company. |\n| `METHOD_NOT_ALLOWED` | 405 | The path exists but not for that HTTP method. | Use the method shown in this documentation. |\n\n### Authentication & access\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `NOT_AUTHENTICATED` | 401 | No `Authorization` header was sent. | Send `Authorization: Bearer <access token>`. See the Authentication guide. |\n| `TOKEN_NOT_VALID` | 401 | The bearer token is expired, malformed, or was signed by another environment. | Get a new token (API clients: `POST /auth/client-token`; admins and drivers: use the refresh endpoint). |\n| `AUTHENTICATION_FAILED` | 401 | Wrong credentials (client id/secret, email/password), or the account behind a valid token is inactive. | Check the credentials. For an API client, confirm it is still active in the admin panel. |\n| `PERMISSION_DENIED` | 403 | You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse). | Use the right principal for the endpoint - each operation lists who may call it. |\n| `NOT_YOUR_TRIP` | 403 | A driver called a trip endpoint for a trip that isn't assigned to them. | Only act on trips returned by `GET /driver/trips/active` or `GET /driver/trips`. |\n| `INVALID_REFRESH_TOKEN` | 401 | The driver's refresh token has expired or was already used up. | Send the driver through the OTP login again. |\n| `INVALID_OTP` | 400 | The login OTP is wrong or has expired (OTPs last 5 minutes). | Ask for a new OTP with `POST /driver/auth/otp/request`. |\n| `DRIVER_NOT_FOUND` | 404 | Sign-up is closed on this server and no driver is registered with this phone number. (When sign-up is open, an unknown number simply becomes a new driver.) | Ask the company to register the driver (`POST /drivers`), or check the number (`+919000000001`). |\n| `DRIVER_PHONE_AMBIGUOUS` | 409 | The same phone number belongs to drivers in more than one company, so the login can't tell which one to use. | Contact support - phone numbers must be unique across companies. |\n| `ACCOUNT_DISABLED` | 403 | The company has disabled this driver. | Nothing to retry - the company has to re-enable the driver. |\n| `ACCOUNT_LOCKED` | 403 | The driver's account is locked because their driving licence has expired. | The driver has to submit a valid licence, then the company re-verifies it. |\n\n### Trips\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `VEHICLE_TYPE_NOT_FOUND` | 404 | `vehicle_type_id` doesn't match an active vehicle type of your company. | List your vehicle types with `GET /vehicle-types` and use one of those ids. |\n| `FARE_NOT_CONFIGURED` | 422 | The vehicle type has no fare card, so a price can't be calculated. | Configure the fare fields on the vehicle type (`base_fare`, `per_km_rate`, ...). |\n| `ROUTING_UNAVAILABLE` | 503 | The routing engine couldn't route between the pickup and the drop (out of coverage, or the engine is down). | Check the coordinates are inside the served area; otherwise retry shortly. |\n| `TRIP_NOT_RETRYABLE` | 409 | You tried to (re)assign a trip that isn't in `no_driver_available`. | Only trips with status `no_driver_available` can be assigned again. |\n| `TRIP_NOT_CANCELLABLE` | 409 | The trip is past the point where it can be cancelled (in progress, completed, or already cancelled). | Trips can be cancelled up to `arrived_at_pickup`. Fetch the trip to see its current status. |\n| `INVALID_TRIP_STATUS_TRANSITION` | 409 | The driver action isn't valid for the trip's current status (e.g. `start` before `arrive`). | Fetch the trip and follow the lifecycle: arrive -> start -> (pay) -> complete. |\n| `TRIP_NOT_ACTIVE` | 409 | Navigation was requested for a trip that has nothing left to navigate to (completed or cancelled). | Stop asking for navigation once the trip is finished. |\n| `DRIVER_HAS_ACTIVE_TRIP` | 409 | The driver can't do this (go off duty, change vehicle, delete the account, be disabled) while a trip is active. | Complete or cancel the active trip first. |\n| `INVALID_DELIVERY_OTP` | 400 | The delivery OTP the driver entered is wrong or has expired (valid for 5 minutes). | Re-enter it, or resend it with `POST /driver/trips/{id}/delivery-otp/resend`. |\n| `OTP_ALREADY_REQUESTED` | 429 | A delivery OTP was sent for this trip less than 30 seconds ago. | Wait for the cool-down (30 s) and try again. |\n\n### Payments\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `NOT_COD_TRIP` | 409 | A payment step was used on a prepaid trip. Prepaid trips take no payment at the drop. | Skip payment for `payment_mode = prepaid` and complete the trip directly. |\n| `TRIP_NOT_IN_PROGRESS` | 409 | The payment code is only available once the delivery has started (`in_progress`). | Call `start` first. |\n| `ALREADY_PAID` | 409 | The trip's fare has already been paid (the customer scanned an earlier code, or it was collected already). | Nothing to collect - go on to the delivery OTP and `complete`. |\n| `PAYMENT_NOT_RECEIVED` | 409 | The driver asked the server to confirm the payment, and the payment provider has no payment for this trip's code yet (or it was for less than the fare). | Not a fault: ask the customer to scan and pay, then check again in a moment. |\n| `PAYMENT_NOT_COLLECTED` | 409 | `complete` was called on a COD trip before its payment was confirmed. | Show the payment code and wait for the payment before completing. |\n| `PAYMENT_PROVIDER_ERROR` | 502 | The payment provider (Razorpay) refused a request or sent an answer that couldn't be read. The message says why. | Retry once; if it persists, contact the platform operator with the message. |\n| `PAYMENT_PROVIDER_UNAVAILABLE` | 503 | The payment provider couldn't be reached or is failing. | Retry in a moment. Nothing was charged and the trip is unchanged. |\n| `PAYMENT_PROVIDER_NOT_CONFIGURED` | 503 | This server has no (valid) payment-provider keys - or the keys are valid but Razorpay's QR Codes product isn't activated on the account (Razorpay answers \"The requested URL was not found\" for that). | Operator action: set the Razorpay keys, and if they are set, ask Razorpay support to activate QR Codes on the account (see the Payments guide). |\n\n### Items & invoices\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `ITEMS_NOT_VERIFIED` | 409 | The order asked for its items to be verified (`verify_items: true`) and some are still unanswered. Payment and completion are blocked until every item is marked delivered / not delivered. | Have the driver answer each item (`POST /driver/trips/{id}/items/{item_id}/verify`), then retry. |\n| `ITEM_NOT_FOUND` | 404 | `item_id` isn't an item of this trip. | Use the ids in the trip's `items` array. |\n| `VERIFICATION_NOT_REQUESTED` | 409 | The driver tried to verify items on an order created without `verify_items`. | Only orders created with `verify_items: true` have a verification step. |\n\n### Driver duty & vehicles\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `DRIVER_NOT_ELIGIBLE` | 403 | The driver can't go on duty: KYC isn't fully verified or the account isn't active. | Finish onboarding and wait for the company's approval (see `onboarding_status` on `GET /driver/me`). |\n| `VEHICLE_CATEGORY_NOT_ALLOWED` | 403 | The driver's verified licence doesn't cover this vehicle's category. | Choose a vehicle from `GET /driver/vehicles` (it lists only what the driver may take). |\n| `VEHICLE_IN_USE` | 409 | Another driver is on duty with this vehicle. | Pick another vehicle. |\n| `VEHICLE_NOT_ACTIVE` | 409 | The vehicle has been disabled by the company. | Pick another vehicle. |\n| `VEHICLE_LIMIT_REACHED` | 409 | The driver already has the maximum number of vehicles they can register (10). | Remove one (`DELETE /driver/my-vehicles/{id}`) before adding another. |\n| `PHOTO_LIMIT_REACHED` | 409 | The vehicle already has the maximum number of pictures (6). | Remove one (`DELETE /driver/my-vehicles/{id}/photos/{photo_id}`) before adding another. |\n| `VEHICLE_ON_DUTY` | 409 | The driver tried to remove the vehicle they are on duty with. | Go off duty (`POST /driver/duty/end`) first. |\n\n### Driver onboarding\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `PROFILE_LOCKED` | 409 | Name and date of birth can't change once the driver's ID has been verified. | Ask the company's support to correct it. |\n| `KYC_ALREADY_VERIFIED` | 409 | The driver tried to re-submit a document the company already verified. | Nothing to do; contact support if it must change. |\n\n### Uploads & webhooks\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `INVALID_UPLOAD` | 400 | The file isn't an acceptable image/PDF (wrong type, too large, or corrupt). | Send a JPEG/PNG/WebP (or a PDF where documents allow it) within the size limit. |\n| `INVALID_SIGNATURE` | 400 | The webhook's `X-Razorpay-Signature` doesn't match the body - it wasn't sent by Razorpay (or the secret is wrong). | Only Razorpay should call this endpoint. Check `RAZORPAY_WEBHOOK_SECRET` matches the secret in the Razorpay dashboard. |\n| `INVALID_PAYLOAD` | 400 | The webhook body isn't a JSON object. | Razorpay always sends JSON; this only happens with hand-made requests. |\n| `WEBHOOK_NOT_CONFIGURED` | 503 | The server has no webhook secret, so it can't tell real Razorpay calls from fake ones and refuses all of them. | Operator action: set `RAZORPAY_WEBHOOK_SECRET`. |\n\n### Wallet & payouts\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `INVALID_AMOUNT` | 400 | A wallet entry's amount is zero, or isn't positive for a payout, bonus or penalty (the server applies the sign for those kinds). | Send a positive amount for `payout`, `bonus` and `penalty`. Only `adjustment` may be negative, and none may be zero. |\n| `INVALID_KIND` | 400 | A trip-earning entry was posted by hand. Earnings are credited automatically when a trip completes. (The request schema doesn't allow `trip_earning`, so an ordinary client gets `INVALID` first.) | Post only `payout`, `bonus`, `penalty` or `adjustment`. |\n| `INSUFFICIENT_BALANCE` | 409 | The payout is more than what the company currently owes the driver. | Read `GET /drivers/{id}/wallet` and pay out at most the `balance`. |\n| `WALLET_BALANCE_PENDING` | 409 | The driver tried to delete their account while the company still owes them money. | The company pays the balance out first, then the driver can delete the account. |\n\n### Fleet\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `VEHICLE_HAS_ACTIVE_TRIP` | 409 | The vehicle can't be disabled while a trip is using it. | Wait until the trip is finished, then disable it. |\n| `VEHICLE_TYPE_IN_USE` | 409 | The vehicle type can't be deleted while vehicles still use it. | Re-assign or remove those vehicles first (or mark the type inactive instead of deleting). |",
             "x-traitTag": true
         },
         {
@@ -19297,7 +20949,7 @@
         },
         {
             "name": "Driver app walkthrough",
-            "description": "## A driver's day, in API calls\n\nThis is the exact sequence the driver app follows. Set these once (the driver's token comes from step 1):\n\n```bash\nexport BASE_URL=\"https://your-server.example.com/api/v1\"\nexport DRIVER_TOKEN=\"<accessToken from step 1>\"\n```\n\n## 1. Sign in with a phone number\n\n```bash\ncurl -X POST \"$BASE_URL/driver/auth/otp/request\" -H \"Content-Type: application/json\" -d '{\"phone_number\": \"+919000000001\"}'\n```\n```json\n{ \"message\": \"OTP sent to +919000000001.\" }\n```\n\n(A non-production server also returns `\"otp\": \"482913\"` so you can test without an SMS gateway.) Then verify the code the driver received:\n\n```bash\ncurl -X POST \"$BASE_URL/driver/auth/otp/verify\" -H \"Content-Type: application/json\" -d '{\"phone_number\": \"+919000000001\", \"otp\": \"482913\"}'\n```\n```json\n{\n  \"accessToken\": \"eyJhbGciOi...\", \"tokenType\": \"Bearer\", \"expiresInSeconds\": 3600,\n  \"refreshToken\": \"eyJhbGciOi...\", \"refreshExpiresInSeconds\": 2592000,\n  \"driverName\": \"Ravi Kumar\",\n  \"driver\": { \"id\": \"...\", \"onboarding_status\": \"approved\", \"is_online\": false, \"...\": \"...\" }\n}\n```\n\nStore both tokens. **A phone number nobody has registered becomes a brand-new empty driver** (when the server allows self sign-up) - `driver.onboarding_status` will be `profile_incomplete`. Renew before expiry with\n`POST /driver/auth/refresh` (send `{\"refreshToken\": \"...\"}`, get a **new pair** back - save both).\n\n## 2. Decide the first screen from `onboarding_status`\n\n`GET /driver/me` returns the same profile at any time. Key the app's first screen on `onboarding_status`:\n\n| `onboarding_status` | Show |\n|---|---|\n| `profile_incomplete`, `documents_required` | The onboarding flow (step 3) |\n| `under_review` | \"Your documents are with the company\" - wait, poll `GET /driver/me` |\n| `action_required` | What was rejected (`kyc.aadhar.rejection_note`, ...) and let them re-submit |\n| `approved` | The dashboard (step 4) |\n\n## 3. Onboarding (new drivers)\n\nEach step saves on its own, so a driver can leave and come back.\n\n```bash\n# About me - every field optional; send what you have\ncurl -X PATCH \"$BASE_URL/driver/me\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -H \"Content-Type: application/json\" \\\n  -d '{\"full_name\": \"Ravi Kumar\", \"date_of_birth\": \"1994-03-12\", \"city\": \"Bengaluru\", \"pincode\": \"560001\",\n       \"emergency_contact_name\": \"Sunita Kumar\", \"emergency_contact_phone\": \"+919555500002\"}'\n\n# A selfie (multipart)\ncurl -X POST \"$BASE_URL/driver/me/photo\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -F \"photo=@selfie.jpg\"\n\n# Aadhaar: the number and both sides (multipart)\ncurl -X POST \"$BASE_URL/driver/me/kyc/aadhar\" -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -F \"number=234567890123\" -F \"front=@aadhaar_front.jpg\" -F \"back=@aadhaar_back.jpg\"\n\n# Driving licence: number, expiry, front (back optional)\ncurl -X POST \"$BASE_URL/driver/me/kyc/dl\" -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -F \"number=KA0120200012345\" -F \"expiry_date=2031-06-30\" -F \"front=@licence_front.jpg\"\n\n# Police verification certificate (optional to upload)\ncurl -X POST \"$BASE_URL/driver/me/kyc/police\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -F \"document=@police.pdf\"\n\n# Where to send payouts (UPI or bank)\ncurl -X PATCH \"$BASE_URL/driver/me\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -H \"Content-Type: application/json\" -d '{\"payout_upi_id\": \"ravi@okhdfc\"}'\n```\n\nEach upload answers with the refreshed profile. When the driver has completed the profile and provided Aadhaar and licence, `onboarding_status` becomes `under_review`. The **company verifies** the documents\n(`PATCH /drivers/{id}/kyc/aadhar`, `/police` and `/dl`, with an admin token) - after which the driver is `approved` and can take trips. If the company rejects a document, `onboarding_status` becomes `action_required` with a `rejection_note`, and the driver re-submits.\nMore in *Driver onboarding & wallet*.\n\n## 4. Go on duty\n\n```bash\n# Which vehicles may I take? (only ones my verified licence covers, that nobody else is using)\ncurl \"$BASE_URL/driver/vehicles\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n\n# Go online on one, with my current GPS fix so I can be matched straight away\ncurl -X POST \"$BASE_URL/driver/duty/start\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -H \"Content-Type: application/json\" \\\n  -d '{\"vehicle_id\": \"34dbaab9-e77f-466a-93f3-3637131968ea\", \"lat\": \"12.971600\", \"lng\": \"77.594600\"}'\n```\n\nFrom now on, send the position **every 15-30 seconds** while on duty:\n\n```bash\ncurl -X POST \"$BASE_URL/driver/location\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -H \"Content-Type: application/json\" -d '{\"lat\": \"12.971900\", \"lng\": \"77.595100\"}'\n```\n\nTrips are matched only to drivers whose last position is **within 8 km of the pickup**.\n\n## 5. Wait for a trip\n\nThere are no push notifications yet, so **poll** every few seconds while idle:\n\n```bash\ncurl \"$BASE_URL/driver/trips/active\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n```\n```json\n{ \"trip\": null }\n```\n\nWhen a trip is assigned the body carries the whole trip (`{\"trip\": {\"id\": \"...\", \"status\": \"assigned\", ...}}`): addresses, contacts, route, fare, `driver_earning`, invoice and item checklist. Use its `id` below.\n\n## 6. Run the delivery\n\n```bash\nTRIP=5920b157-27b4-43c2-a3a9-8d9fd7f0e3db\n\n# The road to the pickup, from where I am now (draw the polyline at 6 decimal places)\ncurl \"$BASE_URL/driver/trips/$TRIP/navigation?lat=12.9719&lng=77.5951\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n\n# I'm at the pickup\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/arrive\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n\n# I have the goods - go (the trip can no longer be cancelled)\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/start\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n```\n\nEach answers with the updated trip. To give up before starting: `POST /driver/trips/$TRIP/cancel` with `{\"reason\": \"...\"}`.\n\n## 7. At the drop\n\n**If the order has `verify_items: true`**, first answer for every item (multipart; a camera photo is optional):\n\n```bash\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/items/$ITEM/verify\" -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -F \"status=delivered\" -F \"photo=@proof.jpg\"\n# not delivered needs a note\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/items/$OTHER_ITEM/verify\" -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -F \"status=not_delivered\" -F \"note=Damaged in transit\"\n```\n\n**If the order is cash on delivery**, collect the money through Razorpay:\n\n```bash\n# Show this QR (image_url) to the customer - it is for exactly this trip's fare\ncurl \"$BASE_URL/driver/trips/$TRIP/payment/qr\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n```\n```json\n{ \"provider\": \"razorpay\", \"reference\": \"qr_Nx4a1Kp0aB9cXz\", \"image_url\": \"https://rzp.io/i/Nx4a1Kp\",\n  \"amount\": 85.0, \"currency\": \"INR\", \"expires_at\": \"2026-09-21T10:15:00Z\", \"qr_payload\": null }\n```\n\nThe customer scans and pays. Razorpay tells the server, which marks the trip **paid** and texts the customer a 6-digit delivery OTP - so the app just **waits** (re-read `GET /driver/trips/$TRIP` and watch `payment_status`).\n\"Check payment\" asks the server to look right now:\n\n```bash\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/payment/collect\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n# 409 PAYMENT_NOT_RECEIVED  -> not paid yet, wait and check again\n# 200 {\"message\": \"Payment collected. An OTP was sent to +919888800002 ...\"}\n```\n\nIf the customer says the SMS didn't arrive: `POST /driver/trips/$TRIP/delivery-otp/resend` (once per 30 seconds).\n\n## 8. Hand over\n\n```bash\n# Cash on delivery: the customer tells you the OTP they were texted\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/complete\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -H \"Content-Type: application/json\" -d '{\"otp\": \"387406\"}'\n# Prepaid: no body\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/complete\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n```\n\nThe trip becomes `completed` and the driver's wallet is credited. `driver_earning` on the trip says how much.\n\n## 9. Earnings\n\n```bash\ncurl \"$BASE_URL/driver/wallet?utc_offset_minutes=330\" -H \"Authorization: Bearer $DRIVER_TOKEN\"          # balance, today/week/month, last 7 days\ncurl \"$BASE_URL/driver/wallet/transactions\" -H \"Authorization: Bearer $DRIVER_TOKEN\"                    # the statement\ncurl \"$BASE_URL/driver/stats?utc_offset_minutes=330\" -H \"Authorization: Bearer $DRIVER_TOKEN\"           # today / all-time counts\ncurl \"$BASE_URL/driver/trips?status=completed,cancelled\" -H \"Authorization: Bearer $DRIVER_TOKEN\"       # history\n```\n\n## 10. End of shift\n\n```bash\ncurl -X POST \"$BASE_URL/driver/duty/end\" -H \"Authorization: Bearer $DRIVER_TOKEN\"      # refused while a trip is active\ncurl -X POST \"$BASE_URL/driver/auth/logout\" -H \"Content-Type: application/json\" -d '{\"refreshToken\": \"...\"}'\n```\n\n## Errors the app should handle\n\n| Code | Show / do |\n|---|---|\n| `TOKEN_NOT_VALID` (401) | Refresh the session; if that fails, back to sign-in. |\n| `INVALID_OTP` | \"That code is wrong or expired\" - offer to resend. |\n| `DRIVER_NOT_ELIGIBLE`, `VEHICLE_CATEGORY_NOT_ALLOWED` | Explain what is missing from the driver's verification. |\n| `ITEMS_NOT_VERIFIED` | Take the driver to the item checklist. |\n| `PAYMENT_NOT_RECEIVED` | Not an error: \"Not paid yet\" - keep waiting. |\n| `INVALID_DELIVERY_OTP` | Let them re-enter, or resend. |\n| `INVALID_TRIP_STATUS_TRANSITION`, `TRIP_NOT_CANCELLABLE` | The trip moved on - re-read it and update the screen. |\n| `PAYMENT_PROVIDER_UNAVAILABLE` (503) | \"Payment service is busy - try again in a moment\". |\n\nThe complete list with causes is in *Errors*.",
+            "description": "## A driver's day, in API calls\n\nThis is the exact sequence the driver app follows. Set these once (the driver's token comes from step 1):\n\n```bash\nexport BASE_URL=\"https://your-server.example.com/api/v1\"\nexport DRIVER_TOKEN=\"<accessToken from step 1>\"\n```\n\n## 1. Sign in with a phone number\n\n```bash\ncurl -X POST \"$BASE_URL/driver/auth/otp/request\" -H \"Content-Type: application/json\" -d '{\"phone_number\": \"+919000000001\"}'\n```\n```json\n{ \"message\": \"OTP sent to +919000000001.\" }\n```\n\n(A non-production server also returns `\"otp\": \"482913\"` so you can test without an SMS gateway.) Then verify the code the driver received:\n\n```bash\ncurl -X POST \"$BASE_URL/driver/auth/otp/verify\" -H \"Content-Type: application/json\" -d '{\"phone_number\": \"+919000000001\", \"otp\": \"482913\"}'\n```\n```json\n{\n  \"accessToken\": \"eyJhbGciOi...\", \"tokenType\": \"Bearer\", \"expiresInSeconds\": 3600,\n  \"refreshToken\": \"eyJhbGciOi...\", \"refreshExpiresInSeconds\": 2592000,\n  \"driverName\": \"Ravi Kumar\",\n  \"driver\": { \"id\": \"...\", \"onboarding_status\": \"approved\", \"is_online\": false, \"...\": \"...\" }\n}\n```\n\nStore both tokens. **A phone number nobody has registered becomes a brand-new empty driver** (when the server allows self sign-up) - `driver.onboarding_status` will be `profile_incomplete`. Renew before expiry with\n`POST /driver/auth/refresh` (send `{\"refreshToken\": \"...\"}`, get a **new pair** back - save both).\n\n## 2. Decide the first screen from `onboarding_status`\n\n`GET /driver/me` returns the same profile at any time. Key the app's first screen on `onboarding_status`:\n\n| `onboarding_status` | Show |\n|---|---|\n| `profile_incomplete`, `documents_required` | The onboarding flow (step 3) |\n| `under_review` | \"Your documents are with the company\" - wait, poll `GET /driver/me` |\n| `action_required` | What was rejected (`kyc.aadhar.rejection_note`, ...) and let them re-submit |\n| `approved` | The dashboard (step 4) |\n\n## 3. Onboarding (new drivers)\n\nEach step saves on its own, so a driver can leave and come back.\n\n```bash\n# About me - every field optional; send what you have\ncurl -X PATCH \"$BASE_URL/driver/me\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -H \"Content-Type: application/json\" \\\n  -d '{\"full_name\": \"Ravi Kumar\", \"date_of_birth\": \"1994-03-12\", \"city\": \"Bengaluru\", \"pincode\": \"560001\",\n       \"emergency_contact_name\": \"Sunita Kumar\", \"emergency_contact_phone\": \"+919555500002\"}'\n\n# A selfie (multipart)\ncurl -X POST \"$BASE_URL/driver/me/photo\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -F \"photo=@selfie.jpg\"\n\n# Aadhaar: the number and both sides (multipart)\ncurl -X POST \"$BASE_URL/driver/me/kyc/aadhar\" -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -F \"number=234567890123\" -F \"front=@aadhaar_front.jpg\" -F \"back=@aadhaar_back.jpg\"\n\n# Driving licence: number, expiry, front (back optional)\ncurl -X POST \"$BASE_URL/driver/me/kyc/dl\" -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -F \"number=KA0120200012345\" -F \"expiry_date=2031-06-30\" -F \"front=@licence_front.jpg\"\n\n# Police verification certificate (optional to upload)\ncurl -X POST \"$BASE_URL/driver/me/kyc/police\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -F \"document=@police.pdf\"\n\n# Where to send payouts (UPI or bank)\ncurl -X PATCH \"$BASE_URL/driver/me\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -H \"Content-Type: application/json\" -d '{\"payout_upi_id\": \"ravi@okhdfc\"}'\n```\n\nEach upload answers with the refreshed profile. When the driver has completed the profile and provided Aadhaar and licence, `onboarding_status` becomes `under_review`. The **company verifies** the documents\n(`PATCH /drivers/{id}/kyc/aadhar`, `/police` and `/dl`, with an admin token) - after which the driver is `approved` and can take trips. If the company rejects a document, `onboarding_status` becomes `action_required` with a `rejection_note`, and the driver re-submits.\nMore in *Driver onboarding & wallet*.\n\n## 4. Go on duty\n\n```bash\n# Which vehicles may I take? (only ones my verified licence covers, that nobody else is using)\ncurl \"$BASE_URL/driver/vehicles\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n\n# Go online on one, with my current GPS fix so I can be matched straight away\ncurl -X POST \"$BASE_URL/driver/duty/start\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -H \"Content-Type: application/json\" \\\n  -d '{\"vehicle_id\": \"34dbaab9-e77f-466a-93f3-3637131968ea\", \"lat\": \"12.971600\", \"lng\": \"77.594600\"}'\n```\n\n### Your own vehicles (optional)\n\nA driver with their own bike or auto registers it once, with pictures, and can then take it on duty like any fleet vehicle:\n\n```bash\n# which vehicle types does the company run?\ncurl \"$BASE_URL/driver/vehicle-types\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n\n# add a vehicle with pictures (multipart: repeat \"photos\" once per picture, up to 6)\ncurl -X POST \"$BASE_URL/driver/my-vehicles\" -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -F \"vehicle_type_id=725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13\" -F \"registration_number=KA05MN7788\" \\\n  -F \"photos=@front.jpg\" -F \"photos=@side.jpg\"\n\ncurl \"$BASE_URL/driver/my-vehicles\" -H \"Authorization: Bearer $DRIVER_TOKEN\"     # mine, with pictures\n```\n\nUp to 10 vehicles per driver. They appear in `GET /driver/vehicles` (flagged `is_own`) next to the company's fleet; nobody else can use them.\n\nFrom now on, send the position **every 15-30 seconds** while on duty:\n\n```bash\ncurl -X POST \"$BASE_URL/driver/location\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -H \"Content-Type: application/json\" -d '{\"lat\": \"12.971900\", \"lng\": \"77.595100\"}'\n```\n\nTrips are matched only to drivers whose last position is **within 8 km of the pickup**.\n\n## 5. Wait for a trip\n\nThere are no push notifications yet, so **poll** every few seconds while idle:\n\n```bash\ncurl \"$BASE_URL/driver/trips/active\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n```\n```json\n{ \"trip\": null }\n```\n\nWhen a trip is assigned the body carries the whole trip (`{\"trip\": {\"id\": \"...\", \"status\": \"assigned\", ...}}`): addresses, contacts, route, fare, `driver_earning`, invoice and item checklist. Use its `id` below.\n\n## 6. Run the delivery\n\n```bash\nTRIP=5920b157-27b4-43c2-a3a9-8d9fd7f0e3db\n\n# The road to the pickup, from where I am now (draw the polyline at 6 decimal places)\ncurl \"$BASE_URL/driver/trips/$TRIP/navigation?lat=12.9719&lng=77.5951\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n\n# I'm at the pickup\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/arrive\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n\n# I have the goods - go (the trip can no longer be cancelled)\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/start\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n```\n\nEach answers with the updated trip. To give up before starting: `POST /driver/trips/$TRIP/cancel` with `{\"reason\": \"...\"}`.\n\n## 7. At the drop\n\n**If the order has `verify_items: true`**, first answer for every item (multipart; a camera photo is optional):\n\n```bash\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/items/$ITEM/verify\" -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -F \"status=delivered\" -F \"photo=@proof.jpg\"\n# not delivered needs a note\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/items/$OTHER_ITEM/verify\" -H \"Authorization: Bearer $DRIVER_TOKEN\" \\\n  -F \"status=not_delivered\" -F \"note=Damaged in transit\"\n```\n\n**If the order is cash on delivery**, collect the money through Razorpay:\n\n```bash\n# Show this QR (image_url) to the customer - it is for exactly this trip's fare\ncurl \"$BASE_URL/driver/trips/$TRIP/payment/qr\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n```\n```json\n{ \"provider\": \"razorpay\", \"reference\": \"qr_Nx4a1Kp0aB9cXz\", \"image_url\": \"https://rzp.io/i/Nx4a1Kp\",\n  \"amount\": 85.0, \"currency\": \"INR\", \"expires_at\": \"2026-09-21T10:15:00Z\", \"qr_payload\": null }\n```\n\nThe customer scans and pays. Razorpay tells the server, which marks the trip **paid** and texts the customer a 6-digit delivery OTP - so the app just **waits** (re-read `GET /driver/trips/$TRIP` and watch `payment_status`).\n\"Check payment\" asks the server to look right now:\n\n```bash\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/payment/collect\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n# 409 PAYMENT_NOT_RECEIVED  -> not paid yet, wait and check again\n# 200 {\"message\": \"Payment collected. An OTP was sent to +919888800002 ...\"}\n```\n\nIf the customer says the SMS didn't arrive: `POST /driver/trips/$TRIP/delivery-otp/resend` (once per 30 seconds).\n\n## 8. Hand over\n\n```bash\n# Cash on delivery: the customer tells you the OTP they were texted\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/complete\" -H \"Authorization: Bearer $DRIVER_TOKEN\" -H \"Content-Type: application/json\" -d '{\"otp\": \"387406\"}'\n# Prepaid: no body\ncurl -X POST \"$BASE_URL/driver/trips/$TRIP/complete\" -H \"Authorization: Bearer $DRIVER_TOKEN\"\n```\n\nThe trip becomes `completed` and the driver's wallet is credited. `driver_earning` on the trip says how much.\n\n## 9. Earnings\n\n```bash\ncurl \"$BASE_URL/driver/wallet?utc_offset_minutes=330\" -H \"Authorization: Bearer $DRIVER_TOKEN\"          # balance, today/week/month, last 7 days\ncurl \"$BASE_URL/driver/wallet/transactions\" -H \"Authorization: Bearer $DRIVER_TOKEN\"                    # the statement\ncurl \"$BASE_URL/driver/stats?utc_offset_minutes=330\" -H \"Authorization: Bearer $DRIVER_TOKEN\"           # today / all-time counts\ncurl \"$BASE_URL/driver/trips?status=completed,cancelled\" -H \"Authorization: Bearer $DRIVER_TOKEN\"       # history\n```\n\n## 10. End of shift\n\n```bash\ncurl -X POST \"$BASE_URL/driver/duty/end\" -H \"Authorization: Bearer $DRIVER_TOKEN\"      # refused while a trip is active\ncurl -X POST \"$BASE_URL/driver/auth/logout\" -H \"Content-Type: application/json\" -d '{\"refreshToken\": \"...\"}'\n```\n\n## Errors the app should handle\n\n| Code | Show / do |\n|---|---|\n| `TOKEN_NOT_VALID` (401) | Refresh the session; if that fails, back to sign-in. |\n| `INVALID_OTP` | \"That code is wrong or expired\" - offer to resend. |\n| `DRIVER_NOT_ELIGIBLE`, `VEHICLE_CATEGORY_NOT_ALLOWED` | Explain what is missing from the driver's verification. |\n| `ITEMS_NOT_VERIFIED` | Take the driver to the item checklist. |\n| `PAYMENT_NOT_RECEIVED` | Not an error: \"Not paid yet\" - keep waiting. |\n| `INVALID_DELIVERY_OTP` | Let them re-enter, or resend. |\n| `INVALID_TRIP_STATUS_TRANSITION`, `TRIP_NOT_CANCELLABLE` | The trip moved on - re-read it and update the screen. |\n| `PAYMENT_PROVIDER_UNAVAILABLE` (503) | \"Payment service is busy - try again in a moment\". |\n\nThe complete list with causes is in *Errors*.",
             "x-traitTag": true
         },
         {
@@ -19312,7 +20964,7 @@
         },
         {
             "name": "Driver onboarding & wallet",
-            "description": "## Joining: self sign-up and onboarding\n\nA driver can be **created by the company** (`POST /drivers`, admin token) or can **sign themselves up** from the app: signing in with a phone number nobody has registered - when the server allows self sign-up -\ncreates a brand-new, empty driver account. Either way a driver **cannot receive trips until the company has verified their documents**.\n\n### The journey\n\n```\n sign up (SMS OTP)         about me           documents              company review          approved\n profile_incomplete ──▶ documents_required ──▶ under_review ──▶  approved\n                                                   │  ▲\n                                          rejected │  │ re-submit\n                                                   ▼  │\n                                              action_required\n```\n\n`onboarding_status` (on `GET /driver/me` and in the company's driver list) says where a driver is. It is **derived, never stored**, from their profile and the state of their documents:\n\n| `onboarding_status` | Meaning | What happens next |\n|---|---|---|\n| `profile_incomplete` | Missing name, date of birth or emergency contact. | The driver fills in *about me* (`PATCH /driver/me`). |\n| `documents_required` | Profile done; Aadhaar or licence not yet uploaded. | The driver uploads them. |\n| `under_review` | Everything provided; waiting on the company. | The company verifies (below). |\n| `action_required` | The company **rejected** a document. `kyc.<doc>.rejection_note` says why. | The driver fixes and re-submits. |\n| `approved` | Aadhaar, licence and police all verified, licence unexpired, account active. | The driver can go on duty and receive trips. |\n\nA driver the company created and verified is `approved` regardless of profile details.\n\n### What the driver provides\n\n| Item | Endpoint (multipart where files) | Notes |\n|---|---|---|\n| About me | `PATCH /driver/me` | Name, date of birth (18-80), email, address, city, pincode, **emergency contact** (not their own number), payout details. All optional individually. |\n| Selfie | `POST /driver/me/photo` | `photo` |\n| **Aadhaar** | `POST /driver/me/kyc/aadhar` | `number` (12 digits), `front`, `back`. **Only the last 4 digits of the number are kept.** |\n| **Driving licence** | `POST /driver/me/kyc/dl` | `number`, `expiry_date` (future), `front`, `back` (optional). |\n| **Police verification** | `POST /driver/me/kyc/police` | `document` (image or PDF). Optional to upload - the company may verify it another way. |\n| Payout details | `PATCH /driver/me` | A `payout_upi_id` *or* bank details (`bank_account_holder`, `bank_account_number`, `bank_ifsc` - all three). |\n\nEach upload replaces the previous one and puts that document back in review. Once the company has **verified** a document it is **locked** (`KYC_ALREADY_VERIFIED`), and after Aadhaar is verified the driver's\n**name and date of birth are locked too** (`PROFILE_LOCKED`).\n\n### The company reviews (admin token)\n\n`GET /drivers` lists your drivers, each with its `onboarding_status` (filter with `aadhar_status`, `dl_status`, `police_status` or `account_status` - e.g. `?dl_status=pending` for licences waiting on you), and `GET /drivers/{id}/kyc` shows the scans. Then decide each document:\n\n```bash\ncurl -X PATCH \"$BASE_URL/drivers/$DRIVER/kyc/aadhar\" -H \"Authorization: Bearer $ADMIN_TOKEN\" -H \"Content-Type: application/json\" -d '{\"status\": \"verified\"}'\ncurl -X PATCH \"$BASE_URL/drivers/$DRIVER/kyc/police\" -H \"Authorization: Bearer $ADMIN_TOKEN\" -H \"Content-Type: application/json\" -d '{\"status\": \"rejected\", \"note\": \"Certificate is unreadable - please upload a clearer scan\"}'\ncurl -X PATCH \"$BASE_URL/drivers/$DRIVER/kyc/dl\"     -H \"Authorization: Bearer $ADMIN_TOKEN\" -H \"Content-Type: application/json\" \\\n  -d '{\"status\": \"verified\", \"expiry_date\": \"2031-06-30\", \"allowed_categories\": [\"two_wheeler\", \"three_wheeler\"]}'\n```\n\n- A **rejection needs a `note`** - the driver sees it.\n- Verifying the **licence** also needs the `expiry_date` you read off it (in the future) and the `allowed_categories` it covers: that decides which vehicles the driver may take (`two_wheeler`, `three_wheeler`, `four_wheeler`).\n- When a verified licence's expiry date passes, the driver's account is **locked** automatically (`ACCOUNT_LOCKED`) until a new licence is verified.\n\n## The wallet\n\nEvery driver has a **wallet**: a running ledger of what the company owes them.\n\n- **Earning**: when a trip completes, the driver is credited a share of its fare - **80% by default** (`DRIVER_EARNING_PERCENT`); the rest is the company's margin. The trip shows it as `driver_earning`.\n- **Payouts** happen **outside** this system (bank or UPI transfer by the company). The company then **records** each one (`POST /drivers/{id}/wallet/transactions`, `kind: payout`) which lowers the balance. The driver's payout details (`GET /driver/me` -> `payout`) say where to send it.\n- The company can also record a **bonus** (adds), a **penalty** (subtracts) or an **adjustment** (a correction, either sign).\n- The ledger is **append-only**. A mistake is fixed by another entry, never by editing history - so the driver's statement always adds up. Each row carries the running `balance_after`.\n\n| Kind | Effect on the balance | Who creates it |\n|---|---|---|\n| `trip_earning` | + | the system, on trip completion |\n| `bonus` | + | the company |\n| `penalty` | - | the company |\n| `payout` | - | the company (after paying the driver) |\n| `adjustment` | + or - | the company |\n\n**Balance** = every credit minus every payout, penalty and negative adjustment. **Earnings** (today / week / month / lifetime) count trip earnings and bonuses only.\n\n| Who | Reads it | Records entries |\n|---|---|---|\n| The driver | `GET /driver/wallet` (summary), `GET /driver/wallet/transactions` (statement), `GET /driver/stats` | - |\n| The company (admin) | `GET /drivers/{id}/wallet` (balance + last 20 entries) | `POST /drivers/{id}/wallet/transactions` |\n\nA payout larger than the balance is refused (`INSUFFICIENT_BALANCE`), so read the balance first.\n\n## Leaving\n\nA driver can **delete their own account** (`DELETE /driver/me`) - an app-store requirement for apps with self sign-up. It is refused while they have an **active trip** or while the company still **owes them money**\n(`WALLET_BALANCE_PENDING`: pay the balance out first). A deleted (or company-removed) driver is disabled and signed out; their trips and wallet history are kept.",
+            "description": "## Joining: self sign-up and onboarding\n\nA driver can be **created by the company** (`POST /drivers`, admin token) or can **sign themselves up** from the app: signing in with a phone number nobody has registered - when the server allows self sign-up -\ncreates a brand-new, empty driver account. Either way a driver **cannot receive trips until the company has verified their documents**.\n\n### The journey\n\n```\n sign up (SMS OTP)         about me           documents              company review          approved\n profile_incomplete ──▶ documents_required ──▶ under_review ──▶  approved\n                                                   │  ▲\n                                          rejected │  │ re-submit\n                                                   ▼  │\n                                              action_required\n```\n\n`onboarding_status` (on `GET /driver/me` and in the company's driver list) says where a driver is. It is **derived, never stored**, from their profile and the state of their documents:\n\n| `onboarding_status` | Meaning | What happens next |\n|---|---|---|\n| `profile_incomplete` | Missing name, date of birth or emergency contact. | The driver fills in *about me* (`PATCH /driver/me`). |\n| `documents_required` | Profile done; Aadhaar or licence not yet uploaded. | The driver uploads them. |\n| `under_review` | Everything provided; waiting on the company. | The company verifies (below). |\n| `action_required` | The company **rejected** a document. `kyc.<doc>.rejection_note` says why. | The driver fixes and re-submits. |\n| `approved` | Aadhaar, licence and police all verified, licence unexpired, account active. | The driver can go on duty and receive trips. |\n\nA driver the company created and verified is `approved` regardless of profile details.\n\n### What the driver provides\n\n| Item | Endpoint (multipart where files) | Notes |\n|---|---|---|\n| About me | `PATCH /driver/me` | Name, date of birth (18-80), email, address, city, pincode, **emergency contact** (not their own number), payout details. All optional individually. |\n| Selfie | `POST /driver/me/photo` | `photo` |\n| **Aadhaar** | `POST /driver/me/kyc/aadhar` | `number` (12 digits), `front`, `back`. **Only the last 4 digits of the number are kept.** |\n| **Driving licence** | `POST /driver/me/kyc/dl` | `number`, `expiry_date` (future), `front`, `back` (optional). |\n| **Police verification** | `POST /driver/me/kyc/police` | `document` (image or PDF). Optional to upload - the company may verify it another way. |\n| Payout details | `PATCH /driver/me` | A `payout_upi_id` *or* bank details (`bank_account_holder`, `bank_account_number`, `bank_ifsc` - all three). |\n\nEach upload replaces the previous one and puts that document back in review. Once the company has **verified** a document it is **locked** (`KYC_ALREADY_VERIFIED`), and after Aadhaar is verified the driver's\n**name and date of birth are locked too** (`PROFILE_LOCKED`).\n\n### The company reviews (admin token)\n\n`GET /drivers` lists your drivers, each with its `onboarding_status` (filter with `aadhar_status`, `dl_status`, `police_status` or `account_status` - e.g. `?dl_status=pending` for licences waiting on you), and `GET /drivers/{id}/kyc` shows the scans. Then decide each document:\n\n```bash\ncurl -X PATCH \"$BASE_URL/drivers/$DRIVER/kyc/aadhar\" -H \"Authorization: Bearer $ADMIN_TOKEN\" -H \"Content-Type: application/json\" -d '{\"status\": \"verified\"}'\ncurl -X PATCH \"$BASE_URL/drivers/$DRIVER/kyc/police\" -H \"Authorization: Bearer $ADMIN_TOKEN\" -H \"Content-Type: application/json\" -d '{\"status\": \"rejected\", \"note\": \"Certificate is unreadable - please upload a clearer scan\"}'\ncurl -X PATCH \"$BASE_URL/drivers/$DRIVER/kyc/dl\"     -H \"Authorization: Bearer $ADMIN_TOKEN\" -H \"Content-Type: application/json\" \\\n  -d '{\"status\": \"verified\", \"expiry_date\": \"2031-06-30\", \"allowed_categories\": [\"two_wheeler\", \"three_wheeler\"]}'\n```\n\n- A **rejection needs a `note`** - the driver sees it.\n- Verifying the **licence** also needs the `expiry_date` you read off it (in the future) and the `allowed_categories` it covers: that decides which vehicles the driver may take (`two_wheeler`, `three_wheeler`, `four_wheeler`).\n- When a verified licence's expiry date passes, the driver's account is **locked** automatically (`ACCOUNT_LOCKED`) until a new licence is verified.\n\n### Vehicles and pictures\n\nA driver can also **register their own vehicles** - several, each with up to 6 pictures - with `POST /driver/my-vehicles` (see *Driver app walkthrough*), even before they are approved. Going on duty still needs\nthe documents verified and a licence that covers the vehicle's category. The company sees these in its fleet (`GET /vehicles`) with `owner_driver_id` set, and can disable any of them.\nThe driver's own **photo** is `POST /driver/me/photo`, and they can replace it whenever they like.\n\n## The wallet\n\nEvery driver has a **wallet**: a running ledger of what the company owes them.\n\n- **Earning**: when a trip completes, the driver is credited a share of its fare - **80% by default** (`DRIVER_EARNING_PERCENT`); the rest is the company's margin. The trip shows it as `driver_earning`.\n- **Payouts** happen **outside** this system (bank or UPI transfer by the company). The company then **records** each one (`POST /drivers/{id}/wallet/transactions`, `kind: payout`) which lowers the balance. The driver's payout details (`GET /driver/me` -> `payout`) say where to send it.\n- The company can also record a **bonus** (adds), a **penalty** (subtracts) or an **adjustment** (a correction, either sign).\n- The ledger is **append-only**. A mistake is fixed by another entry, never by editing history - so the driver's statement always adds up. Each row carries the running `balance_after`.\n\n| Kind | Effect on the balance | Who creates it |\n|---|---|---|\n| `trip_earning` | + | the system, on trip completion |\n| `bonus` | + | the company |\n| `penalty` | - | the company |\n| `payout` | - | the company (after paying the driver) |\n| `adjustment` | + or - | the company |\n\n**Balance** = every credit minus every payout, penalty and negative adjustment. **Earnings** (today / week / month / lifetime) count trip earnings and bonuses only.\n\n| Who | Reads it | Records entries |\n|---|---|---|\n| The driver | `GET /driver/wallet` (summary), `GET /driver/wallet/transactions` (statement), `GET /driver/stats` | - |\n| The company (admin) | `GET /drivers/{id}/wallet` (balance + last 20 entries) | `POST /drivers/{id}/wallet/transactions` |\n\nA payout larger than the balance is refused (`INSUFFICIENT_BALANCE`), so read the balance first.\n\n## Leaving\n\nA driver can **delete their own account** (`DELETE /driver/me`) - an app-store requirement for apps with self sign-up. It is refused while they have an **active trip** or while the company still **owes them money**\n(`WALLET_BALANCE_PENDING`: pay the balance out first). A deleted (or company-removed) driver is disabled and signed out; their trips and wallet history are kept.",
             "x-traitTag": true
         },
         {
@@ -19358,6 +21010,10 @@
         {
             "name": "Driver duty & location",
             "description": "Going on and off duty with a vehicle, and sending GPS pings so trips can be matched."
+        },
+        {
+            "name": "Driver vehicles",
+            "description": "The driver's own vehicles: add several, each with pictures, and take any of them on duty. The company's fleet vehicles stay available alongside."
         },
         {
             "name": "Driver trips",
@@ -19420,6 +21076,7 @@
                 "Driver sign-in",
                 "Driver profile & onboarding",
                 "Driver duty & location",
+                "Driver vehicles",
                 "Driver trips",
                 "Driver payments",
                 "Item verification",

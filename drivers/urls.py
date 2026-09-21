@@ -1,6 +1,13 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
+from .driver_vehicle_views import (
+    DriverMyVehicleDetailView,
+    DriverMyVehiclePhotoDetailView,
+    DriverMyVehiclePhotosView,
+    DriverMyVehiclesView,
+    DriverVehicleTypesView,
+)
 from .vehicle_views import VehicleDocumentViewSet, VehicleTypeViewSet, VehicleViewSet
 from .views import (
     DriverAadharSubmitView,
@@ -50,6 +57,15 @@ urlpatterns = router.urls + [
     path("driver/wallet/transactions", DriverWalletTransactionsView.as_view(), name="driver-wallet-transactions"),
     path("driver/vehicles", DriverVehicleListView.as_view(), name="driver-vehicles"),
     path("driver/stats", DriverStatsView.as_view(), name="driver-stats"),
+    path("driver/vehicle-types", DriverVehicleTypesView.as_view(), name="driver-vehicle-types"),
+    path("driver/my-vehicles", DriverMyVehiclesView.as_view(), name="driver-my-vehicles"),
+    path("driver/my-vehicles/<uuid:pk>", DriverMyVehicleDetailView.as_view(), name="driver-my-vehicle"),
+    path("driver/my-vehicles/<uuid:pk>/photos", DriverMyVehiclePhotosView.as_view(), name="driver-my-vehicle-photos"),
+    path(
+        "driver/my-vehicles/<uuid:pk>/photos/<uuid:photo_id>",
+        DriverMyVehiclePhotoDetailView.as_view(),
+        name="driver-my-vehicle-photo",
+    ),
     path("driver/duty/start", DriverDutyStartView.as_view(), name="driver-duty-start"),
     path("driver/duty/end", DriverDutyEndView.as_view(), name="driver-duty-end"),
     path("driver/location", DriverLocationView.as_view(), name="driver-location"),

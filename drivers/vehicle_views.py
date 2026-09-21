@@ -47,7 +47,7 @@ class VehicleViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         if self.action == "retrieve":
-            qs = qs.prefetch_related("documents")
+            qs = qs.prefetch_related("documents", "photos")
         return qs
 
     @action(detail=True, methods=["post"])

@@ -9,6 +9,8 @@ from pathlib import Path
 import environ
 from celery.schedules import crontab
 
+from core.cors import parse_origins
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env()
@@ -37,7 +39,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     # First, so it can answer a browser's CORS preflight before anything else
-    # runs. A no-op unless DEBUG — see core/middleware.py.
+    # runs. Deployed origins use CORS_ALLOWED_ORIGINS; localhost needs DEBUG.
     "core.middleware.DevCorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -48,9 +50,17 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# Origins DevCorsMiddleware lets through when DEBUG is on: the Flutter web dev
-# server on localhost, on whatever port it picks.
+# Browser access (CORS). Native iOS/Android apps aren't subject to it; a Flutter
+# *web* build is, because it runs on a different origin from this API.
+#
+# * DEV_CORS_ORIGIN_REGEX - only while DEBUG is on: the Flutter web dev server on
+#   localhost, on whatever port it picks.
+# * CORS_ALLOWED_ORIGINS - in ANY mode: the exact origins of deployed web apps,
+#   comma-separated, e.g. https://mob-driver.netlify.app . Scheme + host (+ port),
+#   no path, no wildcard. Bearer tokens travel in a header, so credentials
+#   (cookies) are never allowed cross-origin.
 DEV_CORS_ORIGIN_REGEX = env("DEV_CORS_ORIGIN_REGEX", default=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$")
+CORS_ALLOWED_ORIGINS = parse_origins(env.list("CORS_ALLOWED_ORIGINS", default=[]))
 
 ROOT_URLCONF = "mob_delivery.urls"
 

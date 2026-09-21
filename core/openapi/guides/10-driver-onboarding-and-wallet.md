@@ -55,6 +55,12 @@ curl -X PATCH "$BASE_URL/drivers/$DRIVER/kyc/dl"     -H "Authorization: Bearer $
 - Verifying the **licence** also needs the `expiry_date` you read off it (in the future) and the `allowed_categories` it covers: that decides which vehicles the driver may take (`two_wheeler`, `three_wheeler`, `four_wheeler`).
 - When a verified licence's expiry date passes, the driver's account is **locked** automatically (`ACCOUNT_LOCKED`) until a new licence is verified.
 
+### Vehicles and pictures
+
+A driver can also **register their own vehicles** - several, each with up to 6 pictures - with `POST /driver/my-vehicles` (see *Driver app walkthrough*), even before they are approved. Going on duty still needs
+the documents verified and a licence that covers the vehicle's category. The company sees these in its fleet (`GET /vehicles`) with `owner_driver_id` set, and can disable any of them.
+The driver's own **photo** is `POST /driver/me/photo`, and they can replace it whenever they like.
+
 ## The wallet
 
 Every driver has a **wallet**: a running ledger of what the company owes them.

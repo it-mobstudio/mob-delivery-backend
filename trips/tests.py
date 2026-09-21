@@ -363,10 +363,7 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
         self.assertAlmostEqual(float(pickup_lng), 81.102868, places=6)
 
     def test_items_and_invoice_can_be_attached_for_trying_out_the_checklist(self):
-        import os
-
-        from django.conf import settings
-
+        from trips import dev_samples
         from trips.models import Trip
 
         self.go_on_duty()
@@ -375,17 +372,16 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
         trip = Trip.objects.get()
         self.assertTrue(trip.verify_items)
         self.assertEqual(trip.items.count(), 3)
-        self.assertTrue(all(item.image_url.startswith("/media/dev-samples/") for item in trip.items.all()))
-        self.assertTrue(trip.invoice_number.startswith("INV-"))
-        self.assertTrue(trip.invoice_url.endswith(".pdf"))
-        # The files are real, so the app's download/share buttons have something to fetch.
-        relative = trip.invoice_url.removeprefix("/media/")
-        with open(os.path.join(settings.MEDIA_ROOT, relative), "rb") as f:
-            self.assertEqual(f.read(5), b"%PDF-")
+        self.assertEqual(
+            [i.image_url for i in trip.items.all()], [p.image_url for p in dev_samples.CATALOGUE[:3]], "each product has its own picture"
+        )
+        self.assertEqual((trip.invoice_number, trip.invoice_url), (dev_samples.INVOICE_NUMBER, dev_samples.INVOICE_URL))
+        self.assertTrue(trip.invoice_url.startswith("https://") and trip.invoice_url.endswith(".pdf"))
         self.assertIn("verify each one", output)
-        self.assertIn("invoice INV-", output)
+        self.assertIn(f"invoice {dev_samples.INVOICE_NUMBER}", output)
 
     def test_the_default_booking_is_the_whole_flow_with_verification_on(self):
+        from trips import dev_samples
         from trips.models import Trip
 
         self.go_on_duty()
@@ -393,17 +389,55 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
 
         trip = Trip.objects.get()
         self.assertTrue(trip.verify_items, "verification is on by default")
-        self.assertEqual(trip.items.count(), 3)
         self.assertEqual(trip.payment_mode, PaymentMode.COD)
-        self.assertTrue(trip.invoice_number.startswith("INV-") and trip.invoice_url.endswith(".pdf"))
+        # The shop's four products, with their names and pictures, in order.
+        items = list(trip.items.all())
+        self.assertEqual([i.name for i in items], [p.name for p in dev_samples.CATALOGUE])
+        self.assertEqual([i.image_url for i in items], [p.image_url for p in dev_samples.CATALOGUE])
+        self.assertEqual([i.sku for i in items], ["560QWI101", "564QWI108", "564QWI151", "576QWI101"])
+        for item, product in zip(items, dev_samples.CATALOGUE):
+            self.assertTrue(product.quantity[0] <= item.quantity <= product.quantity[1], (item.name, item.quantity))
+        self.assertEqual((trip.invoice_number, trip.invoice_url), (dev_samples.INVOICE_NUMBER, dev_samples.INVOICE_URL))
         # It says what was booked and what to try, in order.
-        for item in trip.items.all():
+        for item in items:
             self.assertIn(item.name, output)
         self.assertIn("verify each one at the drop", output)
         self.assertIn("Try, in the app:", output)
         self.assertIn("item checklist", output)
         self.assertIn("stay locked", output, "tells you to try payment before the items are answered")
         self.assertIn(f"GET /api/v1/trips/{trip.id}", output, "where the recorded history can be read")
+
+    def test_quantities_are_random_within_sensible_bounds(self):
+        from trips import dev_samples
+
+        seen = {p.name: set() for p in dev_samples.CATALOGUE}
+        for _ in range(60):
+            for item in dev_samples.sample_items(4):
+                seen[item["name"]].add(item["quantity"])
+        for product in dev_samples.CATALOGUE:
+            low, high = product.quantity
+            self.assertTrue(all(low <= q <= high for q in seen[product.name]), product.name)
+            self.assertGreater(len(seen[product.name]), 1, f"{product.name}: the quantity actually varies")
+
+    def test_more_items_than_products_repeats_them_with_a_number(self):
+        from trips import dev_samples
+
+        names = [i["name"] for i in dev_samples.sample_items(6)]
+        self.assertEqual(names[4:], ["Ultra tech Cement #2", "Dr. Fixit Water proofing #2"])
+        self.assertEqual(len(set(names)), 6)
+
+    def test_another_invoice_link_can_be_supplied(self):
+        from trips.models import Trip
+
+        self.go_on_duty()
+        self.run_command("--invoice-url", "https://example.com/my-invoice.pdf")
+        trip = Trip.objects.get()
+        self.assertEqual(trip.invoice_url, "https://example.com/my-invoice.pdf")
+
+        Trip.objects.all().delete()
+        self.driver.refresh_from_db()
+        self.run_command("--no-invoice", "--invoice-url", "https://example.com/ignored.pdf")
+        self.assertEqual(Trip.objects.get().invoice_url, "", "no invoice means no invoice")
 
     def test_each_part_can_be_switched_off(self):
         from django.core.management.base import CommandError
@@ -419,7 +453,7 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
         self.driver.refresh_from_db()
         self.run_command("--no-verify-items")
         unchecked = Trip.objects.get()
-        self.assertEqual((unchecked.items.count(), unchecked.verify_items), (3, False), "items, but nothing to verify")
+        self.assertEqual((unchecked.items.count(), unchecked.verify_items), (4, False), "items, but nothing to verify")
 
         Trip.objects.all().delete()
         self.driver.refresh_from_db()

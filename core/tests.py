@@ -57,6 +57,30 @@ class DevCorsTests(SimpleTestCase):
         self.assertNotIn("Access-Control-Allow-Credentials", preflight(APIClient()))
 
 
+@override_settings(CORS_ALLOWED_ORIGINS=["https://mob-driver.netlify.app"])
+class DeployedCorsTests(SimpleTestCase):
+    def test_deployed_origin_preflight_is_allowed_in_both_modes(self):
+        for debug in (True, False):
+            with override_settings(DEBUG=debug):
+                response = preflight(APIClient(), "https://mob-driver.netlify.app")
+                self.assertEqual(response.status_code, 204)
+                self.assertEqual(response["Access-Control-Allow-Origin"], "https://mob-driver.netlify.app")
+
+    @override_settings(DEBUG=False)
+    def test_actual_error_response_allows_deployed_origin(self):
+        response = APIClient().post(
+            URL, {"phone_number": "abc"}, format="json",
+            HTTP_ORIGIN="https://mob-driver.netlify.app",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response["Access-Control-Allow-Origin"], "https://mob-driver.netlify.app")
+
+    @override_settings(DEBUG=False)
+    def test_unlisted_origin_is_not_allowed(self):
+        response = preflight(APIClient(), "https://other.netlify.app")
+        self.assertNotIn("Access-Control-Allow-Origin", response)
+
+
 class DevCorsIsOffInProductionTests(SimpleTestCase):
     @override_settings(DEBUG=False)
     def test_with_debug_off_no_origin_is_ever_allowed(self):
