@@ -18,6 +18,10 @@ class ApiClientTokenView(APIView):
     """POST /api/v1/auth/client-token — client_id + client_secret -> a short-lived
     access token for an ApiClient (client-credentials style, no refresh token)."""
 
+    # No authenticators: DRF runs them even for AllowAny views, so a stale or
+    # expired Bearer token left in a client's default headers would 401 the very
+    # request that is supposed to get it a fresh one.
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):

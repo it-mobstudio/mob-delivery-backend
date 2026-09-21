@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Driver, DriverKyc, Vehicle, VehicleDocument, VehicleType
+from .models import Driver, DriverKyc, Vehicle, VehicleDocument, VehicleType, WalletTransaction
 
 
 class DriverKycInline(admin.StackedInline):
@@ -61,3 +61,24 @@ class VehicleAdmin(admin.ModelAdmin):
     list_filter = ("status", "company", "vehicle_type__category")
     search_fields = ("registration_number",)
     inlines = [VehicleDocumentInline]
+
+
+@admin.register(WalletTransaction)
+class WalletTransactionAdmin(admin.ModelAdmin):
+    """The ledger is append-only — corrections are new ADJUSTMENT rows made
+    through the API (POST /drivers/{id}/wallet/transactions), so here it's
+    look-don't-touch."""
+
+    list_display = ("created_at", "driver", "kind", "amount", "balance_after", "reference")
+    list_filter = ("kind", "company")
+    search_fields = ("driver__full_name", "driver__phone_number", "reference", "description")
+    readonly_fields = [f.name for f in WalletTransaction._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

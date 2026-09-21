@@ -3,6 +3,7 @@ Django settings for mob_delivery project.
 """
 
 from datetime import timedelta
+from decimal import Decimal
 from pathlib import Path
 
 import environ
@@ -35,6 +36,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # First, so it can answer a browser's CORS preflight before anything else
+    # runs. A no-op unless DEBUG — see core/middleware.py.
+    "core.middleware.DevCorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -43,6 +47,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# Origins DevCorsMiddleware lets through when DEBUG is on: the Flutter web dev
+# server on localhost, on whatever port it picks.
+DEV_CORS_ORIGIN_REGEX = env("DEV_CORS_ORIGIN_REGEX", default=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$")
 
 ROOT_URLCONF = "mob_delivery.urls"
 
@@ -165,11 +173,30 @@ API_CLIENT_TOKEN_LIFETIME_MINUTES = env.int("API_CLIENT_TOKEN_LIFETIME_MINUTES",
 
 DRIVER_TOKEN_LIFETIME_MINUTES = env.int("DRIVER_TOKEN_LIFETIME_MINUTES", default=60)
 
+# The driver app keeps a shift-long session alive by trading this refresh
+# token for a new access token (POST /driver/auth/refresh) — the driver only
+# has to redo the SMS OTP once it lapses. See drivers.tokens.
+DRIVER_REFRESH_TOKEN_LIFETIME_DAYS = env.int("DRIVER_REFRESH_TOKEN_LIFETIME_DAYS", default=30)
+
 # Non-prod-only: return the generated OTP in the otp/request response body so
 # the driver login flow is testable without a real SMS gateway wired in.
 # Defaults to DEBUG but is a separate flag so it can be flipped independently
 # (e.g. a staging environment that runs DEBUG=False but still wants this).
 DRIVER_OTP_DEBUG_RESPONSE = env.bool("DRIVER_OTP_DEBUG_RESPONSE", default=DEBUG)
+
+# Self-registration: a phone number nobody has registered yet can sign in with
+# an OTP and becomes a driver of THIS company (then fills in details and uploads
+# documents for that company's admins to verify). Blank means sign-up is closed
+# and only drivers the company created can log in — except in DEBUG, where the
+# only active company, if there's exactly one, is used so local dev needs no
+# setup. See DriverService.signup_company.
+DRIVER_SIGNUP_COMPANY_ID = env("DRIVER_SIGNUP_COMPANY_ID", default="")
+
+# The share of a completed trip's fare that goes to the driver's wallet
+# (trips.services.TripService.driver_complete → drivers.wallet). The rest is the
+# company's margin. Business rule with no source of truth yet: set it here until
+# it moves onto the fare card / company settings.
+DRIVER_EARNING_PERCENT = Decimal(env("DRIVER_EARNING_PERCENT", default="80"))
 
 
 # Redis cache — used for ephemeral driver OTP storage (see drivers.services).
@@ -197,11 +224,93 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
+# API documentation (Swagger UI at /api/docs/, ReDoc at /api/redoc/, the raw
+# OpenAPI file at /api/schema/). The prose lives in docs/guides/ and the
+# per-endpoint text in core/openapi/ - see core/openapi/__init__.py.
+# Set API_PUBLIC_URL (e.g. https://api.example.com) to list the live server in
+# the docs' "server" picker next to the relative one.
+API_PUBLIC_URL = env("API_PUBLIC_URL", default="").rstrip("/")
+
+_BEARER = "A JWT sent as `Authorization: Bearer <token>`."
 SPECTACULAR_SETTINGS = {
-    "TITLE": "MOB Delivery Backend API",
-    "DESCRIPTION": "Multi-tenant delivery platform API — Company/AdminUser/ApiClient auth, Vehicle module.",
+    "TITLE": "MOB Delivery API",
+    "DESCRIPTION": (
+        "Book deliveries, follow them live, and run the driver app - one REST API for "
+        "companies (server-to-server or admin panel) and for the drivers' mobile app.\n\n"
+        "**New here?** Read *Introduction* and *Authentication* in the menu, then follow "
+        "*Booking a delivery*. Every endpoint below lists who may call it, which fields are "
+        "required, real request/response examples and every error it can return.\n\n"
+        "On a running server: `/api/docs/` is the interactive console (try calls), `/api/redoc/` is this reference, "
+        "and `/api/schema/` is the machine-readable OpenAPI file."
+    ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    # Public documentation: viewing it must not need a token (a stale one in the
+    # browser must not break it either).
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+    "SERVE_AUTHENTICATION": [],
+    "SCHEMA_PATH_PREFIX": r"/api/v1",
+    "SCHEMA_PATH_PREFIX_TRIM": True,
+    "SERVERS": [{"url": "/api/v1", "description": "This server"}]
+    + ([{"url": f"{API_PUBLIC_URL}/api/v1", "description": "Production"}] if API_PUBLIC_URL else []),
+    # Separate shapes for what you send and what you get back, so read-only
+    # fields (id, timestamps, ...) never appear as things you could send.
+    "COMPONENT_SPLIT_REQUEST": True,
+    # Several models share one field name (`status`, `category`) with different choices; give each set a proper name.
+    "ENUM_NAME_OVERRIDES": {
+        "TripStatusEnum": "core.choices.TripStatus",
+        "PaymentModeEnum": "core.choices.PaymentMode",
+        "PaymentStatusEnum": "core.choices.PaymentStatus",
+        "VehicleCategoryEnum": "core.choices.VehicleCategory",
+        "VehicleTypeStatusEnum": "core.choices.VehicleTypeStatus",
+        "VehicleStatusEnum": "core.choices.VehicleStatus",
+        "VehicleDocumentTypeEnum": "core.choices.VehicleDocumentType",
+        "VerificationStatusEnum": "core.choices.VerificationStatus",
+        "DriverAccountStatusEnum": "core.choices.DriverAccountStatus",
+        "OnboardingStatusEnum": "core.choices.OnboardingStatus",
+        "WalletTransactionKindEnum": "core.choices.WalletTransactionKind",
+        "ItemVerificationStatusEnum": "core.choices.ItemVerificationStatus",
+        "CancelledByEnum": "core.choices.CancelledBy",
+        "UploadPurposeEnum": "core.choices.UploadPurpose",
+        "KycDecisionEnum": ["verified", "rejected"],
+    },
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+        "core.openapi.hooks.describe_fields",
+        "core.openapi.hooks.tidy_examples",
+        "core.openapi.hooks.finish_schema",
+    ],
+    "APPEND_COMPONENTS": {
+        "securitySchemes": {
+            "ApiClientToken": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": f"{_BEARER} For **server-to-server integrations**: exchange your client id + secret at `POST /auth/client-token`. Valid 60 minutes; there is no refresh token - request a new one.",
+            },
+            "AdminToken": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": f"{_BEARER} For the company's **admin panel**: sign in at `POST /auth/login` with email + password; renew with `POST /auth/refresh`.",
+            },
+            "DriverToken": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": f"{_BEARER} For the **driver app**: the `accessToken` returned by `POST /driver/auth/otp/verify` (renew with `POST /driver/auth/refresh`).",
+            },
+        }
+    },
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "persistAuthorization": True,
+        "displayRequestDuration": True,
+        "filter": True,
+        "docExpansion": "list",
+        "defaultModelsExpandDepth": 0,
+        "tryItOutEnabled": True,
+    },
 }
 
 
@@ -224,8 +333,25 @@ KAFKA_ENABLED = env.bool("KAFKA_ENABLED", default=False)
 KAFKA_BOOTSTRAP_SERVERS = env.list("KAFKA_BOOTSTRAP_SERVERS", default=["localhost:9092"])
 KAFKA_TRIP_EVENTS_TOPIC = env("KAFKA_TRIP_EVENTS_TOPIC", default="trip-events")
 
-# trips.payments.UpiDeepLinkPaymentProvider — the VPA a COD trip's "scan to
-# pay" QR is made out to. Stand-in until a real payment gateway is wired
-# up; see trips/payments.py.
+# Payments — how a COD trip's "scan to pay" QR is made and how the money is
+# confirmed (trips.payments).
+#
+#   razorpay    (default) a single-use, fixed-amount UPI QR created through
+#               Razorpay's QR Codes API, one per trip. The payment is confirmed
+#               by Razorpay — via its signed webhook, or when the driver asks us
+#               to check — never on the driver's word alone.
+#   upi_static  a plain UPI deep link to COMPANY_UPI_VPA. Nothing confirms the
+#               payment (the driver taps "received"). Local development only.
+PAYMENT_PROVIDER = env("PAYMENT_PROVIDER", default="razorpay")
+RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID", default="")
+RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", default="")
+# Set the same value in Razorpay Dashboard → Webhooks (event: qr_code.credited);
+# POST /api/v1/webhooks/razorpay refuses anything not signed with it.
+RAZORPAY_WEBHOOK_SECRET = env("RAZORPAY_WEBHOOK_SECRET", default="")
+RAZORPAY_API_BASE = env("RAZORPAY_API_BASE", default="https://api.razorpay.com/v1")
+RAZORPAY_QR_VALID_MINUTES = env.int("RAZORPAY_QR_VALID_MINUTES", default=30)
+RAZORPAY_TIMEOUT_SECONDS = env.int("RAZORPAY_TIMEOUT_SECONDS", default=10)
+
+# The VPA the upi_static stand-in provider makes its QR out to.
 COMPANY_UPI_VPA = env("COMPANY_UPI_VPA", default="mob-delivery@upi")
 COMPANY_UPI_PAYEE_NAME = env("COMPANY_UPI_PAYEE_NAME", default="MOB Delivery")

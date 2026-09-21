@@ -34,7 +34,12 @@ class UploadService:
                 f"Unsupported file type '.{ext}' for purpose '{purpose}'. Allowed: {sorted(allowed)}."
             )
 
-        if ext != "pdf":
+        if ext == "pdf":
+            head = file.read(5)
+            file.seek(0)
+            if head != b"%PDF-":
+                raise ValidationError("File is not a valid PDF.")
+        else:
             try:
                 Image.open(file).verify()
             except Exception:
@@ -53,3 +58,20 @@ class UploadService:
         path = f"{company_id}/{segment}/{uuid.uuid4()}.{ext}"
         saved_path = default_storage.save(path, file)
         return default_storage.url(saved_path)
+
+
+def absolute_media_url(url, request=None):
+    """Makes a stored file URL usable by whoever is asking.
+
+    Azure Blob hands back absolute URLs, which pass through untouched. Local
+    dev storage hands back `/media/...`, which a phone can't load (it has no
+    idea what host that's relative to) — so it's resolved against the host the
+    *request* came in on. That's also why the relative form is what's stored:
+    an Android emulator reaches this server as 10.0.2.2, a browser as
+    localhost, and each gets a URL that works for it.
+    """
+    if not url:
+        return url
+    if url.startswith("/") and request is not None:
+        return request.build_absolute_uri(url)
+    return url

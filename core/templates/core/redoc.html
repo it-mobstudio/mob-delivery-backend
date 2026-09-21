@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MOB Delivery API - Reference</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; padding: 0; }
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: 44px; box-sizing: border-box;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+      background: #0f2942; color: #fff; font: 500 13px/1 Inter, system-ui, sans-serif;
+    }
+    .topbar b { font-weight: 700; letter-spacing: .2px; }
+    .topbar a { color: #cfe3f5; text-decoration: none; margin-left: 20px; }
+    .topbar a:hover { color: #fff; text-decoration: underline; }
+    #redoc { padding-top: 44px; }
+    @media (max-width: 600px) { .topbar span { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <b>MOB Delivery API <span style="font-weight:400;opacity:.7">- Reference</span></b>
+    <nav>
+      <a href="{{ swagger_url }}">Try it in Swagger UI</a>
+      <a href="{{ schema_url }}" download="openapi.json">OpenAPI file</a>
+    </nav>
+  </div>
+  <div id="redoc"></div>
+  <script src="https://cdn.jsdelivr.net/npm/redoc@2/bundles/redoc.standalone.js"></script>
+  <script>
+    Redoc.init("{{ schema_url }}", {
+      scrollYOffset: 44,
+      hideDownloadButton: false,
+      expandResponses: "200,201",
+      requiredPropsFirst: true,
+      sortPropsAlphabetically: false,
+      pathInMiddlePanel: true,
+      jsonSampleExpandLevel: 3,
+      menuToggle: true,
+      theme: {
+        colors: { primary: { main: "#0f6cbd" } },
+        typography: {
+          fontSize: "15px",
+          fontFamily: "Inter, system-ui, -apple-system, Segoe UI, sans-serif",
+          headings: { fontFamily: "Inter, system-ui, sans-serif", fontWeight: "700" },
+          code: { fontFamily: "'JetBrains Mono', ui-monospace, Menlo, monospace", fontSize: "13px" }
+        },
+        sidebar: { width: "300px", backgroundColor: "#f7f9fc" },
+        rightPanel: { backgroundColor: "#0f2942" }
+      }
+    }, document.getElementById("redoc"));
+  </script>
+</body>
+</html>

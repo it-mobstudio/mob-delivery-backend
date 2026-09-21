@@ -4,6 +4,7 @@ from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from accounts.permissions import IsCompanyPrincipal
 from core.tenancy import CompanyScopedMixin
 
 from .models import Vehicle, VehicleDocument, VehicleType
@@ -19,6 +20,7 @@ from .vehicle_services import VehicleService
 
 
 class VehicleTypeViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
+    permission_classes = [IsCompanyPrincipal]
     serializer_class = VehicleTypeSerializer
     queryset = VehicleType.objects.all()
     filter_backends = [DjangoFilterBackend]
@@ -29,6 +31,7 @@ class VehicleTypeViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
 
 
 class VehicleViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
+    permission_classes = [IsCompanyPrincipal]
     queryset = Vehicle.objects.select_related("vehicle_type").all()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = VehicleFilter
@@ -55,6 +58,7 @@ class VehicleViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
 
 
 class VehicleDocumentViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsCompanyPrincipal]
     serializer_class = VehicleDocumentSerializer
     http_method_names = ["get", "post", "patch"]
 
@@ -66,6 +70,8 @@ class VehicleDocumentViewSet(viewsets.ModelViewSet):
         )
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):  # API schema generation, no request
+            return VehicleDocument.objects.none()
         return VehicleDocument.objects.filter(vehicle=self.get_vehicle())
 
     def perform_create(self, serializer):

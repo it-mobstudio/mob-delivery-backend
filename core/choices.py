@@ -70,6 +70,26 @@ class DriverAccountStatus(models.TextChoices):
     DISABLED = "disabled", "Disabled"
 
 
+class OnboardingStatus(models.TextChoices):
+    """Where a driver is in getting approved — derived from what they've filled
+    in and what the company has decided (Driver.onboarding_status), never stored,
+    so it can't drift from the facts it summarises."""
+
+    PROFILE_INCOMPLETE = "profile_incomplete", "Profile incomplete"
+    DOCUMENTS_REQUIRED = "documents_required", "Documents required"
+    UNDER_REVIEW = "under_review", "Under review"
+    ACTION_REQUIRED = "action_required", "Action required"
+    APPROVED = "approved", "Approved"
+
+
+class WalletTransactionKind(models.TextChoices):
+    TRIP_EARNING = "trip_earning", "Trip earning"
+    BONUS = "bonus", "Bonus"
+    PENALTY = "penalty", "Penalty"
+    PAYOUT = "payout", "Payout"
+    ADJUSTMENT = "adjustment", "Adjustment"
+
+
 # trips -----------------------------------------------------------------
 
 
@@ -99,6 +119,15 @@ class PaymentStatus(models.TextChoices):
     PAID = "paid", "Paid"
 
 
+class ItemVerificationStatus(models.TextChoices):
+    """What the driver has said about one line of a trip's item list when the
+    company asked for verification (Trip.verify_items)."""
+
+    PENDING = "pending", "Pending"
+    DELIVERED = "delivered", "Delivered"
+    NOT_DELIVERED = "not_delivered", "Not delivered"
+
+
 # uploads (folded into core — see core/uploads.py) -------------------------
 
 
@@ -107,3 +136,7 @@ class UploadPurpose(models.TextChoices):
     VEHICLE_PHOTO = "vehicle_photo", "Vehicle Photo"
     VEHICLE_DOCUMENT = "vehicle_document", "Vehicle Document"
     DRIVER_DOCUMENT = "driver_document", "Driver Document"
+    DRIVER_PHOTO = "driver_photo", "Driver Photo"
+    TRIP_INVOICE = "trip_invoice", "Trip Invoice"
+    TRIP_ITEM_IMAGE = "trip_item_image", "Trip Item Image"
+    DELIVERY_PROOF = "delivery_proof", "Delivery Proof Photo"

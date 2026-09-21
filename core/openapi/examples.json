@@ -1,0 +1,2944 @@
+{
+ "auth.client_token": {
+  "body": {
+   "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoiYXBpX2NsaWVudCIsImV4cCI6MTc5MDAwMDAwMH0.w5Tn7cM2kE8-example-access-signature",
+   "expires_in": 3600
+  },
+  "status": 200
+ },
+ "auth.client_token.bad": {
+  "body": {
+   "error": {
+    "code": "AUTHENTICATION_FAILED",
+    "message": "Invalid client credentials."
+   },
+   "success": false
+  },
+  "status": 401
+ },
+ "auth.login": {
+  "body": {
+   "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoiYWRtaW4iLCJleHAiOjE3OTAwMDAwMDB9.b2Hs6dQ8yC4-example-access-signature",
+   "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoiYWRtaW4iLCJleHAiOjE3OTA2MDQ4MDB9.z9Lf3uP5tR1-example-refresh-signature"
+  },
+  "status": 200
+ },
+ "auth.login.bad": {
+  "body": {
+   "error": {
+    "code": "AUTHENTICATION_FAILED",
+    "message": "No active account found with the given credentials"
+   },
+   "success": false
+  },
+  "status": 401
+ },
+ "auth.refresh": {
+  "body": {
+   "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoiYWRtaW4iLCJleHAiOjE3OTAwMDAwMDB9.b2Hs6dQ8yC4-example-access-signature"
+  },
+  "status": 200
+ },
+ "driver_admin.create": {
+  "body": {
+   "aadhar_status": "pending",
+   "account_status": "active",
+   "city": "",
+   "created_at": "2026-09-21T09:36:50.675202Z",
+   "current_vehicle_id": null,
+   "date_of_birth": null,
+   "dl_allowed_categories": [],
+   "dl_expiry_date": null,
+   "dl_status": "pending",
+   "email": "",
+   "emergency_contact_name": "Ravi Rao",
+   "emergency_contact_phone": "+919777700002",
+   "full_name": "Meena Rao",
+   "id": "2237a9ee-693e-4419-b034-313babcf09c0",
+   "onboarding_status": "profile_incomplete",
+   "phone_number": "+919777700001",
+   "police_status": "pending",
+   "profile_photo_url": null,
+   "updated_at": "2026-09-21T09:37:39.307726Z"
+  },
+  "status": 201
+ },
+ "driver_admin.kyc.dl": {
+  "body": {
+   "aadhar_back_doc_url": null,
+   "aadhar_doc_url": null,
+   "aadhar_number_last4": "",
+   "aadhar_rejection_note": "The photo is blurry",
+   "aadhar_status": "rejected",
+   "aadhar_verified_at": "2026-09-21T09:38:18.399543Z",
+   "aadhar_verified_by": "61d4afcd-518a-4149-af43-10b609eed458",
+   "dl_allowed_categories": [
+    "two_wheeler"
+   ],
+   "dl_back_doc_url": null,
+   "dl_doc_url": null,
+   "dl_expiry_date": "2027-10-26",
+   "dl_number": "",
+   "dl_rejection_note": null,
+   "dl_status": "verified",
+   "dl_verified_at": "2026-09-21T09:39:00.662391Z",
+   "dl_verified_by": "61d4afcd-518a-4149-af43-10b609eed458",
+   "id": "7416fafc-204b-45eb-80c4-84b9021ba640",
+   "police_doc_url": null,
+   "police_rejection_note": null,
+   "police_status": "pending",
+   "police_verified_at": null,
+   "police_verified_by": null
+  },
+  "status": 200
+ },
+ "driver_admin.kyc.get": {
+  "body": {
+   "aadhar_back_doc_url": null,
+   "aadhar_doc_url": null,
+   "aadhar_number_last4": "",
+   "aadhar_rejection_note": null,
+   "aadhar_status": "pending",
+   "aadhar_verified_at": null,
+   "aadhar_verified_by": null,
+   "dl_allowed_categories": [],
+   "dl_back_doc_url": null,
+   "dl_doc_url": null,
+   "dl_expiry_date": null,
+   "dl_number": "",
+   "dl_rejection_note": null,
+   "dl_status": "pending",
+   "dl_verified_at": null,
+   "dl_verified_by": null,
+   "id": "7416fafc-204b-45eb-80c4-84b9021ba640",
+   "police_doc_url": null,
+   "police_rejection_note": null,
+   "police_status": "pending",
+   "police_verified_at": null,
+   "police_verified_by": null
+  },
+  "status": 200
+ },
+ "driver_admin.kyc.reject": {
+  "body": {
+   "aadhar_back_doc_url": null,
+   "aadhar_doc_url": null,
+   "aadhar_number_last4": "",
+   "aadhar_rejection_note": "The photo is blurry",
+   "aadhar_status": "rejected",
+   "aadhar_verified_at": "2026-09-21T09:38:18.399543Z",
+   "aadhar_verified_by": "61d4afcd-518a-4149-af43-10b609eed458",
+   "dl_allowed_categories": [],
+   "dl_back_doc_url": null,
+   "dl_doc_url": null,
+   "dl_expiry_date": null,
+   "dl_number": "",
+   "dl_rejection_note": null,
+   "dl_status": "pending",
+   "dl_verified_at": null,
+   "dl_verified_by": null,
+   "id": "7416fafc-204b-45eb-80c4-84b9021ba640",
+   "police_doc_url": null,
+   "police_rejection_note": null,
+   "police_status": "pending",
+   "police_verified_at": null,
+   "police_verified_by": null
+  },
+  "status": 200
+ },
+ "driver_admin.kyc.verify_aadhar": {
+  "body": {
+   "aadhar_back_doc_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/22b6b194-6307-4237-b593-db2328671c11.jpg",
+   "aadhar_doc_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/5863b694-1ede-4ea9-b3ce-87542e7404a3.jpg",
+   "aadhar_number_last4": "0123",
+   "aadhar_rejection_note": null,
+   "aadhar_status": "verified",
+   "aadhar_verified_at": "2026-09-21T09:39:43.634125Z",
+   "aadhar_verified_by": "61d4afcd-518a-4149-af43-10b609eed458",
+   "dl_allowed_categories": [],
+   "dl_back_doc_url": null,
+   "dl_doc_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/6257aec1-85ba-4f0b-a86b-a98dfd674d0d.jpg",
+   "dl_expiry_date": "2027-10-26",
+   "dl_number": "KA01 20110012345",
+   "dl_rejection_note": null,
+   "dl_status": "pending",
+   "dl_verified_at": null,
+   "dl_verified_by": null,
+   "id": "44389868-623f-47bd-83bf-e19e97c2a6f6",
+   "police_doc_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/0530d741-d881-4148-a6da-e2aaf2a702d4.pdf",
+   "police_rejection_note": null,
+   "police_status": "pending",
+   "police_verified_at": null,
+   "police_verified_by": null
+  },
+  "status": 200
+ },
+ "driver_admin.list": {
+  "body": {
+   "count": 2,
+   "next": null,
+   "previous": null,
+   "results": [
+    {
+     "aadhar_status": "pending",
+     "account_status": "active",
+     "created_at": "2026-09-21T09:36:50.675202Z",
+     "current_vehicle_id": null,
+     "dl_status": "pending",
+     "full_name": "Meena Rao",
+     "id": "2237a9ee-693e-4419-b034-313babcf09c0",
+     "is_eligible_for_assignment": false,
+     "onboarding_status": "profile_incomplete",
+     "phone_number": "+919777700001",
+     "police_status": "pending",
+     "updated_at": "2026-09-21T09:37:39.307726Z"
+    },
+    {
+     "aadhar_status": "verified",
+     "account_status": "active",
+     "created_at": "2026-09-21T09:31:22.852451Z",
+     "current_vehicle_id": null,
+     "dl_status": "verified",
+     "full_name": "Test Driver",
+     "id": "ff64279e-396e-4b91-aefd-93e5c539c4da",
+     "is_eligible_for_assignment": true,
+     "onboarding_status": "approved",
+     "phone_number": "+9100000000",
+     "police_status": "verified",
+     "updated_at": "2026-09-21T09:32:05.497515Z"
+    }
+   ]
+  },
+  "status": 200
+ },
+ "driver_auth.logout": {
+  "body": {
+   "message": "Signed out."
+  },
+  "status": 200
+ },
+ "driver_auth.otp_request": {
+  "body": {
+   "message": "OTP sent to +919876543210.",
+   "otp": "482913"
+  },
+  "status": 200
+ },
+ "driver_auth.otp_verify": {
+  "body": {
+   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoiZHJpdmVyIiwiZXhwIjoxNzkwMDAwMDAwfQ.q3vN8rT1xZ2-example-access-signature",
+   "driver": {
+    "aadhar_rejection_note": null,
+    "aadhar_status": "pending",
+    "account_status": "active",
+    "address_line": "",
+    "city": "",
+    "current_vehicle": null,
+    "current_vehicle_id": null,
+    "date_of_birth": null,
+    "dl_allowed_categories": [],
+    "dl_expiry_date": null,
+    "dl_rejection_note": null,
+    "dl_status": "pending",
+    "email": "",
+    "emergency_contact_name": "",
+    "emergency_contact_phone": "",
+    "full_name": "",
+    "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+    "is_eligible_for_assignment": false,
+    "is_online": false,
+    "is_profile_complete": false,
+    "kyc": {
+     "aadhar": {
+      "back_url": null,
+      "front_url": null,
+      "number_last4": null,
+      "rejection_note": null,
+      "status": "pending",
+      "submitted": false
+     },
+     "dl": {
+      "back_url": null,
+      "expiry_date": null,
+      "front_url": null,
+      "number": null,
+      "rejection_note": null,
+      "status": "pending",
+      "submitted": false
+     },
+     "police": {
+      "document_url": null,
+      "rejection_note": null,
+      "status": "pending",
+      "submitted": false
+     }
+    },
+    "onboarding_status": "profile_incomplete",
+    "payout": {
+     "bank_account_holder": null,
+     "bank_account_last4": null,
+     "bank_ifsc": null,
+     "is_set": false,
+     "upi_id": null
+    },
+    "phone_number": "+919876543210",
+    "pincode": "",
+    "police_rejection_note": null,
+    "police_status": "pending",
+    "profile_photo_url": null
+   },
+   "driverName": "",
+   "expiresInSeconds": 3600,
+   "refreshExpiresInSeconds": 2592000,
+   "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoiZHJpdmVyIiwiZXhwIjoxNzkyNTkyMDAwfQ.m7Kp4sL9wA6-example-refresh-signature",
+   "tokenType": "Bearer"
+  },
+  "status": 200
+ },
+ "driver_auth.otp_verify.bad": {
+  "body": {
+   "error": {
+    "code": "INVALID_OTP",
+    "message": "The OTP is invalid or has expired."
+   },
+   "success": false
+  },
+  "status": 400
+ },
+ "driver_auth.refresh": {
+  "body": {
+   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoiZHJpdmVyIiwiZXhwIjoxNzkwMDAwMDAwfQ.q3vN8rT1xZ2-example-access-signature",
+   "driver": {
+    "aadhar_rejection_note": null,
+    "aadhar_status": "pending",
+    "account_status": "active",
+    "address_line": "",
+    "city": "",
+    "current_vehicle": null,
+    "current_vehicle_id": null,
+    "date_of_birth": null,
+    "dl_allowed_categories": [],
+    "dl_expiry_date": null,
+    "dl_rejection_note": null,
+    "dl_status": "pending",
+    "email": "",
+    "emergency_contact_name": "",
+    "emergency_contact_phone": "",
+    "full_name": "",
+    "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+    "is_eligible_for_assignment": false,
+    "is_online": false,
+    "is_profile_complete": false,
+    "kyc": {
+     "aadhar": {
+      "back_url": null,
+      "front_url": null,
+      "number_last4": null,
+      "rejection_note": null,
+      "status": "pending",
+      "submitted": false
+     },
+     "dl": {
+      "back_url": null,
+      "expiry_date": null,
+      "front_url": null,
+      "number": null,
+      "rejection_note": null,
+      "status": "pending",
+      "submitted": false
+     },
+     "police": {
+      "document_url": null,
+      "rejection_note": null,
+      "status": "pending",
+      "submitted": false
+     }
+    },
+    "onboarding_status": "profile_incomplete",
+    "payout": {
+     "bank_account_holder": null,
+     "bank_account_last4": null,
+     "bank_ifsc": null,
+     "is_set": false,
+     "upi_id": null
+    },
+    "phone_number": "+919876543210",
+    "pincode": "",
+    "police_rejection_note": null,
+    "police_status": "pending",
+    "profile_photo_url": null
+   },
+   "driverName": "",
+   "expiresInSeconds": 3600,
+   "refreshExpiresInSeconds": 2592000,
+   "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoiZHJpdmVyIiwiZXhwIjoxNzkyNTkyMDAwfQ.m7Kp4sL9wA6-example-refresh-signature",
+   "tokenType": "Bearer"
+  },
+  "status": 200
+ },
+ "driver_auth.refresh.bad": {
+  "body": {
+   "error": {
+    "code": "INVALID_REFRESH_TOKEN",
+    "message": "Your session has expired. Please sign in again."
+   },
+   "success": false
+  },
+  "status": 401
+ },
+ "driver_me.aadhar": {
+  "body": {
+   "aadhar_rejection_note": null,
+   "aadhar_status": "pending",
+   "account_status": "active",
+   "address_line": "",
+   "city": "Bengaluru",
+   "current_vehicle": null,
+   "current_vehicle_id": null,
+   "date_of_birth": "1994-03-12",
+   "dl_allowed_categories": [],
+   "dl_expiry_date": null,
+   "dl_rejection_note": null,
+   "dl_status": "pending",
+   "email": "ravi@example.com",
+   "emergency_contact_name": "Sunita Kumar",
+   "emergency_contact_phone": "+919555500002",
+   "full_name": "Ravi Kumar",
+   "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+   "is_eligible_for_assignment": false,
+   "is_online": false,
+   "is_profile_complete": true,
+   "kyc": {
+    "aadhar": {
+     "back_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/22b6b194-6307-4237-b593-db2328671c11.jpg",
+     "front_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/5863b694-1ede-4ea9-b3ce-87542e7404a3.jpg",
+     "number_last4": "0123",
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": true
+    },
+    "dl": {
+     "back_url": null,
+     "expiry_date": null,
+     "front_url": null,
+     "number": null,
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": false
+    },
+    "police": {
+     "document_url": null,
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": false
+    }
+   },
+   "onboarding_status": "documents_required",
+   "payout": {
+    "bank_account_holder": null,
+    "bank_account_last4": null,
+    "bank_ifsc": null,
+    "is_set": false,
+    "upi_id": null
+   },
+   "phone_number": "+919876543210",
+   "pincode": "560001",
+   "police_rejection_note": null,
+   "police_status": "pending",
+   "profile_photo_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-photos/94c6de39-a957-48b8-8dc4-94e4f9cb8306.jpg"
+  },
+  "status": 200
+ },
+ "driver_me.approved": {
+  "body": {
+   "aadhar_rejection_note": null,
+   "aadhar_status": "verified",
+   "account_status": "active",
+   "address_line": "",
+   "city": "Bengaluru",
+   "current_vehicle": null,
+   "current_vehicle_id": null,
+   "date_of_birth": "1994-03-12",
+   "dl_allowed_categories": [
+    "two_wheeler"
+   ],
+   "dl_expiry_date": "2027-10-26",
+   "dl_rejection_note": null,
+   "dl_status": "verified",
+   "email": "ravi@example.com",
+   "emergency_contact_name": "Sunita Kumar",
+   "emergency_contact_phone": "+919555500002",
+   "full_name": "Ravi Kumar",
+   "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+   "is_eligible_for_assignment": true,
+   "is_online": false,
+   "is_profile_complete": true,
+   "kyc": {
+    "aadhar": {
+     "back_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/22b6b194-6307-4237-b593-db2328671c11.jpg",
+     "front_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/5863b694-1ede-4ea9-b3ce-87542e7404a3.jpg",
+     "number_last4": "0123",
+     "rejection_note": null,
+     "status": "verified",
+     "submitted": true
+    },
+    "dl": {
+     "back_url": null,
+     "expiry_date": "2027-10-26",
+     "front_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/6257aec1-85ba-4f0b-a86b-a98dfd674d0d.jpg",
+     "number": "KA01 20110012345",
+     "rejection_note": null,
+     "status": "verified",
+     "submitted": true
+    },
+    "police": {
+     "document_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/0530d741-d881-4148-a6da-e2aaf2a702d4.pdf",
+     "rejection_note": null,
+     "status": "verified",
+     "submitted": true
+    }
+   },
+   "onboarding_status": "approved",
+   "payout": {
+    "bank_account_holder": null,
+    "bank_account_last4": null,
+    "bank_ifsc": null,
+    "is_set": true,
+    "upi_id": "ravi@okhdfc"
+   },
+   "phone_number": "+919876543210",
+   "pincode": "560001",
+   "police_rejection_note": null,
+   "police_status": "verified",
+   "profile_photo_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-photos/94c6de39-a957-48b8-8dc4-94e4f9cb8306.jpg"
+  },
+  "status": 200
+ },
+ "driver_me.delete.blocked": {
+  "body": {
+   "error": {
+    "code": "WALLET_BALANCE_PENDING",
+    "message": "You still have ₹18.00 in your wallet. Ask your company to pay it out, then delete your account."
+   },
+   "success": false
+  },
+  "status": 409
+ },
+ "driver_me.dl": {
+  "body": {
+   "aadhar_rejection_note": null,
+   "aadhar_status": "pending",
+   "account_status": "active",
+   "address_line": "",
+   "city": "Bengaluru",
+   "current_vehicle": null,
+   "current_vehicle_id": null,
+   "date_of_birth": "1994-03-12",
+   "dl_allowed_categories": [],
+   "dl_expiry_date": "2027-10-26",
+   "dl_rejection_note": null,
+   "dl_status": "pending",
+   "email": "ravi@example.com",
+   "emergency_contact_name": "Sunita Kumar",
+   "emergency_contact_phone": "+919555500002",
+   "full_name": "Ravi Kumar",
+   "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+   "is_eligible_for_assignment": false,
+   "is_online": false,
+   "is_profile_complete": true,
+   "kyc": {
+    "aadhar": {
+     "back_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/22b6b194-6307-4237-b593-db2328671c11.jpg",
+     "front_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/5863b694-1ede-4ea9-b3ce-87542e7404a3.jpg",
+     "number_last4": "0123",
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": true
+    },
+    "dl": {
+     "back_url": null,
+     "expiry_date": "2027-10-26",
+     "front_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/6257aec1-85ba-4f0b-a86b-a98dfd674d0d.jpg",
+     "number": "KA01 20110012345",
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": true
+    },
+    "police": {
+     "document_url": null,
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": false
+    }
+   },
+   "onboarding_status": "under_review",
+   "payout": {
+    "bank_account_holder": null,
+    "bank_account_last4": null,
+    "bank_ifsc": null,
+    "is_set": false,
+    "upi_id": null
+   },
+   "phone_number": "+919876543210",
+   "pincode": "560001",
+   "police_rejection_note": null,
+   "police_status": "pending",
+   "profile_photo_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-photos/94c6de39-a957-48b8-8dc4-94e4f9cb8306.jpg"
+  },
+  "status": 200
+ },
+ "driver_me.new": {
+  "body": {
+   "aadhar_rejection_note": null,
+   "aadhar_status": "pending",
+   "account_status": "active",
+   "address_line": "",
+   "city": "",
+   "current_vehicle": null,
+   "current_vehicle_id": null,
+   "date_of_birth": null,
+   "dl_allowed_categories": [],
+   "dl_expiry_date": null,
+   "dl_rejection_note": null,
+   "dl_status": "pending",
+   "email": "",
+   "emergency_contact_name": "",
+   "emergency_contact_phone": "",
+   "full_name": "",
+   "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+   "is_eligible_for_assignment": false,
+   "is_online": false,
+   "is_profile_complete": false,
+   "kyc": {
+    "aadhar": {
+     "back_url": null,
+     "front_url": null,
+     "number_last4": null,
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": false
+    },
+    "dl": {
+     "back_url": null,
+     "expiry_date": null,
+     "front_url": null,
+     "number": null,
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": false
+    },
+    "police": {
+     "document_url": null,
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": false
+    }
+   },
+   "onboarding_status": "profile_incomplete",
+   "payout": {
+    "bank_account_holder": null,
+    "bank_account_last4": null,
+    "bank_ifsc": null,
+    "is_set": false,
+    "upi_id": null
+   },
+   "phone_number": "+919876543210",
+   "pincode": "",
+   "police_rejection_note": null,
+   "police_status": "pending",
+   "profile_photo_url": null
+  },
+  "status": 200
+ },
+ "driver_me.patch": {
+  "body": {
+   "aadhar_rejection_note": null,
+   "aadhar_status": "pending",
+   "account_status": "active",
+   "address_line": "",
+   "city": "Bengaluru",
+   "current_vehicle": null,
+   "current_vehicle_id": null,
+   "date_of_birth": "1994-03-12",
+   "dl_allowed_categories": [],
+   "dl_expiry_date": null,
+   "dl_rejection_note": null,
+   "dl_status": "pending",
+   "email": "ravi@example.com",
+   "emergency_contact_name": "Sunita Kumar",
+   "emergency_contact_phone": "+919555500002",
+   "full_name": "Ravi Kumar",
+   "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+   "is_eligible_for_assignment": false,
+   "is_online": false,
+   "is_profile_complete": true,
+   "kyc": {
+    "aadhar": {
+     "back_url": null,
+     "front_url": null,
+     "number_last4": null,
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": false
+    },
+    "dl": {
+     "back_url": null,
+     "expiry_date": null,
+     "front_url": null,
+     "number": null,
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": false
+    },
+    "police": {
+     "document_url": null,
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": false
+    }
+   },
+   "onboarding_status": "documents_required",
+   "payout": {
+    "bank_account_holder": null,
+    "bank_account_last4": null,
+    "bank_ifsc": null,
+    "is_set": false,
+    "upi_id": null
+   },
+   "phone_number": "+919876543210",
+   "pincode": "560001",
+   "police_rejection_note": null,
+   "police_status": "pending",
+   "profile_photo_url": null
+  },
+  "status": 200
+ },
+ "driver_me.patch.bad": {
+  "body": {
+   "error": {
+    "code": "INVALID",
+    "details": {
+     "date_of_birth": [
+      "You must be at least 18 years old."
+     ],
+     "pincode": [
+      "Enter a valid 6-digit pincode."
+     ]
+    },
+    "message": "Request could not be processed."
+   },
+   "success": false
+  },
+  "status": 400
+ },
+ "driver_me.payout": {
+  "body": {
+   "aadhar_rejection_note": null,
+   "aadhar_status": "pending",
+   "account_status": "active",
+   "address_line": "",
+   "city": "Bengaluru",
+   "current_vehicle": null,
+   "current_vehicle_id": null,
+   "date_of_birth": "1994-03-12",
+   "dl_allowed_categories": [],
+   "dl_expiry_date": "2027-10-26",
+   "dl_rejection_note": null,
+   "dl_status": "pending",
+   "email": "ravi@example.com",
+   "emergency_contact_name": "Sunita Kumar",
+   "emergency_contact_phone": "+919555500002",
+   "full_name": "Ravi Kumar",
+   "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+   "is_eligible_for_assignment": false,
+   "is_online": false,
+   "is_profile_complete": true,
+   "kyc": {
+    "aadhar": {
+     "back_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/22b6b194-6307-4237-b593-db2328671c11.jpg",
+     "front_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/5863b694-1ede-4ea9-b3ce-87542e7404a3.jpg",
+     "number_last4": "0123",
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": true
+    },
+    "dl": {
+     "back_url": null,
+     "expiry_date": "2027-10-26",
+     "front_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/6257aec1-85ba-4f0b-a86b-a98dfd674d0d.jpg",
+     "number": "KA01 20110012345",
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": true
+    },
+    "police": {
+     "document_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/0530d741-d881-4148-a6da-e2aaf2a702d4.pdf",
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": true
+    }
+   },
+   "onboarding_status": "under_review",
+   "payout": {
+    "bank_account_holder": null,
+    "bank_account_last4": null,
+    "bank_ifsc": null,
+    "is_set": true,
+    "upi_id": "ravi@okhdfc"
+   },
+   "phone_number": "+919876543210",
+   "pincode": "560001",
+   "police_rejection_note": null,
+   "police_status": "pending",
+   "profile_photo_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-photos/94c6de39-a957-48b8-8dc4-94e4f9cb8306.jpg"
+  },
+  "status": 200
+ },
+ "driver_me.photo": {
+  "body": {
+   "aadhar_rejection_note": null,
+   "aadhar_status": "pending",
+   "account_status": "active",
+   "address_line": "",
+   "city": "Bengaluru",
+   "current_vehicle": null,
+   "current_vehicle_id": null,
+   "date_of_birth": "1994-03-12",
+   "dl_allowed_categories": [],
+   "dl_expiry_date": null,
+   "dl_rejection_note": null,
+   "dl_status": "pending",
+   "email": "ravi@example.com",
+   "emergency_contact_name": "Sunita Kumar",
+   "emergency_contact_phone": "+919555500002",
+   "full_name": "Ravi Kumar",
+   "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+   "is_eligible_for_assignment": false,
+   "is_online": false,
+   "is_profile_complete": true,
+   "kyc": {
+    "aadhar": {
+     "back_url": null,
+     "front_url": null,
+     "number_last4": null,
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": false
+    },
+    "dl": {
+     "back_url": null,
+     "expiry_date": null,
+     "front_url": null,
+     "number": null,
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": false
+    },
+    "police": {
+     "document_url": null,
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": false
+    }
+   },
+   "onboarding_status": "documents_required",
+   "payout": {
+    "bank_account_holder": null,
+    "bank_account_last4": null,
+    "bank_ifsc": null,
+    "is_set": false,
+    "upi_id": null
+   },
+   "phone_number": "+919876543210",
+   "pincode": "560001",
+   "police_rejection_note": null,
+   "police_status": "pending",
+   "profile_photo_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-photos/94c6de39-a957-48b8-8dc4-94e4f9cb8306.jpg"
+  },
+  "status": 200
+ },
+ "driver_me.police": {
+  "body": {
+   "aadhar_rejection_note": null,
+   "aadhar_status": "pending",
+   "account_status": "active",
+   "address_line": "",
+   "city": "Bengaluru",
+   "current_vehicle": null,
+   "current_vehicle_id": null,
+   "date_of_birth": "1994-03-12",
+   "dl_allowed_categories": [],
+   "dl_expiry_date": "2027-10-26",
+   "dl_rejection_note": null,
+   "dl_status": "pending",
+   "email": "ravi@example.com",
+   "emergency_contact_name": "Sunita Kumar",
+   "emergency_contact_phone": "+919555500002",
+   "full_name": "Ravi Kumar",
+   "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+   "is_eligible_for_assignment": false,
+   "is_online": false,
+   "is_profile_complete": true,
+   "kyc": {
+    "aadhar": {
+     "back_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/22b6b194-6307-4237-b593-db2328671c11.jpg",
+     "front_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/5863b694-1ede-4ea9-b3ce-87542e7404a3.jpg",
+     "number_last4": "0123",
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": true
+    },
+    "dl": {
+     "back_url": null,
+     "expiry_date": "2027-10-26",
+     "front_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/6257aec1-85ba-4f0b-a86b-a98dfd674d0d.jpg",
+     "number": "KA01 20110012345",
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": true
+    },
+    "police": {
+     "document_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/0530d741-d881-4148-a6da-e2aaf2a702d4.pdf",
+     "rejection_note": null,
+     "status": "pending",
+     "submitted": true
+    }
+   },
+   "onboarding_status": "under_review",
+   "payout": {
+    "bank_account_holder": null,
+    "bank_account_last4": null,
+    "bank_ifsc": null,
+    "is_set": false,
+    "upi_id": null
+   },
+   "phone_number": "+919876543210",
+   "pincode": "560001",
+   "police_rejection_note": null,
+   "police_status": "pending",
+   "profile_photo_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-photos/94c6de39-a957-48b8-8dc4-94e4f9cb8306.jpg"
+  },
+  "status": 200
+ },
+ "driver_me.upload.bad": {
+  "body": {
+   "error": {
+    "code": "INVALID",
+    "details": {
+     "document": [
+      "No file was submitted."
+     ]
+    },
+    "message": "Request could not be processed."
+   },
+   "success": false
+  },
+  "status": 400
+ },
+ "driver_trip.active": {
+  "body": {
+   "trip": {
+    "arrived_at_pickup_at": null,
+    "assigned_at": "2026-09-21T09:41:05.554924Z",
+    "base_fare": "30.00",
+    "cancellation_reason": "",
+    "cancelled_at": null,
+    "cancelled_by": "",
+    "cod_collected_at": null,
+    "completed_at": null,
+    "created_at": "2026-09-21T09:40:17.136677Z",
+    "currency": "INR",
+    "distance_fare": "42.00",
+    "distance_meters": 4200,
+    "driver": {
+     "full_name": "Ravi Kumar",
+     "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+     "phone_number": "+919876543210"
+    },
+    "driver_earning": null,
+    "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+    "drop_contact_name": "Asha Menon",
+    "drop_contact_phone": "+919888800002",
+    "drop_lat": "12.978300",
+    "drop_lng": "77.640800",
+    "duration_seconds": 780,
+    "id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+    "invoice_number": "INV-1001",
+    "invoice_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf",
+    "items": [
+     {
+      "driver_note": "",
+      "id": "d3035b1c-78ce-44a0-b408-1d1c46c7916f",
+      "image_url": "https://files.example.com/img/cement.jpg",
+      "name": "Cement bag 50 kg",
+      "notes": "Keep dry",
+      "position": 0,
+      "proof_image_url": null,
+      "quantity": 4,
+      "sku": "CEM-50",
+      "status": "pending",
+      "unit": "bags",
+      "unit_price": "380.00",
+      "verified_at": null
+     },
+     {
+      "driver_note": "",
+      "id": "a25e41b6-4398-4ca2-8a07-d75090755d52",
+      "image_url": null,
+      "name": "TMT bar 12 mm",
+      "notes": "",
+      "position": 1,
+      "proof_image_url": null,
+      "quantity": 20,
+      "sku": "TMT-12",
+      "status": "pending",
+      "unit": "pcs",
+      "unit_price": "95.00",
+      "verified_at": null
+     }
+    ],
+    "payment_mode": "cod",
+    "payment_reference": "",
+    "payment_status": "pending",
+    "pickup_address": "MG Road Metro Station, Bengaluru",
+    "pickup_contact_name": "Acme Hardware",
+    "pickup_contact_phone": "+919888800001",
+    "pickup_lat": "12.975000",
+    "pickup_lng": "77.605000",
+    "polyline_precision": 6,
+    "reference_id": "ORD-20260921-0042",
+    "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+    "started_at": null,
+    "status": "assigned",
+    "surge_multiplier": "1.00",
+    "time_fare": "13.00",
+    "total_fare": "85.00",
+    "updated_at": "2026-09-21T09:41:37.378805Z",
+    "vehicle": {
+     "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+     "registration_number": "KA01AB1234"
+    },
+    "vehicle_type": {
+     "category": "two_wheeler",
+     "icon_image_url": null,
+     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+     "name": "Bike"
+    },
+    "verify_items": true
+   }
+  },
+  "status": 200
+ },
+ "driver_trip.arrive": {
+  "body": {
+   "arrived_at_pickup_at": "2026-09-21T09:42:21.711857Z",
+   "assigned_at": "2026-09-21T09:41:05.554924Z",
+   "base_fare": "30.00",
+   "cancellation_reason": "",
+   "cancelled_at": null,
+   "cancelled_by": "",
+   "cod_collected_at": null,
+   "completed_at": null,
+   "created_at": "2026-09-21T09:40:17.136677Z",
+   "currency": "INR",
+   "distance_fare": "42.00",
+   "distance_meters": 4200,
+   "driver": {
+    "full_name": "Ravi Kumar",
+    "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+    "phone_number": "+919876543210"
+   },
+   "driver_earning": null,
+   "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+   "drop_contact_name": "Asha Menon",
+   "drop_contact_phone": "+919888800002",
+   "drop_lat": "12.978300",
+   "drop_lng": "77.640800",
+   "duration_seconds": 780,
+   "id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+   "invoice_number": "INV-1001",
+   "invoice_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf",
+   "items": [
+    {
+     "driver_note": "",
+     "id": "d3035b1c-78ce-44a0-b408-1d1c46c7916f",
+     "image_url": "https://files.example.com/img/cement.jpg",
+     "name": "Cement bag 50 kg",
+     "notes": "Keep dry",
+     "position": 0,
+     "proof_image_url": null,
+     "quantity": 4,
+     "sku": "CEM-50",
+     "status": "pending",
+     "unit": "bags",
+     "unit_price": "380.00",
+     "verified_at": null
+    },
+    {
+     "driver_note": "",
+     "id": "a25e41b6-4398-4ca2-8a07-d75090755d52",
+     "image_url": null,
+     "name": "TMT bar 12 mm",
+     "notes": "",
+     "position": 1,
+     "proof_image_url": null,
+     "quantity": 20,
+     "sku": "TMT-12",
+     "status": "pending",
+     "unit": "pcs",
+     "unit_price": "95.00",
+     "verified_at": null
+    }
+   ],
+   "payment_mode": "cod",
+   "payment_reference": "",
+   "payment_status": "pending",
+   "pickup_address": "MG Road Metro Station, Bengaluru",
+   "pickup_contact_name": "Acme Hardware",
+   "pickup_contact_phone": "+919888800001",
+   "pickup_lat": "12.975000",
+   "pickup_lng": "77.605000",
+   "polyline_precision": 6,
+   "reference_id": "ORD-20260921-0042",
+   "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+   "started_at": null,
+   "status": "arrived_at_pickup",
+   "surge_multiplier": "1.00",
+   "time_fare": "13.00",
+   "total_fare": "85.00",
+   "updated_at": "2026-09-21T09:43:05.878992Z",
+   "vehicle": {
+    "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+    "registration_number": "KA01AB1234"
+   },
+   "vehicle_type": {
+    "category": "two_wheeler",
+    "icon_image_url": null,
+    "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+    "name": "Bike"
+   },
+   "verify_items": true
+  },
+  "status": 200
+ },
+ "driver_trip.cancel": {
+  "body": {
+   "arrived_at_pickup_at": null,
+   "assigned_at": "2026-09-21T09:51:12.611455Z",
+   "base_fare": "30.00",
+   "cancellation_reason": "Vehicle breakdown",
+   "cancelled_at": "2026-09-21T09:51:52.745396Z",
+   "cancelled_by": "driver",
+   "cod_collected_at": null,
+   "completed_at": null,
+   "created_at": "2026-09-21T09:50:30.565426Z",
+   "currency": "INR",
+   "distance_fare": "42.00",
+   "distance_meters": 4200,
+   "driver": {
+    "full_name": "Ravi Kumar",
+    "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+    "phone_number": "+919876543210"
+   },
+   "driver_earning": null,
+   "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+   "drop_contact_name": "Asha Menon",
+   "drop_contact_phone": "+919888800002",
+   "drop_lat": "12.978300",
+   "drop_lng": "77.640800",
+   "duration_seconds": 780,
+   "id": "7c006277-6753-42ef-941d-cbfdafed4424",
+   "invoice_number": "",
+   "invoice_url": null,
+   "items": [],
+   "payment_mode": "prepaid",
+   "payment_reference": "",
+   "payment_status": "paid",
+   "pickup_address": "MG Road Metro Station, Bengaluru",
+   "pickup_contact_name": "Acme Hardware",
+   "pickup_contact_phone": "+919888800001",
+   "pickup_lat": "12.975000",
+   "pickup_lng": "77.605000",
+   "polyline_precision": 6,
+   "reference_id": "ORD-20260921-0043",
+   "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+   "started_at": null,
+   "status": "cancelled",
+   "surge_multiplier": "1.00",
+   "time_fare": "13.00",
+   "total_fare": "85.00",
+   "updated_at": "2026-09-21T09:52:40.400230Z",
+   "vehicle": {
+    "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+    "registration_number": "KA01AB1234"
+   },
+   "vehicle_type": {
+    "category": "two_wheeler",
+    "icon_image_url": null,
+    "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+    "name": "Bike"
+   },
+   "verify_items": false
+  },
+  "status": 200
+ },
+ "driver_trip.collect": {
+  "body": {
+   "message": "Payment collected. An OTP was sent to +919888800002 to finalize the trip.",
+   "otp": "482913"
+  },
+  "status": 200
+ },
+ "driver_trip.collect.blocked": {
+  "body": {
+   "error": {
+    "code": "ITEMS_NOT_VERIFIED",
+    "message": "Verify every item on this order before continuing."
+   },
+   "success": false
+  },
+  "status": 409
+ },
+ "driver_trip.complete": {
+  "body": {
+   "arrived_at_pickup_at": "2026-09-21T09:42:21.711857Z",
+   "assigned_at": "2026-09-21T09:41:05.554924Z",
+   "base_fare": "30.00",
+   "cancellation_reason": "",
+   "cancelled_at": null,
+   "cancelled_by": "",
+   "cod_collected_at": "2026-09-21T09:47:05.805039Z",
+   "completed_at": "2026-09-21T09:47:48.656172Z",
+   "created_at": "2026-09-21T09:40:17.136677Z",
+   "currency": "INR",
+   "distance_fare": "42.00",
+   "distance_meters": 4200,
+   "driver": {
+    "full_name": "Ravi Kumar",
+    "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+    "phone_number": "+919876543210"
+   },
+   "driver_earning": "68.00",
+   "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+   "drop_contact_name": "Asha Menon",
+   "drop_contact_phone": "+919888800002",
+   "drop_lat": "12.978300",
+   "drop_lng": "77.640800",
+   "duration_seconds": 780,
+   "id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+   "invoice_number": "INV-1001",
+   "invoice_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf",
+   "items": [
+    {
+     "driver_note": "",
+     "id": "d3035b1c-78ce-44a0-b408-1d1c46c7916f",
+     "image_url": "https://files.example.com/img/cement.jpg",
+     "name": "Cement bag 50 kg",
+     "notes": "Keep dry",
+     "position": 0,
+     "proof_image_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/delivery-proofs/c035aafb-8e97-473e-aa86-c7ad21859f7d.jpg",
+     "quantity": 4,
+     "sku": "CEM-50",
+     "status": "delivered",
+     "unit": "bags",
+     "unit_price": "380.00",
+     "verified_at": "2026-09-21T09:45:05.291562Z"
+    },
+    {
+     "driver_note": "Damaged in transit",
+     "id": "a25e41b6-4398-4ca2-8a07-d75090755d52",
+     "image_url": null,
+     "name": "TMT bar 12 mm",
+     "notes": "",
+     "position": 1,
+     "proof_image_url": null,
+     "quantity": 20,
+     "sku": "TMT-12",
+     "status": "not_delivered",
+     "unit": "pcs",
+     "unit_price": "95.00",
+     "verified_at": "2026-09-21T09:46:26.844073Z"
+    }
+   ],
+   "payment_mode": "cod",
+   "payment_reference": "pay_Nx4b2Lq1cC0dYa",
+   "payment_status": "paid",
+   "pickup_address": "MG Road Metro Station, Bengaluru",
+   "pickup_contact_name": "Acme Hardware",
+   "pickup_contact_phone": "+919888800001",
+   "pickup_lat": "12.975000",
+   "pickup_lng": "77.605000",
+   "polyline_precision": 6,
+   "reference_id": "ORD-20260921-0042",
+   "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+   "started_at": "2026-09-21T09:43:48.697275Z",
+   "status": "completed",
+   "surge_multiplier": "1.00",
+   "time_fare": "13.00",
+   "total_fare": "85.00",
+   "updated_at": "2026-09-21T09:48:32.515477Z",
+   "vehicle": {
+    "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+    "registration_number": "KA01AB1234"
+   },
+   "vehicle_type": {
+    "category": "two_wheeler",
+    "icon_image_url": null,
+    "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+    "name": "Bike"
+   },
+   "verify_items": true
+  },
+  "status": 200
+ },
+ "driver_trip.complete.bad_otp": {
+  "body": {
+   "error": {
+    "code": "INVALID_DELIVERY_OTP",
+    "message": "The delivery OTP is invalid or has expired."
+   },
+   "success": false
+  },
+  "status": 400
+ },
+ "driver_trip.complete.blocked": {
+  "body": {
+   "error": {
+    "code": "ITEMS_NOT_VERIFIED",
+    "message": "Verify every item on this order before continuing."
+   },
+   "success": false
+  },
+  "status": 409
+ },
+ "driver_trip.detail": {
+  "body": {
+   "arrived_at_pickup_at": "2026-09-21T09:42:21.711857Z",
+   "assigned_at": "2026-09-21T09:41:05.554924Z",
+   "base_fare": "30.00",
+   "cancellation_reason": "",
+   "cancelled_at": null,
+   "cancelled_by": "",
+   "cod_collected_at": "2026-09-21T09:47:05.805039Z",
+   "completed_at": "2026-09-21T09:47:48.656172Z",
+   "created_at": "2026-09-21T09:40:17.136677Z",
+   "currency": "INR",
+   "distance_fare": "42.00",
+   "distance_meters": 4200,
+   "driver": {
+    "full_name": "Ravi Kumar",
+    "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+    "phone_number": "+919876543210"
+   },
+   "driver_earning": "68.00",
+   "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+   "drop_contact_name": "Asha Menon",
+   "drop_contact_phone": "+919888800002",
+   "drop_lat": "12.978300",
+   "drop_lng": "77.640800",
+   "duration_seconds": 780,
+   "id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+   "invoice_number": "INV-1001",
+   "invoice_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf",
+   "items": [
+    {
+     "driver_note": "",
+     "id": "d3035b1c-78ce-44a0-b408-1d1c46c7916f",
+     "image_url": "https://files.example.com/img/cement.jpg",
+     "name": "Cement bag 50 kg",
+     "notes": "Keep dry",
+     "position": 0,
+     "proof_image_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/delivery-proofs/c035aafb-8e97-473e-aa86-c7ad21859f7d.jpg",
+     "quantity": 4,
+     "sku": "CEM-50",
+     "status": "delivered",
+     "unit": "bags",
+     "unit_price": "380.00",
+     "verified_at": "2026-09-21T09:45:05.291562Z"
+    },
+    {
+     "driver_note": "Damaged in transit",
+     "id": "a25e41b6-4398-4ca2-8a07-d75090755d52",
+     "image_url": null,
+     "name": "TMT bar 12 mm",
+     "notes": "",
+     "position": 1,
+     "proof_image_url": null,
+     "quantity": 20,
+     "sku": "TMT-12",
+     "status": "not_delivered",
+     "unit": "pcs",
+     "unit_price": "95.00",
+     "verified_at": "2026-09-21T09:46:26.844073Z"
+    }
+   ],
+   "payment_mode": "cod",
+   "payment_reference": "pay_Nx4b2Lq1cC0dYa",
+   "payment_status": "paid",
+   "pickup_address": "MG Road Metro Station, Bengaluru",
+   "pickup_contact_name": "Acme Hardware",
+   "pickup_contact_phone": "+919888800001",
+   "pickup_lat": "12.975000",
+   "pickup_lng": "77.605000",
+   "polyline_precision": 6,
+   "reference_id": "ORD-20260921-0042",
+   "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+   "started_at": "2026-09-21T09:43:48.697275Z",
+   "status": "completed",
+   "surge_multiplier": "1.00",
+   "time_fare": "13.00",
+   "total_fare": "85.00",
+   "updated_at": "2026-09-21T09:48:32.515477Z",
+   "vehicle": {
+    "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+    "registration_number": "KA01AB1234"
+   },
+   "vehicle_type": {
+    "category": "two_wheeler",
+    "icon_image_url": null,
+    "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+    "name": "Bike"
+   },
+   "verify_items": true
+  },
+  "status": 200
+ },
+ "driver_trip.list": {
+  "body": {
+   "count": 1,
+   "next": null,
+   "previous": null,
+   "results": [
+    {
+     "assigned_at": "2026-09-21T09:41:05.554924Z",
+     "cancellation_reason": "",
+     "cancelled_at": null,
+     "cancelled_by": "",
+     "completed_at": "2026-09-21T09:47:48.656172Z",
+     "created_at": "2026-09-21T09:40:17.136677Z",
+     "currency": "INR",
+     "distance_meters": 4200,
+     "driver": {
+      "full_name": "Ravi Kumar",
+      "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+      "phone_number": "+919876543210"
+     },
+     "driver_earning": "68.00",
+     "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+     "duration_seconds": 780,
+     "id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+     "payment_mode": "cod",
+     "payment_status": "paid",
+     "pickup_address": "MG Road Metro Station, Bengaluru",
+     "reference_id": "ORD-20260921-0042",
+     "status": "completed",
+     "total_fare": "85.00",
+     "vehicle": {
+      "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+      "registration_number": "KA01AB1234"
+     },
+     "vehicle_type": {
+      "category": "two_wheeler",
+      "icon_image_url": null,
+      "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+      "name": "Bike"
+     }
+    }
+   ]
+  },
+  "status": 200
+ },
+ "driver_trip.navigation": {
+  "body": {
+   "distance_meters": 4200,
+   "duration_seconds": 780,
+   "polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+   "polyline_precision": 6,
+   "target": "pickup",
+   "target_lat": 12.975,
+   "target_lng": 77.605
+  },
+  "status": 200
+ },
+ "driver_trip.payment_qr": {
+  "body": {
+   "amount": 85.0,
+   "currency": "INR",
+   "qr_payload": "upi://pay?pa=mob-delivery%40upi&pn=MOB+Delivery&am=85.00&cu=INR&tn=Trip+5920b157-27b4-43c2-a3a9-8d9fd7f0e3db"
+  },
+  "status": 200
+ },
+ "driver_trip.resend.throttled": {
+  "body": {
+   "error": {
+    "code": "OTP_ALREADY_REQUESTED",
+    "message": "An OTP was sent for this trip recently. Please wait before requesting another."
+   },
+   "success": false
+  },
+  "status": 429
+ },
+ "driver_trip.start": {
+  "body": {
+   "arrived_at_pickup_at": "2026-09-21T09:42:21.711857Z",
+   "assigned_at": "2026-09-21T09:41:05.554924Z",
+   "base_fare": "30.00",
+   "cancellation_reason": "",
+   "cancelled_at": null,
+   "cancelled_by": "",
+   "cod_collected_at": null,
+   "completed_at": null,
+   "created_at": "2026-09-21T09:40:17.136677Z",
+   "currency": "INR",
+   "distance_fare": "42.00",
+   "distance_meters": 4200,
+   "driver": {
+    "full_name": "Ravi Kumar",
+    "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+    "phone_number": "+919876543210"
+   },
+   "driver_earning": null,
+   "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+   "drop_contact_name": "Asha Menon",
+   "drop_contact_phone": "+919888800002",
+   "drop_lat": "12.978300",
+   "drop_lng": "77.640800",
+   "duration_seconds": 780,
+   "id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+   "invoice_number": "INV-1001",
+   "invoice_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf",
+   "items": [
+    {
+     "driver_note": "",
+     "id": "d3035b1c-78ce-44a0-b408-1d1c46c7916f",
+     "image_url": "https://files.example.com/img/cement.jpg",
+     "name": "Cement bag 50 kg",
+     "notes": "Keep dry",
+     "position": 0,
+     "proof_image_url": null,
+     "quantity": 4,
+     "sku": "CEM-50",
+     "status": "pending",
+     "unit": "bags",
+     "unit_price": "380.00",
+     "verified_at": null
+    },
+    {
+     "driver_note": "",
+     "id": "a25e41b6-4398-4ca2-8a07-d75090755d52",
+     "image_url": null,
+     "name": "TMT bar 12 mm",
+     "notes": "",
+     "position": 1,
+     "proof_image_url": null,
+     "quantity": 20,
+     "sku": "TMT-12",
+     "status": "pending",
+     "unit": "pcs",
+     "unit_price": "95.00",
+     "verified_at": null
+    }
+   ],
+   "payment_mode": "cod",
+   "payment_reference": "",
+   "payment_status": "pending",
+   "pickup_address": "MG Road Metro Station, Bengaluru",
+   "pickup_contact_name": "Acme Hardware",
+   "pickup_contact_phone": "+919888800001",
+   "pickup_lat": "12.975000",
+   "pickup_lng": "77.605000",
+   "polyline_precision": 6,
+   "reference_id": "ORD-20260921-0042",
+   "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+   "started_at": "2026-09-21T09:43:48.697275Z",
+   "status": "in_progress",
+   "surge_multiplier": "1.00",
+   "time_fare": "13.00",
+   "total_fare": "85.00",
+   "updated_at": "2026-09-21T09:44:30.617767Z",
+   "vehicle": {
+    "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+    "registration_number": "KA01AB1234"
+   },
+   "vehicle_type": {
+    "category": "two_wheeler",
+    "icon_image_url": null,
+    "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+    "name": "Bike"
+   },
+   "verify_items": true
+  },
+  "status": 200
+ },
+ "driver_vehicles": {
+  "body": {
+   "vehicles": [
+    {
+     "capacity_kg": "20.00",
+     "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+     "is_current": false,
+     "photo_url": null,
+     "registration_number": "KA01AB1234",
+     "status": "active",
+     "vehicle_type": {
+      "category": "two_wheeler",
+      "icon_image_url": null,
+      "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+      "name": "Bike"
+     }
+    }
+   ]
+  },
+  "status": 200
+ },
+ "driver_vehicles.ready": {
+  "body": {
+   "vehicles": [
+    {
+     "capacity_kg": "20.00",
+     "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+     "is_current": false,
+     "photo_url": null,
+     "registration_number": "KA01AB1234",
+     "status": "active",
+     "vehicle_type": {
+      "category": "two_wheeler",
+      "icon_image_url": null,
+      "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+      "name": "Bike"
+     }
+    }
+   ]
+  },
+  "status": 200
+ },
+ "duty.end": {
+  "body": {
+   "aadhar_rejection_note": null,
+   "aadhar_status": "verified",
+   "account_status": "active",
+   "address_line": "",
+   "city": "Bengaluru",
+   "current_vehicle": {
+    "capacity_kg": "20.00",
+    "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+    "photo_url": null,
+    "registration_number": "KA01AB1234",
+    "status": "active",
+    "vehicle_type": {
+     "category": "two_wheeler",
+     "icon_image_url": null,
+     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+     "name": "Bike"
+    }
+   },
+   "current_vehicle_id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+   "date_of_birth": "1994-03-12",
+   "dl_allowed_categories": [
+    "two_wheeler"
+   ],
+   "dl_expiry_date": "2027-10-26",
+   "dl_rejection_note": null,
+   "dl_status": "verified",
+   "email": "ravi@example.com",
+   "emergency_contact_name": "Sunita Kumar",
+   "emergency_contact_phone": "+919555500002",
+   "full_name": "Ravi Kumar",
+   "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+   "is_eligible_for_assignment": true,
+   "is_online": false,
+   "is_profile_complete": true,
+   "kyc": {
+    "aadhar": {
+     "back_url": "/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/22b6b194-6307-4237-b593-db2328671c11.jpg",
+     "front_url": "/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/5863b694-1ede-4ea9-b3ce-87542e7404a3.jpg",
+     "number_last4": "0123",
+     "rejection_note": null,
+     "status": "verified",
+     "submitted": true
+    },
+    "dl": {
+     "back_url": null,
+     "expiry_date": "2027-10-26",
+     "front_url": "/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/6257aec1-85ba-4f0b-a86b-a98dfd674d0d.jpg",
+     "number": "KA01 20110012345",
+     "rejection_note": null,
+     "status": "verified",
+     "submitted": true
+    },
+    "police": {
+     "document_url": "/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/0530d741-d881-4148-a6da-e2aaf2a702d4.pdf",
+     "rejection_note": null,
+     "status": "verified",
+     "submitted": true
+    }
+   },
+   "onboarding_status": "approved",
+   "payout": {
+    "bank_account_holder": null,
+    "bank_account_last4": null,
+    "bank_ifsc": null,
+    "is_set": true,
+    "upi_id": "ravi@okhdfc"
+   },
+   "phone_number": "+919876543210",
+   "pincode": "560001",
+   "police_rejection_note": null,
+   "police_status": "verified",
+   "profile_photo_url": "/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-photos/94c6de39-a957-48b8-8dc4-94e4f9cb8306.jpg"
+  },
+  "status": 200
+ },
+ "duty.start": {
+  "body": {
+   "aadhar_rejection_note": null,
+   "aadhar_status": "verified",
+   "account_status": "active",
+   "address_line": "",
+   "city": "Bengaluru",
+   "current_vehicle": {
+    "capacity_kg": "20.00",
+    "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+    "photo_url": null,
+    "registration_number": "KA01AB1234",
+    "status": "active",
+    "vehicle_type": {
+     "category": "two_wheeler",
+     "icon_image_url": null,
+     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+     "name": "Bike"
+    }
+   },
+   "current_vehicle_id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+   "date_of_birth": "1994-03-12",
+   "dl_allowed_categories": [
+    "two_wheeler"
+   ],
+   "dl_expiry_date": "2027-10-26",
+   "dl_rejection_note": null,
+   "dl_status": "verified",
+   "email": "ravi@example.com",
+   "emergency_contact_name": "Sunita Kumar",
+   "emergency_contact_phone": "+919555500002",
+   "full_name": "Ravi Kumar",
+   "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+   "is_eligible_for_assignment": true,
+   "is_online": true,
+   "is_profile_complete": true,
+   "kyc": {
+    "aadhar": {
+     "back_url": "/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/22b6b194-6307-4237-b593-db2328671c11.jpg",
+     "front_url": "/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/5863b694-1ede-4ea9-b3ce-87542e7404a3.jpg",
+     "number_last4": "0123",
+     "rejection_note": null,
+     "status": "verified",
+     "submitted": true
+    },
+    "dl": {
+     "back_url": null,
+     "expiry_date": "2027-10-26",
+     "front_url": "/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/6257aec1-85ba-4f0b-a86b-a98dfd674d0d.jpg",
+     "number": "KA01 20110012345",
+     "rejection_note": null,
+     "status": "verified",
+     "submitted": true
+    },
+    "police": {
+     "document_url": "/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-documents/0530d741-d881-4148-a6da-e2aaf2a702d4.pdf",
+     "rejection_note": null,
+     "status": "verified",
+     "submitted": true
+    }
+   },
+   "onboarding_status": "approved",
+   "payout": {
+    "bank_account_holder": null,
+    "bank_account_last4": null,
+    "bank_ifsc": null,
+    "is_set": true,
+    "upi_id": "ravi@okhdfc"
+   },
+   "phone_number": "+919876543210",
+   "pincode": "560001",
+   "police_rejection_note": null,
+   "police_status": "verified",
+   "profile_photo_url": "/media/3b79be44-897b-43f7-8856-ce12c23e82ab/driver-photos/94c6de39-a957-48b8-8dc4-94e4f9cb8306.jpg"
+  },
+  "status": 200
+ },
+ "duty.start.ineligible_vehicle": {
+  "body": {
+   "error": {
+    "code": "NOT_FOUND",
+    "message": "No Vehicle matches the given query."
+   },
+   "success": false
+  },
+  "status": 404
+ },
+ "err.bad_token": {
+  "body": {
+   "error": {
+    "code": "TOKEN_NOT_VALID",
+    "message": "Given token not valid for any token type"
+   },
+   "success": false
+  },
+  "status": 401
+ },
+ "err.malformed_json": {
+  "body": {
+   "error": {
+    "code": "PARSE_ERROR",
+    "message": "JSON parse error - Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+   },
+   "success": false
+  },
+  "status": 400
+ },
+ "err.method_not_allowed": {
+  "body": {
+   "error": {
+    "code": "METHOD_NOT_ALLOWED",
+    "message": "Method \"PUT\" not allowed."
+   },
+   "success": false
+  },
+  "status": 405
+ },
+ "err.no_credentials": {
+  "body": {
+   "error": {
+    "code": "NOT_AUTHENTICATED",
+    "message": "Authentication credentials were not provided."
+   },
+   "success": false
+  },
+  "status": 401
+ },
+ "err.not_found": {
+  "body": {
+   "error": {
+    "code": "NOT_FOUND",
+    "message": "No Trip matches the given query."
+   },
+   "success": false
+  },
+  "status": 404
+ },
+ "err.validation": {
+  "body": {
+   "error": {
+    "code": "INVALID",
+    "details": {
+     "drop": [
+      "This field is required."
+     ],
+     "pickup": [
+      "This field is required."
+     ],
+     "vehicle_type_id": [
+      "This field is required."
+     ]
+    },
+    "message": "Request could not be processed."
+   },
+   "success": false
+  },
+  "status": 400
+ },
+ "err.wrong_principal": {
+  "body": {
+   "error": {
+    "code": "PERMISSION_DENIED",
+    "message": "You do not have permission to perform this action."
+   },
+   "success": false
+  },
+  "status": 403
+ },
+ "item.reset": {
+  "body": {
+   "arrived_at_pickup_at": "2026-09-21T09:42:21.711857Z",
+   "assigned_at": "2026-09-21T09:41:05.554924Z",
+   "base_fare": "30.00",
+   "cancellation_reason": "",
+   "cancelled_at": null,
+   "cancelled_by": "",
+   "cod_collected_at": null,
+   "completed_at": null,
+   "created_at": "2026-09-21T09:40:17.136677Z",
+   "currency": "INR",
+   "distance_fare": "42.00",
+   "distance_meters": 4200,
+   "driver": {
+    "full_name": "Ravi Kumar",
+    "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+    "phone_number": "+919876543210"
+   },
+   "driver_earning": null,
+   "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+   "drop_contact_name": "Asha Menon",
+   "drop_contact_phone": "+919888800002",
+   "drop_lat": "12.978300",
+   "drop_lng": "77.640800",
+   "duration_seconds": 780,
+   "id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+   "invoice_number": "INV-1001",
+   "invoice_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf",
+   "items": [
+    {
+     "driver_note": "",
+     "id": "d3035b1c-78ce-44a0-b408-1d1c46c7916f",
+     "image_url": "https://files.example.com/img/cement.jpg",
+     "name": "Cement bag 50 kg",
+     "notes": "Keep dry",
+     "position": 0,
+     "proof_image_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/delivery-proofs/c035aafb-8e97-473e-aa86-c7ad21859f7d.jpg",
+     "quantity": 4,
+     "sku": "CEM-50",
+     "status": "delivered",
+     "unit": "bags",
+     "unit_price": "380.00",
+     "verified_at": "2026-09-21T09:45:05.291562Z"
+    },
+    {
+     "driver_note": "",
+     "id": "a25e41b6-4398-4ca2-8a07-d75090755d52",
+     "image_url": null,
+     "name": "TMT bar 12 mm",
+     "notes": "",
+     "position": 1,
+     "proof_image_url": null,
+     "quantity": 20,
+     "sku": "TMT-12",
+     "status": "pending",
+     "unit": "pcs",
+     "unit_price": "95.00",
+     "verified_at": null
+    }
+   ],
+   "payment_mode": "cod",
+   "payment_reference": "",
+   "payment_status": "pending",
+   "pickup_address": "MG Road Metro Station, Bengaluru",
+   "pickup_contact_name": "Acme Hardware",
+   "pickup_contact_phone": "+919888800001",
+   "pickup_lat": "12.975000",
+   "pickup_lng": "77.605000",
+   "polyline_precision": 6,
+   "reference_id": "ORD-20260921-0042",
+   "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+   "started_at": "2026-09-21T09:43:48.697275Z",
+   "status": "in_progress",
+   "surge_multiplier": "1.00",
+   "time_fare": "13.00",
+   "total_fare": "85.00",
+   "updated_at": "2026-09-21T09:44:30.617767Z",
+   "vehicle": {
+    "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+    "registration_number": "KA01AB1234"
+   },
+   "vehicle_type": {
+    "category": "two_wheeler",
+    "icon_image_url": null,
+    "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+    "name": "Bike"
+   },
+   "verify_items": true
+  },
+  "status": 200
+ },
+ "item.verify.delivered": {
+  "body": {
+   "arrived_at_pickup_at": "2026-09-21T09:42:21.711857Z",
+   "assigned_at": "2026-09-21T09:41:05.554924Z",
+   "base_fare": "30.00",
+   "cancellation_reason": "",
+   "cancelled_at": null,
+   "cancelled_by": "",
+   "cod_collected_at": null,
+   "completed_at": null,
+   "created_at": "2026-09-21T09:40:17.136677Z",
+   "currency": "INR",
+   "distance_fare": "42.00",
+   "distance_meters": 4200,
+   "driver": {
+    "full_name": "Ravi Kumar",
+    "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+    "phone_number": "+919876543210"
+   },
+   "driver_earning": null,
+   "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+   "drop_contact_name": "Asha Menon",
+   "drop_contact_phone": "+919888800002",
+   "drop_lat": "12.978300",
+   "drop_lng": "77.640800",
+   "duration_seconds": 780,
+   "id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+   "invoice_number": "INV-1001",
+   "invoice_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf",
+   "items": [
+    {
+     "driver_note": "",
+     "id": "d3035b1c-78ce-44a0-b408-1d1c46c7916f",
+     "image_url": "https://files.example.com/img/cement.jpg",
+     "name": "Cement bag 50 kg",
+     "notes": "Keep dry",
+     "position": 0,
+     "proof_image_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/delivery-proofs/c035aafb-8e97-473e-aa86-c7ad21859f7d.jpg",
+     "quantity": 4,
+     "sku": "CEM-50",
+     "status": "delivered",
+     "unit": "bags",
+     "unit_price": "380.00",
+     "verified_at": "2026-09-21T09:45:05.291562Z"
+    },
+    {
+     "driver_note": "",
+     "id": "a25e41b6-4398-4ca2-8a07-d75090755d52",
+     "image_url": null,
+     "name": "TMT bar 12 mm",
+     "notes": "",
+     "position": 1,
+     "proof_image_url": null,
+     "quantity": 20,
+     "sku": "TMT-12",
+     "status": "pending",
+     "unit": "pcs",
+     "unit_price": "95.00",
+     "verified_at": null
+    }
+   ],
+   "payment_mode": "cod",
+   "payment_reference": "",
+   "payment_status": "pending",
+   "pickup_address": "MG Road Metro Station, Bengaluru",
+   "pickup_contact_name": "Acme Hardware",
+   "pickup_contact_phone": "+919888800001",
+   "pickup_lat": "12.975000",
+   "pickup_lng": "77.605000",
+   "polyline_precision": 6,
+   "reference_id": "ORD-20260921-0042",
+   "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+   "started_at": "2026-09-21T09:43:48.697275Z",
+   "status": "in_progress",
+   "surge_multiplier": "1.00",
+   "time_fare": "13.00",
+   "total_fare": "85.00",
+   "updated_at": "2026-09-21T09:44:30.617767Z",
+   "vehicle": {
+    "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+    "registration_number": "KA01AB1234"
+   },
+   "vehicle_type": {
+    "category": "two_wheeler",
+    "icon_image_url": null,
+    "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+    "name": "Bike"
+   },
+   "verify_items": true
+  },
+  "status": 200
+ },
+ "item.verify.needs_note": {
+  "body": {
+   "error": {
+    "code": "INVALID",
+    "details": {
+     "note": [
+      "Say what happened to this item."
+     ]
+    },
+    "message": "Request could not be processed."
+   },
+   "success": false
+  },
+  "status": 400
+ },
+ "item.verify.not_delivered": {
+  "body": {
+   "arrived_at_pickup_at": "2026-09-21T09:42:21.711857Z",
+   "assigned_at": "2026-09-21T09:41:05.554924Z",
+   "base_fare": "30.00",
+   "cancellation_reason": "",
+   "cancelled_at": null,
+   "cancelled_by": "",
+   "cod_collected_at": null,
+   "completed_at": null,
+   "created_at": "2026-09-21T09:40:17.136677Z",
+   "currency": "INR",
+   "distance_fare": "42.00",
+   "distance_meters": 4200,
+   "driver": {
+    "full_name": "Ravi Kumar",
+    "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+    "phone_number": "+919876543210"
+   },
+   "driver_earning": null,
+   "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+   "drop_contact_name": "Asha Menon",
+   "drop_contact_phone": "+919888800002",
+   "drop_lat": "12.978300",
+   "drop_lng": "77.640800",
+   "duration_seconds": 780,
+   "id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+   "invoice_number": "INV-1001",
+   "invoice_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf",
+   "items": [
+    {
+     "driver_note": "",
+     "id": "d3035b1c-78ce-44a0-b408-1d1c46c7916f",
+     "image_url": "https://files.example.com/img/cement.jpg",
+     "name": "Cement bag 50 kg",
+     "notes": "Keep dry",
+     "position": 0,
+     "proof_image_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/delivery-proofs/c035aafb-8e97-473e-aa86-c7ad21859f7d.jpg",
+     "quantity": 4,
+     "sku": "CEM-50",
+     "status": "delivered",
+     "unit": "bags",
+     "unit_price": "380.00",
+     "verified_at": "2026-09-21T09:45:05.291562Z"
+    },
+    {
+     "driver_note": "Damaged in transit",
+     "id": "a25e41b6-4398-4ca2-8a07-d75090755d52",
+     "image_url": null,
+     "name": "TMT bar 12 mm",
+     "notes": "",
+     "position": 1,
+     "proof_image_url": null,
+     "quantity": 20,
+     "sku": "TMT-12",
+     "status": "not_delivered",
+     "unit": "pcs",
+     "unit_price": "95.00",
+     "verified_at": "2026-09-21T09:45:52.871717Z"
+    }
+   ],
+   "payment_mode": "cod",
+   "payment_reference": "",
+   "payment_status": "pending",
+   "pickup_address": "MG Road Metro Station, Bengaluru",
+   "pickup_contact_name": "Acme Hardware",
+   "pickup_contact_phone": "+919888800001",
+   "pickup_lat": "12.975000",
+   "pickup_lng": "77.605000",
+   "polyline_precision": 6,
+   "reference_id": "ORD-20260921-0042",
+   "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+   "started_at": "2026-09-21T09:43:48.697275Z",
+   "status": "in_progress",
+   "surge_multiplier": "1.00",
+   "time_fare": "13.00",
+   "total_fare": "85.00",
+   "updated_at": "2026-09-21T09:44:30.617767Z",
+   "vehicle": {
+    "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+    "registration_number": "KA01AB1234"
+   },
+   "vehicle_type": {
+    "category": "two_wheeler",
+    "icon_image_url": null,
+    "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+    "name": "Bike"
+   },
+   "verify_items": true
+  },
+  "status": 200
+ },
+ "location": {
+  "body": {
+   "message": "Location updated."
+  },
+  "status": 200
+ },
+ "stats": {
+  "body": {
+   "all_time": {
+    "cod_collected": "85.00",
+    "distance_meters": 4200,
+    "earnings": "68.00",
+    "total_fare": "85.00",
+    "trips_cancelled": 0,
+    "trips_completed": 1
+   },
+   "today": {
+    "cod_collected": "85.00",
+    "distance_meters": 4200,
+    "earnings": "68.00",
+    "total_fare": "85.00",
+    "trips_cancelled": 0,
+    "trips_completed": 1
+   }
+  },
+  "status": 200
+ },
+ "stats.empty": {
+  "body": {
+   "all_time": {
+    "cod_collected": "0.00",
+    "distance_meters": 0,
+    "earnings": "0.00",
+    "total_fare": "0.00",
+    "trips_cancelled": 0,
+    "trips_completed": 0
+   },
+   "today": {
+    "cod_collected": "0.00",
+    "distance_meters": 0,
+    "earnings": "0.00",
+    "total_fare": "0.00",
+    "trips_cancelled": 0,
+    "trips_completed": 0
+   }
+  },
+  "status": 200
+ },
+ "trip.assign.conflict": {
+  "body": {
+   "error": {
+    "code": "TRIP_NOT_RETRYABLE",
+    "message": "Only a trip with no driver available can be (re)assigned."
+   },
+   "success": false
+  },
+  "status": 409
+ },
+ "trip.cancel_by_company_conflict": {
+  "body": {
+   "error": {
+    "code": "TRIP_NOT_CANCELLABLE",
+    "message": "A trip in status 'cancelled' cannot be cancelled."
+   },
+   "success": false
+  },
+  "status": 409
+ },
+ "trip.create": {
+  "body": {
+   "arrived_at_pickup_at": null,
+   "assigned_at": "2026-09-21T09:41:05.554924Z",
+   "base_fare": "30.00",
+   "cancellation_reason": "",
+   "cancelled_at": null,
+   "cancelled_by": "",
+   "cod_collected_at": null,
+   "completed_at": null,
+   "created_at": "2026-09-21T09:40:17.136677Z",
+   "currency": "INR",
+   "distance_fare": "42.00",
+   "distance_meters": 4200,
+   "driver": {
+    "full_name": "Ravi Kumar",
+    "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+    "phone_number": "+919876543210"
+   },
+   "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+   "drop_contact_name": "Asha Menon",
+   "drop_contact_phone": "+919888800002",
+   "drop_lat": "12.978300",
+   "drop_lng": "77.640800",
+   "duration_seconds": 780,
+   "id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+   "invoice_number": "INV-1001",
+   "invoice_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf",
+   "items": [
+    {
+     "driver_note": "",
+     "id": "d3035b1c-78ce-44a0-b408-1d1c46c7916f",
+     "image_url": "https://files.example.com/img/cement.jpg",
+     "name": "Cement bag 50 kg",
+     "notes": "Keep dry",
+     "position": 0,
+     "proof_image_url": null,
+     "quantity": 4,
+     "sku": "CEM-50",
+     "status": "pending",
+     "unit": "bags",
+     "unit_price": "380.00",
+     "verified_at": null
+    },
+    {
+     "driver_note": "",
+     "id": "a25e41b6-4398-4ca2-8a07-d75090755d52",
+     "image_url": null,
+     "name": "TMT bar 12 mm",
+     "notes": "",
+     "position": 1,
+     "proof_image_url": null,
+     "quantity": 20,
+     "sku": "TMT-12",
+     "status": "pending",
+     "unit": "pcs",
+     "unit_price": "95.00",
+     "verified_at": null
+    }
+   ],
+   "payment_mode": "cod",
+   "payment_reference": "",
+   "payment_status": "pending",
+   "pickup_address": "MG Road Metro Station, Bengaluru",
+   "pickup_contact_name": "Acme Hardware",
+   "pickup_contact_phone": "+919888800001",
+   "pickup_lat": "12.975000",
+   "pickup_lng": "77.605000",
+   "polyline_precision": 6,
+   "reference_id": "ORD-20260921-0042",
+   "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+   "started_at": null,
+   "status": "assigned",
+   "surge_multiplier": "1.00",
+   "time_fare": "13.00",
+   "total_fare": "85.00",
+   "updated_at": "2026-09-21T09:41:37.378805Z",
+   "vehicle": {
+    "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+    "registration_number": "KA01AB1234"
+   },
+   "vehicle_type": {
+    "category": "two_wheeler",
+    "icon_image_url": null,
+    "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+    "name": "Bike"
+   },
+   "verify_items": true
+  },
+  "status": 201
+ },
+ "trip.create.request": {
+  "body": {
+   "drop": {
+    "address": "12 Indiranagar 100ft Road, Bengaluru",
+    "contact_name": "Asha Menon",
+    "contact_phone": "+919888800002",
+    "lat": "12.978300",
+    "lng": "77.640800"
+   },
+   "invoice_number": "INV-1001",
+   "invoice_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf",
+   "items": [
+    {
+     "image_url": "https://files.example.com/img/cement.jpg",
+     "name": "Cement bag 50 kg",
+     "notes": "Keep dry",
+     "quantity": 4,
+     "sku": "CEM-50",
+     "unit": "bags",
+     "unit_price": "380.00"
+    },
+    {
+     "name": "TMT bar 12 mm",
+     "quantity": 20,
+     "sku": "TMT-12",
+     "unit": "pcs",
+     "unit_price": "95.00"
+    }
+   ],
+   "payment_mode": "cod",
+   "pickup": {
+    "address": "MG Road Metro Station, Bengaluru",
+    "contact_name": "Acme Hardware",
+    "contact_phone": "+919888800001",
+    "lat": "12.975000",
+    "lng": "77.605000"
+   },
+   "reference_id": "ORD-20260921-0042",
+   "vehicle_type_id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+   "verify_items": true
+  },
+  "status": 0
+ },
+ "trip.detail_assigned": {
+  "body": {
+   "arrived_at_pickup_at": null,
+   "assigned_at": "2026-09-21T09:41:05.554924Z",
+   "base_fare": "30.00",
+   "cancellation_reason": "",
+   "cancelled_at": null,
+   "cancelled_by": "",
+   "cod_collected_at": null,
+   "completed_at": null,
+   "created_at": "2026-09-21T09:40:17.136677Z",
+   "currency": "INR",
+   "distance_fare": "42.00",
+   "distance_meters": 4200,
+   "driver": {
+    "full_name": "Ravi Kumar",
+    "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+    "phone_number": "+919876543210"
+   },
+   "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+   "drop_contact_name": "Asha Menon",
+   "drop_contact_phone": "+919888800002",
+   "drop_lat": "12.978300",
+   "drop_lng": "77.640800",
+   "duration_seconds": 780,
+   "id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+   "invoice_number": "INV-1001",
+   "invoice_url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf",
+   "items": [
+    {
+     "driver_note": "",
+     "id": "d3035b1c-78ce-44a0-b408-1d1c46c7916f",
+     "image_url": "https://files.example.com/img/cement.jpg",
+     "name": "Cement bag 50 kg",
+     "notes": "Keep dry",
+     "position": 0,
+     "proof_image_url": null,
+     "quantity": 4,
+     "sku": "CEM-50",
+     "status": "pending",
+     "unit": "bags",
+     "unit_price": "380.00",
+     "verified_at": null
+    },
+    {
+     "driver_note": "",
+     "id": "a25e41b6-4398-4ca2-8a07-d75090755d52",
+     "image_url": null,
+     "name": "TMT bar 12 mm",
+     "notes": "",
+     "position": 1,
+     "proof_image_url": null,
+     "quantity": 20,
+     "sku": "TMT-12",
+     "status": "pending",
+     "unit": "pcs",
+     "unit_price": "95.00",
+     "verified_at": null
+    }
+   ],
+   "payment_mode": "cod",
+   "payment_reference": "",
+   "payment_status": "pending",
+   "pickup_address": "MG Road Metro Station, Bengaluru",
+   "pickup_contact_name": "Acme Hardware",
+   "pickup_contact_phone": "+919888800001",
+   "pickup_lat": "12.975000",
+   "pickup_lng": "77.605000",
+   "polyline_precision": 6,
+   "reference_id": "ORD-20260921-0042",
+   "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+   "started_at": null,
+   "status": "assigned",
+   "surge_multiplier": "1.00",
+   "time_fare": "13.00",
+   "total_fare": "85.00",
+   "updated_at": "2026-09-21T09:41:37.378805Z",
+   "vehicle": {
+    "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+    "registration_number": "KA01AB1234"
+   },
+   "vehicle_type": {
+    "category": "two_wheeler",
+    "icon_image_url": null,
+    "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+    "name": "Bike"
+   },
+   "verify_items": true
+  },
+  "status": 200
+ },
+ "trip.estimate": {
+  "body": {
+   "estimates": [
+    {
+     "base_fare": 60.0,
+     "category": "three_wheeler",
+     "currency": "INR",
+     "distance_fare": 50.4,
+     "distance_meters": 4200,
+     "duration_seconds": 780,
+     "icon_image_url": null,
+     "polyline_precision": 6,
+     "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+     "surge_multiplier": 1.0,
+     "time_fare": 19.5,
+     "total_fare": 129.9,
+     "vehicle_type_id": "48def33b-8d32-4f13-9a73-fda7482a5d3a",
+     "vehicle_type_name": "Tempo"
+    },
+    {
+     "base_fare": 30.0,
+     "category": "two_wheeler",
+     "currency": "INR",
+     "distance_fare": 42.0,
+     "distance_meters": 4200,
+     "duration_seconds": 780,
+     "icon_image_url": null,
+     "polyline_precision": 6,
+     "route_polyline": "ox|vWogs_sCw|Aoh\\ooB_sg@",
+     "surge_multiplier": 1.0,
+     "time_fare": 13.0,
+     "total_fare": 85.0,
+     "vehicle_type_id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+     "vehicle_type_name": "Bike"
+    }
+   ]
+  },
+  "status": 200
+ },
+ "trip.list": {
+  "body": {
+   "count": 1,
+   "next": null,
+   "previous": null,
+   "results": [
+    {
+     "created_at": "2026-09-21T09:40:17.136677Z",
+     "currency": "INR",
+     "driver": {
+      "full_name": "Ravi Kumar",
+      "id": "bd316e30-cfde-4314-829e-3822e0c049bc",
+      "phone_number": "+919876543210"
+     },
+     "drop_address": "12 Indiranagar 100ft Road, Bengaluru",
+     "id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+     "payment_mode": "cod",
+     "payment_status": "pending",
+     "pickup_address": "MG Road Metro Station, Bengaluru",
+     "reference_id": "ORD-20260921-0042",
+     "status": "assigned",
+     "total_fare": "85.00",
+     "vehicle": {
+      "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+      "registration_number": "KA01AB1234"
+     },
+     "vehicle_type": {
+      "category": "two_wheeler",
+      "icon_image_url": null,
+      "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+      "name": "Bike"
+     }
+    }
+   ]
+  },
+  "status": 200
+ },
+ "upload.invalid": {
+  "body": {
+   "error": {
+    "code": "INVALID_UPLOAD",
+    "message": "Unsupported file type '.pdf' for purpose 'vehicle_photo'. Allowed: ['jpeg', 'jpg', 'png', 'webp']."
+   },
+   "success": false
+  },
+  "status": 400
+ },
+ "upload.invoice": {
+  "body": {
+   "url": "https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf"
+  },
+  "status": 201
+ },
+ "vehicle.create": {
+  "body": {
+   "capacity_kg": "20.00",
+   "created_at": "2026-09-21T09:34:07.475156Z",
+   "current_driver_id": null,
+   "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+   "photo_url": null,
+   "registration_number": "KA01AB1234",
+   "status": "active",
+   "updated_at": "2026-09-21T09:34:51.835866Z"
+  },
+  "status": 201
+ },
+ "vehicle.detail": {
+  "body": {
+   "capacity_kg": "20.00",
+   "created_at": "2026-09-21T09:34:07.475156Z",
+   "current_driver_id": null,
+   "documents": [
+    {
+     "created_at": "2026-09-21T09:35:29.525295Z",
+     "document_type": "insurance",
+     "expiry_date": "2027-04-09",
+     "file_url": "https://files.example.com/insurance-KA01AB1234.pdf",
+     "id": "108c1dce-a1e9-4af5-b110-cb6dee144fd6",
+     "updated_at": "2026-09-21T09:36:18.308255Z"
+    }
+   ],
+   "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+   "photo_url": null,
+   "registration_number": "KA01AB1234",
+   "status": "active",
+   "updated_at": "2026-09-21T09:34:51.835866Z",
+   "vehicle_type": {
+    "category": "two_wheeler",
+    "icon_image_url": null,
+    "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+    "name": "Bike"
+   }
+  },
+  "status": 200
+ },
+ "vehicle.list": {
+  "body": {
+   "count": 1,
+   "next": null,
+   "previous": null,
+   "results": [
+    {
+     "capacity_kg": "20.00",
+     "created_at": "2026-09-21T09:34:07.475156Z",
+     "current_driver_id": null,
+     "id": "34dbaab9-e77f-466a-93f3-3637131968ea",
+     "photo_url": null,
+     "registration_number": "KA01AB1234",
+     "status": "active",
+     "updated_at": "2026-09-21T09:34:51.835866Z",
+     "vehicle_type": {
+      "category": "two_wheeler",
+      "icon_image_url": null,
+      "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+      "name": "Bike"
+     }
+    }
+   ]
+  },
+  "status": 200
+ },
+ "vehicle_doc.create": {
+  "body": {
+   "created_at": "2026-09-21T09:35:29.525295Z",
+   "document_type": "insurance",
+   "expiry_date": "2027-04-09",
+   "file_url": "https://files.example.com/insurance-KA01AB1234.pdf",
+   "id": "108c1dce-a1e9-4af5-b110-cb6dee144fd6",
+   "updated_at": "2026-09-21T09:36:18.308255Z"
+  },
+  "status": 201
+ },
+ "vehicle_doc.list": {
+  "body": {
+   "count": 1,
+   "next": null,
+   "previous": null,
+   "results": [
+    {
+     "created_at": "2026-09-21T09:35:29.525295Z",
+     "document_type": "insurance",
+     "expiry_date": "2027-04-09",
+     "file_url": "https://files.example.com/insurance-KA01AB1234.pdf",
+     "id": "108c1dce-a1e9-4af5-b110-cb6dee144fd6",
+     "updated_at": "2026-09-21T09:36:18.308255Z"
+    }
+   ]
+  },
+  "status": 200
+ },
+ "vehicle_type.create": {
+  "body": {
+   "base_fare": "60.00",
+   "category": "three_wheeler",
+   "created_at": "2026-09-21T09:32:49.297211Z",
+   "default_capacity_kg": "500.00",
+   "icon_image_url": null,
+   "id": "48def33b-8d32-4f13-9a73-fda7482a5d3a",
+   "min_fare": "80.00",
+   "name": "Tempo",
+   "per_km_rate": "12.00",
+   "per_min_rate": "1.50",
+   "status": "active",
+   "updated_at": "2026-09-21T09:33:30.442949Z"
+  },
+  "status": 201
+ },
+ "vehicle_type.list": {
+  "body": {
+   "count": 2,
+   "next": null,
+   "previous": null,
+   "results": [
+    {
+     "base_fare": "60.00",
+     "category": "three_wheeler",
+     "created_at": "2026-09-21T09:32:49.297211Z",
+     "default_capacity_kg": "500.00",
+     "icon_image_url": null,
+     "id": "48def33b-8d32-4f13-9a73-fda7482a5d3a",
+     "min_fare": "80.00",
+     "name": "Tempo",
+     "per_km_rate": "12.00",
+     "per_min_rate": "1.50",
+     "status": "active",
+     "updated_at": "2026-09-21T09:33:30.442949Z"
+    },
+    {
+     "base_fare": "30.00",
+     "category": "two_wheeler",
+     "created_at": "2026-09-21T09:30:03.138544Z",
+     "default_capacity_kg": "20.00",
+     "icon_image_url": null,
+     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
+     "min_fare": "40.00",
+     "name": "Bike",
+     "per_km_rate": "10.00",
+     "per_min_rate": "1.00",
+     "status": "active",
+     "updated_at": "2026-09-21T09:30:44.181557Z"
+    }
+   ]
+  },
+  "status": 200
+ },
+ "wallet": {
+  "body": {
+   "balance": "68.00",
+   "currency": "INR",
+   "last_7_days": [
+    {
+     "date": "2026-09-15",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-16",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-17",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-18",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-19",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-20",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-21",
+     "earnings": "68.00",
+     "trips": 1
+    }
+   ],
+   "lifetime": {
+    "earnings": "68.00",
+    "payouts": "0.00",
+    "trips": 1
+   },
+   "month": {
+    "earnings": "68.00",
+    "trips": 1
+   },
+   "today": {
+    "earnings": "68.00",
+    "trips": 1
+   },
+   "week": {
+    "earnings": "68.00",
+    "trips": 1
+   }
+  },
+  "status": 200
+ },
+ "wallet.empty": {
+  "body": {
+   "balance": "0.00",
+   "currency": "INR",
+   "last_7_days": [
+    {
+     "date": "2026-09-15",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-16",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-17",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-18",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-19",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-20",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-21",
+     "earnings": "0.00",
+     "trips": 0
+    }
+   ],
+   "lifetime": {
+    "earnings": "0.00",
+    "payouts": "0.00",
+    "trips": 0
+   },
+   "month": {
+    "earnings": "0.00",
+    "trips": 0
+   },
+   "today": {
+    "earnings": "0.00",
+    "trips": 0
+   },
+   "week": {
+    "earnings": "0.00",
+    "trips": 0
+   }
+  },
+  "status": 200
+ },
+ "wallet.transactions": {
+  "body": {
+   "count": 1,
+   "next": null,
+   "previous": null,
+   "results": [
+    {
+     "amount": "68.00",
+     "balance_after": "68.00",
+     "created_at": "2026-09-21T09:49:14.147727Z",
+     "description": "Delivery to 12 Indiranagar 100ft Road, Bengaluru",
+     "id": "a60dda9b-b369-4edf-b83b-3dbf42a40456",
+     "kind": "trip_earning",
+     "kind_label": "Trip earning",
+     "reference": "",
+     "trip_id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+     "type": "credit"
+    }
+   ]
+  },
+  "status": 200
+ },
+ "wallet_admin.get": {
+  "body": {
+   "balance": "18.00",
+   "currency": "INR",
+   "last_7_days": [
+    {
+     "date": "2026-09-15",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-16",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-17",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-18",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-19",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-20",
+     "earnings": "0.00",
+     "trips": 0
+    },
+    {
+     "date": "2026-09-21",
+     "earnings": "68.00",
+     "trips": 1
+    }
+   ],
+   "lifetime": {
+    "earnings": "68.00",
+    "payouts": "50.00",
+    "trips": 1
+   },
+   "month": {
+    "earnings": "68.00",
+    "trips": 1
+   },
+   "recent": [
+    {
+     "amount": "-50.00",
+     "balance_after": "18.00",
+     "created_at": "2026-09-21T09:49:52.303456Z",
+     "description": "Weekly payout",
+     "id": "711fff43-c2d5-4e4f-8dff-4765fd1161f2",
+     "kind": "payout",
+     "kind_label": "Payout",
+     "reference": "UTR-4820193",
+     "trip_id": null,
+     "type": "debit"
+    },
+    {
+     "amount": "68.00",
+     "balance_after": "68.00",
+     "created_at": "2026-09-21T09:49:14.147727Z",
+     "description": "Delivery to 12 Indiranagar 100ft Road, Bengaluru",
+     "id": "a60dda9b-b369-4edf-b83b-3dbf42a40456",
+     "kind": "trip_earning",
+     "kind_label": "Trip earning",
+     "reference": "",
+     "trip_id": "5920b157-27b4-43c2-a3a9-8d9fd7f0e3db",
+     "type": "credit"
+    }
+   ],
+   "today": {
+    "earnings": "68.00",
+    "trips": 1
+   },
+   "week": {
+    "earnings": "68.00",
+    "trips": 1
+   }
+  },
+  "status": 200
+ },
+ "wallet_admin.payout": {
+  "body": {
+   "amount": "-50.00",
+   "balance_after": "18.00",
+   "created_at": "2026-09-21T09:49:52.303456Z",
+   "description": "Weekly payout",
+   "id": "711fff43-c2d5-4e4f-8dff-4765fd1161f2",
+   "kind": "payout",
+   "kind_label": "Payout",
+   "reference": "UTR-4820193",
+   "trip_id": null,
+   "type": "debit"
+  },
+  "status": 201
+ },
+ "wallet_admin.payout.too_much": {
+  "body": {
+   "error": {
+    "code": "INSUFFICIENT_BALANCE",
+    "message": "This payout is more than the driver's balance (₹18.00)."
+   },
+   "success": false
+  },
+  "status": 409
+ }
+}

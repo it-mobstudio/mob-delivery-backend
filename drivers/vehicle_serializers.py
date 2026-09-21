@@ -109,15 +109,15 @@ class VehicleSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "status", "created_at", "updated_at"]
+        # current_driver_id is kept by driver duty start/end (drivers.services);
+        # letting a client write it would corrupt "who has this vehicle".
+        read_only_fields = ["id", "status", "current_driver_id", "created_at", "updated_at"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        request = self.context.get("request")
-        if request is not None and getattr(request, "user", None) is not None:
-            self.fields["vehicle_type_id"].queryset = VehicleType.objects.filter(
-                company_id=request.user.company_id
-            )
+        company_id = getattr(getattr(self.context.get("request"), "user", None), "company_id", None)
+        if company_id is not None:
+            self.fields["vehicle_type_id"].queryset = VehicleType.objects.filter(company_id=company_id)
 
     def validate_vehicle_type_id(self, value):
         if value.status != VehicleTypeStatus.ACTIVE:
