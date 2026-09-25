@@ -61,7 +61,7 @@ If the order asked for item verification, no code is issued until every item is 
                 raw_ex("upi_static", UPI_STATIC_QR, "upi_static (development only)"),
             )
         },
-        errors=["NOT_COD_TRIP", "TRIP_NOT_IN_PROGRESS", "ALREADY_PAID", "ITEMS_NOT_VERIFIED", "PAYMENT_PROVIDER_UNAVAILABLE", "PAYMENT_PROVIDER_ERROR", "PAYMENT_PROVIDER_NOT_CONFIGURED", "NOT_YOUR_TRIP"],
+        errors=["NOT_COD_TRIP", "TRIP_NOT_IN_PROGRESS", "ALREADY_PAID", "ITEMS_NOT_VERIFIED", "DELIVERY_PHOTOS_REQUIRED", "PAYMENT_PROVIDER_UNAVAILABLE", "PAYMENT_PROVIDER_ERROR", "PAYMENT_PROVIDER_NOT_CONFIGURED", "NOT_YOUR_TRIP"],
         notes=FLOW,
     ),
 )
@@ -87,7 +87,7 @@ On a non-production server the response also echoes the delivery OTP in `otp`.
         by_id=True,
         request=None,
         responses={200: ok(PaymentCollectedSerializer, ex("driver_trip.collect", "Paid - OTP sent (test server shows the code)"))},
-        errors=["PAYMENT_NOT_RECEIVED", "ALREADY_PAID", "NOT_COD_TRIP", "TRIP_NOT_IN_PROGRESS", "ITEMS_NOT_VERIFIED", "PAYMENT_PROVIDER_UNAVAILABLE", "PAYMENT_PROVIDER_ERROR", "PAYMENT_PROVIDER_NOT_CONFIGURED", "NOT_YOUR_TRIP"],
+        errors=["PAYMENT_NOT_RECEIVED", "ALREADY_PAID", "NOT_COD_TRIP", "TRIP_NOT_IN_PROGRESS", "ITEMS_NOT_VERIFIED", "DELIVERY_PHOTOS_REQUIRED", "PAYMENT_PROVIDER_UNAVAILABLE", "PAYMENT_PROVIDER_ERROR", "PAYMENT_PROVIDER_NOT_CONFIGURED", "NOT_YOUR_TRIP"],
         notes=FLOW,
     ),
 )
@@ -97,16 +97,20 @@ document(
     post=doc(
         id="driverResendDeliveryOtp",
         tag=TAG,
-        summary="Send the delivery OTP again",
+        summary="Send (or send again) the delivery OTP",
         description="""
-For a **paid** cash-on-delivery trip whose OTP never arrived or has expired (it lasts 5 minutes): sends the customer a **new** code (the old one stops working). Limited to
-one send every **30 seconds** per trip (`OTP_ALREADY_REQUESTED`, HTTP 429). On a non-production server the response also echoes the code in `otp`.
+For a **paid** cash-on-delivery trip whose OTP never arrived or has expired (it lasts 5 minutes): sends the customer a **new** code (the old one stops working).
+
+For a **prepaid** trip booked with `delivery_otp: true` this is also the *first* send: at the drop, once the items are checked and the delivery photos taken, the driver
+calls it and the customer is texted the code that `POST /driver/trips/{id}/complete` then needs.
+
+Limited to one send every **30 seconds** per trip (`OTP_ALREADY_REQUESTED`, HTTP 429). On a non-production server the response also echoes the code in `otp`.
 """,
         auth=DRIVER,
         params=[TRIP_ID],
         by_id=True,
         request=None,
         responses={200: ok(PaymentCollectedSerializer, ex("driver_trip.collect", "Sent again", statuses=[200]))},
-        errors=["NOT_COD_TRIP", "TRIP_NOT_IN_PROGRESS", "PAYMENT_NOT_COLLECTED", "OTP_ALREADY_REQUESTED", "NOT_YOUR_TRIP"],
+        errors=["NOT_COD_TRIP", "TRIP_NOT_IN_PROGRESS", "PAYMENT_NOT_COLLECTED", "ITEMS_NOT_VERIFIED", "DELIVERY_PHOTOS_REQUIRED", "OTP_ALREADY_REQUESTED", "NOT_YOUR_TRIP"],
     ),
 )

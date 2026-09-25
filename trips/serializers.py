@@ -1,8 +1,8 @@
 from django.core.validators import URLValidator
 from rest_framework import serializers
 
-from core.choices import ItemVerificationStatus, PaymentMode
-from core.constants import MAX_TRIP_ITEMS, OTP_RE
+from core.choices import ItemVerificationStatus, PaymentMode, PickupPhotoMode
+from core.constants import MAX_TRIP_ITEMS, OTP_LENGTH, OTP_RE
 from core.serializers import MediaUrlField
 from drivers.models import Driver, Vehicle, VehicleType
 from drivers.vehicle_serializers import VehicleTypeSummarySerializer
@@ -50,6 +50,7 @@ class TripCreateSerializer(serializers.Serializer):
     drop = PointSerializer()
     payment_mode = serializers.ChoiceField(choices=PaymentMode.choices)
     reference_id = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    notes = serializers.CharField(max_length=500, required=False, allow_blank=True)
 
     # The goods. `invoice_url` is a link to the invoice document (host it
     # yourself, or upload it via POST /uploads with purpose=trip_invoice and
@@ -60,7 +61,26 @@ class TripCreateSerializer(serializers.Serializer):
     invoice_url = HttpUrlField(max_length=1000, required=False, allow_blank=True)
     invoice_number = serializers.CharField(max_length=100, required=False, allow_blank=True)
     verify_items = serializers.BooleanField(required=False, default=False)
+    # Photos the driver must take (with the camera) at the pickup before the
+    # delivery can start: none, one of the whole order, or one per item.
+    pickup_photo = serializers.ChoiceField(
+        choices=PickupPhotoMode.choices, required=False, default=PickupPhotoMode.NONE
+    )
+    # Prepaid trips: text the customer a delivery OTP the driver must enter to
+    # complete (COD trips always need one).
+    delivery_otp = serializers.BooleanField(required=False, default=False)
+    # The same at the drop, before the delivery can be paid for / completed.
+    delivery_photo = serializers.ChoiceField(
+        choices=PickupPhotoMode.choices, required=False, default=PickupPhotoMode.NONE
+    )
     items = TripItemInputSerializer(many=True, required=False, max_length=MAX_TRIP_ITEMS)
+
+    # An extra flat amount for this trip, paid to the driver on top of the
+    # fare card — e.g. for unloading heavy goods. Never charged to the
+    # customer. Optional; omit or send 0 for a trip with none.
+    bonus_fare = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=0, required=False, allow_null=True
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -72,12 +92,16 @@ class TripCreateSerializer(serializers.Serializer):
         # The delivery OTP that finalizes a COD trip (see
         # TripService.collect_cod_payment) is sent to this number — it has
         # to exist for a COD trip even though it's optional otherwise.
-        if attrs["payment_mode"] == PaymentMode.COD and not attrs["drop"].get("contact_phone"):
+        needs_otp = attrs["payment_mode"] == PaymentMode.COD or attrs.get("delivery_otp")
+        if needs_otp and not attrs["drop"].get("contact_phone"):
             raise serializers.ValidationError(
-                {"drop": {"contact_phone": "Required for a COD trip — the finalizing OTP is sent to this number."}}
+                {"drop": {"contact_phone": "Required when a delivery OTP is used — the OTP is sent to this number."}}
             )
         if attrs.get("verify_items") and not attrs.get("items"):
             raise serializers.ValidationError({"items": "Add at least one item to have the driver verify it."})
+        per_item = PickupPhotoMode.PER_ITEM in (attrs.get("pickup_photo"), attrs.get("delivery_photo"))
+        if per_item and not attrs.get("items"):
+            raise serializers.ValidationError({"items": "Add at least one item to have the driver photograph it."})
         return attrs
 
 
@@ -96,6 +120,8 @@ class TripVehicleSummarySerializer(serializers.ModelSerializer):
 class TripItemSerializer(serializers.ModelSerializer):
     image_url = MediaUrlField()
     proof_image_url = MediaUrlField()
+    pickup_photo_url = MediaUrlField()
+    delivery_photo_url = MediaUrlField()
 
     class Meta:
         model = TripItem
@@ -112,6 +138,8 @@ class TripItemSerializer(serializers.ModelSerializer):
             "status",
             "verified_at",
             "proof_image_url",
+            "pickup_photo_url",
+            "delivery_photo_url",
             "driver_note",
         ]
         read_only_fields = fields
@@ -122,6 +150,8 @@ class TripSerializer(serializers.ModelSerializer):
     driver = TripDriverSummarySerializer(read_only=True)
     vehicle = TripVehicleSummarySerializer(read_only=True)
     invoice_url = MediaUrlField()
+    pickup_photo_url = MediaUrlField()
+    delivery_photo_url = MediaUrlField()
     items = TripItemSerializer(many=True, read_only=True)
 
     class Meta:
@@ -129,7 +159,9 @@ class TripSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "status",
+            "order_number",
             "reference_id",
+            "notes",
             "vehicle_type",
             "driver",
             "vehicle",
@@ -152,6 +184,7 @@ class TripSerializer(serializers.ModelSerializer):
             "time_fare",
             "surge_multiplier",
             "total_fare",
+            "bonus_fare",
             "currency",
             "payment_mode",
             "payment_status",
@@ -160,6 +193,11 @@ class TripSerializer(serializers.ModelSerializer):
             "invoice_url",
             "invoice_number",
             "verify_items",
+            "pickup_photo",
+            "pickup_photo_url",
+            "delivery_photo",
+            "delivery_photo_url",
+            "delivery_otp",
             "items",
             "cancellation_reason",
             "cancelled_by",
@@ -188,6 +226,7 @@ class TripListSerializer(TripSerializer):
         fields = [
             "id",
             "status",
+            "order_number",
             "reference_id",
             "vehicle_type",
             "driver",
@@ -240,7 +279,7 @@ class TripCompleteSerializer(serializers.Serializer):
     def validate_otp(self, value):
         value = value.strip()
         if value and not OTP_RE.match(value):
-            raise serializers.ValidationError("OTP must be exactly 6 digits.")
+            raise serializers.ValidationError(f"OTP must be exactly {OTP_LENGTH} digits.")
         return value
 
 
@@ -260,6 +299,15 @@ class TripItemVerifySerializer(serializers.Serializer):
         if attrs["status"] == ItemVerificationStatus.NOT_DELIVERED and not attrs["note"]:
             raise serializers.ValidationError({"note": "Say what happened to this item."})
         return attrs
+
+
+class TripPickupPhotoSerializer(serializers.Serializer):
+    """POST /driver/trips/{id}/pickup-photo and /delivery-photo — multipart:
+    the `photo`, and the `item_id` it shows when the trip wants one photo per
+    item."""
+
+    photo = serializers.FileField()
+    item_id = serializers.UUIDField(required=False, allow_null=True)
 
 
 # -- Response shapes -------------------------------------------------------------

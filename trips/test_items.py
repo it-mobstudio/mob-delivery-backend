@@ -61,6 +61,15 @@ class BookingWithItemsTests(DriverTestMixin, TestCase):
         self.assertEqual((second["quantity"], second["notes"], second["image_url"]), (20, "Fe500D", None))
         self.assertTrue(all(i["status"] == "pending" and i["verified_at"] is None for i in body["items"]))
 
+    def test_a_booking_can_carry_a_bonus(self):
+        response = self.book(bonus_fare="100.00")
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertEqual(response.json()["bonus_fare"], "100.00")
+
+    def test_a_bonus_is_optional_and_never_negative(self):
+        self.assertIsNone(self.book().json()["bonus_fare"])
+        self.assertEqual(self.book(bonus_fare="-5.00").status_code, 400)
+
     def test_items_and_invoice_are_optional(self):
         body = self.book().json()
         self.assertEqual(body["items"], [])
@@ -378,9 +387,9 @@ class ItemVerificationTests(DriverTestMixin, TestCase):
         # Guard for the gate's ordering: items are checked before the OTP is
         # consumed, so a blocked completion doesn't burn the customer's OTP.
         cod = self.make_verifiable_trip(payment_mode=PaymentMode.COD, payment_status=PaymentStatus.PAID)
-        cache.set(f"trip_delivery_otp:{cod.id}", "123456")
+        cache.set(f"trip_delivery_otp:{cod.id}", "1234")
 
-        blocked = self.client.post(f"{DRIVER_TRIPS}/{cod.id}/complete", {"otp": "123456"}, format="json")
+        blocked = self.client.post(f"{DRIVER_TRIPS}/{cod.id}/complete", {"otp": "1234"}, format="json")
 
         self.assertEqual(blocked.json()["error"]["code"], "ITEMS_NOT_VERIFIED")
-        self.assertEqual(cache.get(f"trip_delivery_otp:{cod.id}"), "123456")
+        self.assertEqual(cache.get(f"trip_delivery_otp:{cod.id}"), "1234")

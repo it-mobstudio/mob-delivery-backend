@@ -1,6 +1,6 @@
 from django.db import models
 
-from core.choices import CancelledBy, ItemVerificationStatus, PaymentMode, PaymentStatus, TripStatus
+from core.choices import CancelledBy, ItemVerificationStatus, PaymentMode, PaymentStatus, PickupPhotoMode, TripStatus
 from core.models import BaseModel
 from drivers.models import Driver, Vehicle, VehicleType
 
@@ -27,6 +27,15 @@ class Trip(BaseModel):
     # our uuid on their side first.
     reference_id = models.CharField(max_length=100, blank=True)
 
+    # Our own order number, shown to drivers and customers:
+    # OD{YYYY}{MM}{DD}000{n}, n from TripNumber (see TripService.create_trip).
+    # A trip with several drops would add _01, _02… per delivery — every trip
+    # has exactly one drop today, so there's no suffix yet.
+    order_number = models.CharField(max_length=40, unique=True, null=True, blank=True, editable=False)
+    # A note for the driver about the whole order ("Call before arriving, use
+    # gate 2") — shown on the order details screen.
+    notes = models.CharField(max_length=500, blank=True, default="")
+
     pickup_address = models.CharField(max_length=255)
     pickup_lat = models.DecimalField(max_digits=9, decimal_places=6)
     pickup_lng = models.DecimalField(max_digits=9, decimal_places=6)
@@ -51,6 +60,14 @@ class Trip(BaseModel):
     time_fare = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     surge_multiplier = models.DecimalField(max_digits=4, decimal_places=2, default=1)
     total_fare = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    # An extra flat amount for this trip specifically — e.g. compensation for
+    # unloading heavy goods — on top of the fare card. Set once at booking
+    # (TripCreateSerializer), paid to the driver in full (not split by
+    # DRIVER_EARNING_PERCENT like total_fare is — see
+    # drivers.wallet.WalletService.credit_trip_earning). Never charged to the
+    # customer: it does not affect total_fare.
+    bonus_fare = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     currency = models.CharField(max_length=3, default="INR")
 
     # Set once at creation and never changed after. COD trips start
@@ -80,6 +97,21 @@ class Trip(BaseModel):
     # photo) at the drop before the trip can be paid for / completed — see
     # TripService.verify_item. Set once at booking.
     verify_items = models.BooleanField(default=False)
+
+    # Proof of what left the pickup: `order` = one photo of the whole package
+    # (pickup_photo_url), `per_item` = one per TripItem (its pickup_photo_url).
+    # Set once at booking; the delivery can't start until they are taken — see
+    # TripService.add_photo / driver_start.
+    pickup_photo = models.CharField(max_length=20, choices=PickupPhotoMode.choices, default=PickupPhotoMode.NONE)
+    pickup_photo_url = models.URLField(max_length=500, blank=True, default="")
+    # The same at the drop: the delivery can't be paid for / completed until
+    # these are taken.
+    delivery_photo = models.CharField(max_length=20, choices=PickupPhotoMode.choices, default=PickupPhotoMode.NONE)
+    delivery_photo_url = models.URLField(max_length=500, blank=True, default="")
+
+    # A prepaid trip can still ask for the customer's delivery OTP (COD trips
+    # always do): the driver has it texted at the drop, and completion needs it.
+    delivery_otp = models.BooleanField(default=False)
 
     # What this trip paid the driver (a share of total_fare, fixed at
     # completion — see drivers.wallet.WalletService.credit_trip_earning).
@@ -132,6 +164,10 @@ class TripItem(BaseModel):
         Driver, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
     proof_image_url = models.URLField(max_length=500, blank=True, default="")
+    # Taken at the pickup / drop when Trip.pickup_photo / delivery_photo is
+    # `per_item`.
+    pickup_photo_url = models.URLField(max_length=500, blank=True, default="")
+    delivery_photo_url = models.URLField(max_length=500, blank=True, default="")
     driver_note = models.CharField(max_length=255, blank=True, default="")
 
     class Meta:
@@ -139,3 +175,14 @@ class TripItem(BaseModel):
 
     def __str__(self):
         return f"{self.quantity} x {self.name}"
+
+
+class TripNumber(models.Model):
+    """Hands out the running number in Trip.order_number — one row per trip,
+    so numbers are unique and increasing without any locking."""
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @staticmethod
+    def order_number_for(day, number):
+        return f"OD{day:%Y%m%d}000{number}"

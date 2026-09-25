@@ -447,7 +447,7 @@ paths:
     post:
       operationId: driverRequestOtp
       description: |-
-        **Step 1 of signing a driver in.** Sends a 6-digit one-time code by SMS to `phone_number`. It is valid for **5 minutes**.
+        **Step 1 of signing a driver in.** Sends a 4-digit one-time code by SMS to `phone_number`. It is valid for **5 minutes**.
 
         The answer is the same whether or not the number belongs to a driver yet, so this endpoint never reveals who is registered. When the
         server allows **self sign-up**, a number nobody has registered also gets a code - and becomes a new, empty driver account once
@@ -562,7 +562,7 @@ paths:
                 CodeSentTestServerShowsTheCode:
                   value:
                     message: OTP sent to +919876543210.
-                    otp: '482913'
+                    otp: '4829'
                   summary: Code sent (test server shows the code)
           description: Success.
       x-codeSamples:
@@ -626,7 +626,7 @@ paths:
               PhoneAndTheCodeFromTheSms:
                 value:
                   phone_number: '+919000000001'
-                  otp: '482913'
+                  otp: '4829'
                 summary: Phone and the code from the SMS
         required: true
       security:
@@ -796,7 +796,7 @@ paths:
             -H "Content-Type: application/json" \
             -d '{
               "phone_number": "+919000000001",
-              "otp": "482913"
+              "otp": "4829"
             }'
       - lang: Python
         label: Python
@@ -809,7 +809,7 @@ paths:
               f"{BASE_URL}/driver/auth/otp/verify",
               json={
                   "phone_number": "+919000000001",
-                  "otp": "482913"
+                  "otp": "4829"
               },
           )
           print(response.status_code, response.json())
@@ -823,7 +823,7 @@ paths:
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               "phone_number": "+919000000001",
-              "otp": "482913"
+              "otp": "4829"
             }),
           });
           console.log(response.status, await response.json());
@@ -4115,6 +4115,7 @@ paths:
                 ABusyDay:
                   value:
                     all_time:
+                      bonus_fare: null
                       cod_collected: '85.00'
                       distance_meters: 4200
                       earnings: '68.00'
@@ -4122,6 +4123,7 @@ paths:
                       trips_cancelled: 0
                       trips_completed: 1
                     today:
+                      bonus_fare: null
                       cod_collected: '85.00'
                       distance_meters: 4200
                       earnings: '68.00'
@@ -4132,6 +4134,7 @@ paths:
                 NothingYet:
                   value:
                     all_time:
+                      bonus_fare: null
                       cod_collected: '0.00'
                       distance_meters: 0
                       earnings: '0.00'
@@ -4139,6 +4142,7 @@ paths:
                       trips_cancelled: 0
                       trips_completed: 0
                     today:
+                      bonus_fare: null
                       cod_collected: '0.00'
                       distance_meters: 0
                       earnings: '0.00'
@@ -4262,6 +4266,7 @@ paths:
                     previous: null
                     results:
                     - assigned_at: '2026-09-21T09:41:05.554924Z'
+                      bonus_fare: null
                       cancellation_reason: ''
                       cancelled_at: null
                       cancelled_by: ''
@@ -4277,6 +4282,7 @@ paths:
                       drop_address: 12 Indiranagar 100ft Road, Bengaluru
                       duration_seconds: 780
                       id: 5920b157-27b4-43c2-a3a9-8d9fd7f0e3db
+                      order_number: OD20260921000107
                       payment_mode: cod
                       payment_status: paid
                       pickup_address: MG Road Metro Station, Bengaluru
@@ -4411,6 +4417,7 @@ paths:
                     arrived_at_pickup_at: '2026-09-21T09:42:21.711857Z'
                     assigned_at: '2026-09-21T09:41:05.554924Z'
                     base_fare: '30.00'
+                    bonus_fare: null
                     cancellation_reason: ''
                     cancelled_at: null
                     cancelled_by: ''
@@ -4418,6 +4425,9 @@ paths:
                     completed_at: '2026-09-21T09:47:48.656172Z'
                     created_at: '2026-09-21T09:40:17.136677Z'
                     currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
                     distance_fare: '42.00'
                     distance_meters: 4200
                     driver:
@@ -4435,11 +4445,13 @@ paths:
                     invoice_number: INV-1001
                     invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
                     items:
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
                       image_url: https://files.example.com/img/cement.jpg
                       name: Cement bag 50 kg
                       notes: Keep dry
+                      pickup_photo_url: null
                       position: 0
                       proof_image_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/delivery-proofs/c035aafb-8e97-473e-aa86-c7ad21859f7d.jpg
                       quantity: 4
@@ -4448,11 +4460,13 @@ paths:
                       unit: bags
                       unit_price: '380.00'
                       verified_at: '2026-09-21T09:45:05.291562Z'
-                    - driver_note: Damaged in transit
+                    - delivery_photo_url: null
+                      driver_note: Damaged in transit
                       id: a25e41b6-4398-4ca2-8a07-d75090755d52
                       image_url: null
                       name: TMT bar 12 mm
                       notes: ''
+                      pickup_photo_url: null
                       position: 1
                       proof_image_url: null
                       quantity: 20
@@ -4461,6 +4475,8 @@ paths:
                       unit: pcs
                       unit_price: '95.00'
                       verified_at: '2026-09-21T09:46:26.844073Z'
+                    notes: ''
+                    order_number: OD20260921000106
                     payment_mode: cod
                     payment_reference: pay_Nx4b2Lq1cC0dYa
                     payment_status: paid
@@ -4469,6 +4485,8 @@ paths:
                     pickup_contact_phone: '+919888800001'
                     pickup_lat: '12.975000'
                     pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
                     polyline_precision: 6
                     reference_id: ORD-20260921-0042
                     route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -4631,6 +4649,7 @@ paths:
                     arrived_at_pickup_at: '2026-09-21T09:42:21.711857Z'
                     assigned_at: '2026-09-21T09:41:05.554924Z'
                     base_fare: '30.00'
+                    bonus_fare: null
                     cancellation_reason: ''
                     cancelled_at: null
                     cancelled_by: ''
@@ -4638,6 +4657,9 @@ paths:
                     completed_at: null
                     created_at: '2026-09-21T09:40:17.136677Z'
                     currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
                     distance_fare: '42.00'
                     distance_meters: 4200
                     driver:
@@ -4655,11 +4677,13 @@ paths:
                     invoice_number: INV-1001
                     invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
                     items:
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
                       image_url: https://files.example.com/img/cement.jpg
                       name: Cement bag 50 kg
                       notes: Keep dry
+                      pickup_photo_url: null
                       position: 0
                       proof_image_url: null
                       quantity: 4
@@ -4668,11 +4692,13 @@ paths:
                       unit: bags
                       unit_price: '380.00'
                       verified_at: null
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: a25e41b6-4398-4ca2-8a07-d75090755d52
                       image_url: null
                       name: TMT bar 12 mm
                       notes: ''
+                      pickup_photo_url: null
                       position: 1
                       proof_image_url: null
                       quantity: 20
@@ -4681,6 +4707,8 @@ paths:
                       unit: pcs
                       unit_price: '95.00'
                       verified_at: null
+                    notes: ''
+                    order_number: OD20260921000102
                     payment_mode: cod
                     payment_reference: ''
                     payment_status: pending
@@ -4689,6 +4717,8 @@ paths:
                     pickup_contact_phone: '+919888800001'
                     pickup_lat: '12.975000'
                     pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
                     polyline_precision: 6
                     reference_id: ORD-20260921-0042
                     route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -4882,6 +4912,7 @@ paths:
                     arrived_at_pickup_at: null
                     assigned_at: '2026-09-21T09:51:12.611455Z'
                     base_fare: '30.00'
+                    bonus_fare: null
                     cancellation_reason: Vehicle breakdown
                     cancelled_at: '2026-09-21T09:51:52.745396Z'
                     cancelled_by: driver
@@ -4889,6 +4920,9 @@ paths:
                     completed_at: null
                     created_at: '2026-09-21T09:50:30.565426Z'
                     currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
                     distance_fare: '42.00'
                     distance_meters: 4200
                     driver:
@@ -4906,6 +4940,8 @@ paths:
                     invoice_number: ''
                     invoice_url: null
                     items: []
+                    notes: ''
+                    order_number: OD20260921000103
                     payment_mode: prepaid
                     payment_reference: ''
                     payment_status: paid
@@ -4914,6 +4950,8 @@ paths:
                     pickup_contact_phone: '+919888800001'
                     pickup_lat: '12.975000'
                     pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
                     polyline_precision: 6
                     reference_id: ORD-20260921-0043
                     route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -4980,7 +5018,7 @@ paths:
       description: |-
         Finishes the trip (`in_progress` -> `completed`), records `completed_at`, and **credits the driver's wallet** with their share of the fare in the same step.
 
-        **Prepaid** trip: send an empty body. **Cash on delivery**: the fare must have been paid (see *Driver payments*) and `otp` - the 6-digit code texted to the customer
+        **Prepaid** trip: send an empty body. **Cash on delivery**: the fare must have been paid (see *Driver payments*) and `otp` - the 4-digit code texted to the customer
         - is **required**; it proves the customer received the goods. If the order asked for item verification, every item must be answered first.
 
         The checks run in this order, so the first that fails is the one you see: `ITEMS_NOT_VERIFIED` -> `PAYMENT_NOT_COLLECTED` -> `INVALID_DELIVERY_OTP` -> status.
@@ -5006,7 +5044,7 @@ paths:
             examples:
               CashOnDeliveryTheCustomerSCode:
                 value:
-                  otp: '387406'
+                  otp: '3874'
                 summary: 'Cash on delivery: the customer''s code'
               PrepaidNoBodyNeeded:
                 value: {}
@@ -5117,6 +5155,13 @@ paths:
                       code: ITEMS_NOT_VERIFIED
                       message: Verify every item on this order before continuing.
                   summary: ITEMS_NOT_VERIFIED
+                DELIVERYPHOTOSREQUIRED:
+                  value:
+                    success: false
+                    error:
+                      code: DELIVERY_PHOTOS_REQUIRED
+                      message: Take the delivery photos before finishing the delivery.
+                  summary: DELIVERY_PHOTOS_REQUIRED
                 PAYMENTNOTCOLLECTED:
                   value:
                     success: false
@@ -5136,6 +5181,7 @@ paths:
           description: |-
             One of:
             - `ITEMS_NOT_VERIFIED` - The order asked for its items to be verified (`verify_items: true`) and some are still unanswered. Payment and completion are blocked until every item is marked delivered / not delivered.
+            - `DELIVERY_PHOTOS_REQUIRED` - The order was booked with `delivery_photo` (`order` or `per_item`) and the driver hasn't taken all of those photos at the drop yet, so it can't be paid for or completed.
             - `PAYMENT_NOT_COLLECTED` - `complete` was called on a COD trip before its payment was confirmed.
             - `INVALID_TRIP_STATUS_TRANSITION` - The driver action isn't valid for the trip's current status (e.g. `start` before `arrive`).
         '200':
@@ -5149,6 +5195,7 @@ paths:
                     arrived_at_pickup_at: '2026-09-21T09:42:21.711857Z'
                     assigned_at: '2026-09-21T09:41:05.554924Z'
                     base_fare: '30.00'
+                    bonus_fare: null
                     cancellation_reason: ''
                     cancelled_at: null
                     cancelled_by: ''
@@ -5156,6 +5203,9 @@ paths:
                     completed_at: '2026-09-21T09:47:48.656172Z'
                     created_at: '2026-09-21T09:40:17.136677Z'
                     currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
                     distance_fare: '42.00'
                     distance_meters: 4200
                     driver:
@@ -5173,11 +5223,13 @@ paths:
                     invoice_number: INV-1001
                     invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
                     items:
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
                       image_url: https://files.example.com/img/cement.jpg
                       name: Cement bag 50 kg
                       notes: Keep dry
+                      pickup_photo_url: null
                       position: 0
                       proof_image_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/delivery-proofs/c035aafb-8e97-473e-aa86-c7ad21859f7d.jpg
                       quantity: 4
@@ -5186,11 +5238,13 @@ paths:
                       unit: bags
                       unit_price: '380.00'
                       verified_at: '2026-09-21T09:45:05.291562Z'
-                    - driver_note: Damaged in transit
+                    - delivery_photo_url: null
+                      driver_note: Damaged in transit
                       id: a25e41b6-4398-4ca2-8a07-d75090755d52
                       image_url: null
                       name: TMT bar 12 mm
                       notes: ''
+                      pickup_photo_url: null
                       position: 1
                       proof_image_url: null
                       quantity: 20
@@ -5199,6 +5253,8 @@ paths:
                       unit: pcs
                       unit_price: '95.00'
                       verified_at: '2026-09-21T09:46:26.844073Z'
+                    notes: ''
+                    order_number: OD20260921000104
                     payment_mode: cod
                     payment_reference: pay_Nx4b2Lq1cC0dYa
                     payment_status: paid
@@ -5207,6 +5263,8 @@ paths:
                     pickup_contact_phone: '+919888800001'
                     pickup_lat: '12.975000'
                     pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
                     polyline_precision: 6
                     reference_id: ORD-20260921-0042
                     route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -5235,7 +5293,7 @@ paths:
             -H "Authorization: Bearer $DRIVER_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{
-              "otp": "387406"
+              "otp": "3874"
             }'
       - lang: Python
         label: Python
@@ -5249,7 +5307,7 @@ paths:
               f"{BASE_URL}/driver/trips/{TRIP_ID}/complete",
               headers={"Authorization": f"Bearer {DRIVER_TOKEN}"},
               json={
-                  "otp": "387406"
+                  "otp": "3874"
               },
           )
           print(response.status_code, response.json())
@@ -5263,7 +5321,7 @@ paths:
             method: "POST",
             headers: { Authorization: `Bearer ${DRIVER_TOKEN}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-              "otp": "387406"
+              "otp": "3874"
             }),
           });
           console.log(response.status, await response.json());
@@ -5271,11 +5329,15 @@ paths:
     post:
       operationId: driverResendDeliveryOtp
       description: |-
-        For a **paid** cash-on-delivery trip whose OTP never arrived or has expired (it lasts 5 minutes): sends the customer a **new** code (the old one stops working). Limited to
-        one send every **30 seconds** per trip (`OTP_ALREADY_REQUESTED`, HTTP 429). On a non-production server the response also echoes the code in `otp`.
+        For a **paid** cash-on-delivery trip whose OTP never arrived or has expired (it lasts 5 minutes): sends the customer a **new** code (the old one stops working).
+
+        For a **prepaid** trip booked with `delivery_otp: true` this is also the *first* send: at the drop, once the items are checked and the delivery photos taken, the driver
+        calls it and the customer is texted the code that `POST /driver/trips/{id}/complete` then needs.
+
+        Limited to one send every **30 seconds** per trip (`OTP_ALREADY_REQUESTED`, HTTP 429). On a non-production server the response also echoes the code in `otp`.
 
         **Who may call this:** **Driver** - a driver token only.
-      summary: Send the delivery OTP again
+      summary: Send (or send again) the delivery OTP
       parameters:
       - in: path
         name: id
@@ -5381,11 +5443,27 @@ paths:
                       message: Collect the COD payment first; that's what sends the
                         OTP.
                   summary: PAYMENT_NOT_COLLECTED
+                ITEMSNOTVERIFIED:
+                  value:
+                    success: false
+                    error:
+                      code: ITEMS_NOT_VERIFIED
+                      message: Verify every item on this order before continuing.
+                  summary: ITEMS_NOT_VERIFIED
+                DELIVERYPHOTOSREQUIRED:
+                  value:
+                    success: false
+                    error:
+                      code: DELIVERY_PHOTOS_REQUIRED
+                      message: Take the delivery photos before finishing the delivery.
+                  summary: DELIVERY_PHOTOS_REQUIRED
           description: |-
             One of:
             - `NOT_COD_TRIP` - A payment step was used on a prepaid trip. Prepaid trips take no payment at the drop.
             - `TRIP_NOT_IN_PROGRESS` - The payment code is only available once the delivery has started (`in_progress`).
             - `PAYMENT_NOT_COLLECTED` - `complete` was called on a COD trip before its payment was confirmed.
+            - `ITEMS_NOT_VERIFIED` - The order asked for its items to be verified (`verify_items: true`) and some are still unanswered. Payment and completion are blocked until every item is marked delivered / not delivered.
+            - `DELIVERY_PHOTOS_REQUIRED` - The order was booked with `delivery_photo` (`order` or `per_item`) and the driver hasn't taken all of those photos at the drop yet, so it can't be paid for or completed.
         '429':
           content:
             application/json:
@@ -5412,7 +5490,7 @@ paths:
                   value:
                     message: Payment collected. An OTP was sent to +919888800002 to
                       finalize the trip.
-                    otp: '482913'
+                    otp: '4829'
                   summary: Sent again
           description: Success.
       x-codeSamples:
@@ -5443,6 +5521,300 @@ paths:
           const response = await fetch(`${BASE_URL}/driver/trips/${TRIP_ID}/delivery-otp/resend`, {
             method: "POST",
             headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },
+          });
+          console.log(response.status, await response.json());
+  /driver/trips/{id}/delivery-photo:
+    post:
+      operationId: driverAddDeliveryPhoto
+      description: |-
+        For orders booked with `delivery_photo: order` or `per_item`. At the drop, while the delivery is `in_progress`, the driver photographs what they handed over,
+        **with the phone's camera** (stamped with the location and time): one photo of the whole order (`order`), or one of every item (`per_item`, with `item_id`).
+        Until all are in, the payment QR, payment check and completion answer `DELIVERY_PHOTOS_REQUIRED`. A new photo for the same slot replaces the old one.
+
+        Send as **`multipart/form-data`**. The response is the **whole trip** (`delivery_photo_url`, `items[].delivery_photo_url`).
+
+        **Who may call this:** **Driver** - a driver token only.
+      summary: Add a delivery photo
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: The trip's id (UUID) - from `GET /driver/trips/active` or the
+          trip list.
+        required: true
+      tags:
+      - Item verification
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TripPickupPhotoRequest'
+        required: true
+      security:
+      - DriverToken: []
+      responses:
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                INVALIDUPLOAD:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_UPLOAD
+                      message: 'Unsupported file type ''.pdf'' for purpose ''vehicle_photo''.
+                        Allowed: [''jpeg'', ''jpg'', ''png'', ''webp''].'
+                  summary: INVALID_UPLOAD
+                INVALID:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID
+                      message: Request could not be processed.
+                      details:
+                        field:
+                        - This field is required.
+                  summary: INVALID
+          description: |-
+            One of:
+            - `INVALID_UPLOAD` - The file isn't an acceptable image/PDF (wrong type, too large, or corrupt).
+            - `INVALID` - The request body, query string or form is missing a required field or has a value that isn't acceptable. `details` names every offending field.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTAUTHENTICATED:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_AUTHENTICATED
+                      message: Authentication credentials were not provided.
+                  summary: NOT_AUTHENTICATED
+                TOKENNOTVALID:
+                  value:
+                    success: false
+                    error:
+                      code: TOKEN_NOT_VALID
+                      message: Given token not valid for any token type
+                  summary: TOKEN_NOT_VALID
+          description: |-
+            One of:
+            - `NOT_AUTHENTICATED` - No `Authorization` header was sent.
+            - `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTYOURTRIP:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_YOUR_TRIP
+                      message: This trip is not assigned to you.
+                  summary: NOT_YOUR_TRIP
+                PERMISSIONDENIED:
+                  value:
+                    success: false
+                    error:
+                      code: PERMISSION_DENIED
+                      message: You do not have permission to perform this action.
+                  summary: PERMISSION_DENIED
+          description: |-
+            One of:
+            - `NOT_YOUR_TRIP` - A driver called a trip endpoint for a trip that isn't assigned to them.
+            - `PERMISSION_DENIED` - You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse).
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                ITEMNOTFOUND:
+                  value:
+                    success: false
+                    error:
+                      code: ITEM_NOT_FOUND
+                      message: That item isn't on this order.
+                  summary: ITEM_NOT_FOUND
+                NOTFOUND:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_FOUND
+                      message: No Trip matches the given query.
+                  summary: NOT_FOUND
+          description: |-
+            One of:
+            - `ITEM_NOT_FOUND` - `item_id` isn't an item of this trip.
+            - `NOT_FOUND` - No such resource - or it belongs to another company. The API never confirms that other companies' data exists.
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                DELIVERYPHOTONOTREQUESTED:
+                  value:
+                    success: false
+                    error:
+                      code: DELIVERY_PHOTO_NOT_REQUESTED
+                      message: This order doesn't need delivery photos.
+                  summary: DELIVERY_PHOTO_NOT_REQUESTED
+                INVALIDTRIPSTATUSTRANSITION:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_TRIP_STATUS_TRANSITION
+                      message: Trip must be 'arrived_at_pickup' to do this (currently
+                        'assigned').
+                  summary: INVALID_TRIP_STATUS_TRANSITION
+          description: |-
+            One of:
+            - `DELIVERY_PHOTO_NOT_REQUESTED` - The driver sent a delivery photo for an order booked with `delivery_photo: none`.
+            - `INVALID_TRIP_STATUS_TRANSITION` - The driver action isn't valid for the trip's current status (e.g. `start` before `arrive`).
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverTrip'
+              examples:
+                TheOrderPhotoAdded:
+                  value:
+                    arrived_at_pickup_at: '2026-09-21T09:42:21.711857Z'
+                    assigned_at: '2026-09-21T09:41:05.554924Z'
+                    base_fare: '30.00'
+                    bonus_fare: null
+                    cancellation_reason: ''
+                    cancelled_at: null
+                    cancelled_by: ''
+                    cod_collected_at: null
+                    completed_at: null
+                    created_at: '2026-09-21T09:40:17.136677Z'
+                    currency: INR
+                    delivery_otp: false
+                    delivery_photo: order
+                    delivery_photo_url: https://api.example.com/media/3f6c1d2e-8a41-4a7e-9d1b-2f0e5c7a9b10/delivery-proofs/handover.jpg
+                    distance_fare: '42.00'
+                    distance_meters: 4200
+                    driver:
+                      full_name: Ravi Kumar
+                      id: bd316e30-cfde-4314-829e-3822e0c049bc
+                      phone_number: '+919876543210'
+                    driver_earning: null
+                    drop_address: 12 Indiranagar 100ft Road, Bengaluru
+                    drop_contact_name: Asha Menon
+                    drop_contact_phone: '+919888800002'
+                    drop_lat: '12.978300'
+                    drop_lng: '77.640800'
+                    duration_seconds: 780
+                    id: 5920b157-27b4-43c2-a3a9-8d9fd7f0e3db
+                    invoice_number: INV-1001
+                    invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
+                    items:
+                    - delivery_photo_url: null
+                      driver_note: ''
+                      id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
+                      image_url: https://files.example.com/img/cement.jpg
+                      name: Cement bag 50 kg
+                      notes: Keep dry
+                      pickup_photo_url: null
+                      position: 0
+                      proof_image_url: null
+                      quantity: 4
+                      sku: CEM-50
+                      status: pending
+                      unit: bags
+                      unit_price: '380.00'
+                      verified_at: null
+                    - delivery_photo_url: null
+                      driver_note: ''
+                      id: a25e41b6-4398-4ca2-8a07-d75090755d52
+                      image_url: null
+                      name: TMT bar 12 mm
+                      notes: ''
+                      pickup_photo_url: null
+                      position: 1
+                      proof_image_url: null
+                      quantity: 20
+                      sku: TMT-12
+                      status: pending
+                      unit: pcs
+                      unit_price: '95.00'
+                      verified_at: null
+                    notes: ''
+                    order_number: OD20260921000105
+                    payment_mode: cod
+                    payment_reference: ''
+                    payment_status: pending
+                    pickup_address: MG Road Metro Station, Bengaluru
+                    pickup_contact_name: Acme Hardware
+                    pickup_contact_phone: '+919888800001'
+                    pickup_lat: '12.975000'
+                    pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
+                    polyline_precision: 6
+                    reference_id: ORD-20260921-0042
+                    route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
+                    started_at: '2026-09-21T09:43:48.697275Z'
+                    status: in_progress
+                    surge_multiplier: '1.00'
+                    time_fare: '13.00'
+                    total_fare: '85.00'
+                    updated_at: '2026-09-21T09:44:30.617767Z'
+                    vehicle:
+                      id: 34dbaab9-e77f-466a-93f3-3637131968ea
+                      registration_number: KA01AB1234
+                    vehicle_type:
+                      category: two_wheeler
+                      icon_image_url: null
+                      id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
+                      name: Bike
+                    verify_items: true
+                  summary: The order photo added
+          description: Success.
+      x-codeSamples:
+      - lang: Shell
+        label: cURL
+        source: |-
+          curl -X POST "$BASE_URL/driver/trips/${TRIP_ID}/delivery-photo" \
+            -H "Authorization: Bearer $DRIVER_TOKEN" \
+            -F 'photo=@/path/to/photo.jpg'
+      - lang: Python
+        label: Python
+        source: |-
+          import requests
+
+          BASE_URL = "http://localhost:8000/api/v1"
+          DRIVER_TOKEN = "..."  # see the Authentication guide
+
+          response = requests.post(
+              f"{BASE_URL}/driver/trips/{TRIP_ID}/delivery-photo",
+              headers={"Authorization": f"Bearer {DRIVER_TOKEN}"},
+              files={"photo": open("photo.jpg", "rb")},
+          )
+          print(response.status_code, response.json())
+      - lang: JavaScript
+        label: JavaScript
+        source: |-
+          const BASE_URL = "http://localhost:8000/api/v1";
+          const DRIVER_TOKEN = "..."; // see the Authentication guide
+
+          const form = new FormData();
+          form.append("photo", fileInput.files[0]);
+
+          const response = await fetch(`${BASE_URL}/driver/trips/${TRIP_ID}/delivery-photo`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },
+            body: form,
           });
           console.log(response.status, await response.json());
   /driver/trips/{id}/items/{item_id}/verify:
@@ -5623,6 +5995,7 @@ paths:
                     arrived_at_pickup_at: '2026-09-21T09:42:21.711857Z'
                     assigned_at: '2026-09-21T09:41:05.554924Z'
                     base_fare: '30.00'
+                    bonus_fare: null
                     cancellation_reason: ''
                     cancelled_at: null
                     cancelled_by: ''
@@ -5630,6 +6003,9 @@ paths:
                     completed_at: null
                     created_at: '2026-09-21T09:40:17.136677Z'
                     currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
                     distance_fare: '42.00'
                     distance_meters: 4200
                     driver:
@@ -5647,11 +6023,13 @@ paths:
                     invoice_number: INV-1001
                     invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
                     items:
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
                       image_url: https://files.example.com/img/cement.jpg
                       name: Cement bag 50 kg
                       notes: Keep dry
+                      pickup_photo_url: null
                       position: 0
                       proof_image_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/delivery-proofs/c035aafb-8e97-473e-aa86-c7ad21859f7d.jpg
                       quantity: 4
@@ -5660,11 +6038,13 @@ paths:
                       unit: bags
                       unit_price: '380.00'
                       verified_at: '2026-09-21T09:45:05.291562Z'
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: a25e41b6-4398-4ca2-8a07-d75090755d52
                       image_url: null
                       name: TMT bar 12 mm
                       notes: ''
+                      pickup_photo_url: null
                       position: 1
                       proof_image_url: null
                       quantity: 20
@@ -5673,6 +6053,8 @@ paths:
                       unit: pcs
                       unit_price: '95.00'
                       verified_at: null
+                    notes: ''
+                    order_number: OD20260921000111
                     payment_mode: cod
                     payment_reference: ''
                     payment_status: pending
@@ -5681,6 +6063,8 @@ paths:
                     pickup_contact_phone: '+919888800001'
                     pickup_lat: '12.975000'
                     pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
                     polyline_precision: 6
                     reference_id: ORD-20260921-0042
                     route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -5705,6 +6089,7 @@ paths:
                     arrived_at_pickup_at: '2026-09-21T09:42:21.711857Z'
                     assigned_at: '2026-09-21T09:41:05.554924Z'
                     base_fare: '30.00'
+                    bonus_fare: null
                     cancellation_reason: ''
                     cancelled_at: null
                     cancelled_by: ''
@@ -5712,6 +6097,9 @@ paths:
                     completed_at: null
                     created_at: '2026-09-21T09:40:17.136677Z'
                     currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
                     distance_fare: '42.00'
                     distance_meters: 4200
                     driver:
@@ -5729,11 +6117,13 @@ paths:
                     invoice_number: INV-1001
                     invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
                     items:
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
                       image_url: https://files.example.com/img/cement.jpg
                       name: Cement bag 50 kg
                       notes: Keep dry
+                      pickup_photo_url: null
                       position: 0
                       proof_image_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/delivery-proofs/c035aafb-8e97-473e-aa86-c7ad21859f7d.jpg
                       quantity: 4
@@ -5742,11 +6132,13 @@ paths:
                       unit: bags
                       unit_price: '380.00'
                       verified_at: '2026-09-21T09:45:05.291562Z'
-                    - driver_note: Damaged in transit
+                    - delivery_photo_url: null
+                      driver_note: Damaged in transit
                       id: a25e41b6-4398-4ca2-8a07-d75090755d52
                       image_url: null
                       name: TMT bar 12 mm
                       notes: ''
+                      pickup_photo_url: null
                       position: 1
                       proof_image_url: null
                       quantity: 20
@@ -5755,6 +6147,8 @@ paths:
                       unit: pcs
                       unit_price: '95.00'
                       verified_at: '2026-09-21T09:45:52.871717Z'
+                    notes: ''
+                    order_number: OD20260921000112
                     payment_mode: cod
                     payment_reference: ''
                     payment_status: pending
@@ -5763,6 +6157,8 @@ paths:
                     pickup_contact_phone: '+919888800001'
                     pickup_lat: '12.975000'
                     pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
                     polyline_precision: 6
                     reference_id: ORD-20260921-0042
                     route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -5958,6 +6354,7 @@ paths:
                     arrived_at_pickup_at: '2026-09-21T09:42:21.711857Z'
                     assigned_at: '2026-09-21T09:41:05.554924Z'
                     base_fare: '30.00'
+                    bonus_fare: null
                     cancellation_reason: ''
                     cancelled_at: null
                     cancelled_by: ''
@@ -5965,6 +6362,9 @@ paths:
                     completed_at: null
                     created_at: '2026-09-21T09:40:17.136677Z'
                     currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
                     distance_fare: '42.00'
                     distance_meters: 4200
                     driver:
@@ -5982,11 +6382,13 @@ paths:
                     invoice_number: INV-1001
                     invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
                     items:
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
                       image_url: https://files.example.com/img/cement.jpg
                       name: Cement bag 50 kg
                       notes: Keep dry
+                      pickup_photo_url: null
                       position: 0
                       proof_image_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/delivery-proofs/c035aafb-8e97-473e-aa86-c7ad21859f7d.jpg
                       quantity: 4
@@ -5995,11 +6397,13 @@ paths:
                       unit: bags
                       unit_price: '380.00'
                       verified_at: '2026-09-21T09:45:05.291562Z'
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: a25e41b6-4398-4ca2-8a07-d75090755d52
                       image_url: null
                       name: TMT bar 12 mm
                       notes: ''
+                      pickup_photo_url: null
                       position: 1
                       proof_image_url: null
                       quantity: 20
@@ -6008,6 +6412,8 @@ paths:
                       unit: pcs
                       unit_price: '95.00'
                       verified_at: null
+                    notes: ''
+                    order_number: OD20260921000110
                     payment_mode: cod
                     payment_reference: ''
                     payment_status: pending
@@ -6016,6 +6422,8 @@ paths:
                     pickup_contact_phone: '+919888800001'
                     pickup_lat: '12.975000'
                     pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
                     polyline_precision: 6
                     reference_id: ORD-20260921-0042
                     route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -6374,6 +6782,13 @@ paths:
                       code: ITEMS_NOT_VERIFIED
                       message: Verify every item on this order before continuing.
                   summary: ITEMS_NOT_VERIFIED
+                DELIVERYPHOTOSREQUIRED:
+                  value:
+                    success: false
+                    error:
+                      code: DELIVERY_PHOTOS_REQUIRED
+                      message: Take the delivery photos before finishing the delivery.
+                  summary: DELIVERY_PHOTOS_REQUIRED
           description: |-
             One of:
             - `PAYMENT_NOT_RECEIVED` - The driver asked the server to confirm the payment, and the payment provider has no payment for this trip's code yet (or it was for less than the fare).
@@ -6381,6 +6796,7 @@ paths:
             - `NOT_COD_TRIP` - A payment step was used on a prepaid trip. Prepaid trips take no payment at the drop.
             - `TRIP_NOT_IN_PROGRESS` - The payment code is only available once the delivery has started (`in_progress`).
             - `ITEMS_NOT_VERIFIED` - The order asked for its items to be verified (`verify_items: true`) and some are still unanswered. Payment and completion are blocked until every item is marked delivered / not delivered.
+            - `DELIVERY_PHOTOS_REQUIRED` - The order was booked with `delivery_photo` (`order` or `per_item`) and the driver hasn't taken all of those photos at the drop yet, so it can't be paid for or completed.
         '502':
           content:
             application/json:
@@ -6433,7 +6849,7 @@ paths:
                   value:
                     message: Payment collected. An OTP was sent to +919888800002 to
                       finalize the trip.
-                    otp: '482913'
+                    otp: '4829'
                   summary: Paid - OTP sent (test server shows the code)
           description: Success.
       x-codeSamples:
@@ -6598,12 +7014,20 @@ paths:
                       code: ITEMS_NOT_VERIFIED
                       message: Verify every item on this order before continuing.
                   summary: ITEMS_NOT_VERIFIED
+                DELIVERYPHOTOSREQUIRED:
+                  value:
+                    success: false
+                    error:
+                      code: DELIVERY_PHOTOS_REQUIRED
+                      message: Take the delivery photos before finishing the delivery.
+                  summary: DELIVERY_PHOTOS_REQUIRED
           description: |-
             One of:
             - `NOT_COD_TRIP` - A payment step was used on a prepaid trip. Prepaid trips take no payment at the drop.
             - `TRIP_NOT_IN_PROGRESS` - The payment code is only available once the delivery has started (`in_progress`).
             - `ALREADY_PAID` - The trip's fare has already been paid (the customer scanned an earlier code, or it was collected already).
             - `ITEMS_NOT_VERIFIED` - The order asked for its items to be verified (`verify_items: true`) and some are still unanswered. Payment and completion are blocked until every item is marked delivered / not delivered.
+            - `DELIVERY_PHOTOS_REQUIRED` - The order was booked with `delivery_photo` (`order` or `per_item`) and the driver hasn't taken all of those photos at the drop yet, so it can't be paid for or completed.
         '502':
           content:
             application/json:
@@ -6703,6 +7127,301 @@ paths:
             headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },
           });
           console.log(response.status, await response.json());
+  /driver/trips/{id}/pickup-photo:
+    post:
+      operationId: driverAddPickupPhoto
+      description: |-
+        For orders booked with `pickup_photo: order` or `per_item`. Before the delivery starts (`assigned` or `arrived_at_pickup`) the driver photographs what they
+        are taking, **with the phone's camera** (the app never offers the gallery, and stamps each photo with the location and time): one photo of the whole package
+        (`order`), or one of every item (`per_item`, with `item_id`). Until all are in, `POST /driver/trips/{id}/start` answers `PICKUP_PHOTOS_REQUIRED`.
+        A new photo for the same slot replaces the old one.
+
+        Send as **`multipart/form-data`**. The response is the **whole trip** (`pickup_photo_url`, `items[].pickup_photo_url`).
+
+        **Who may call this:** **Driver** - a driver token only.
+      summary: Add a pickup photo
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: The trip's id (UUID) - from `GET /driver/trips/active` or the
+          trip list.
+        required: true
+      tags:
+      - Item verification
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TripPickupPhotoRequest'
+        required: true
+      security:
+      - DriverToken: []
+      responses:
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                INVALIDUPLOAD:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_UPLOAD
+                      message: 'Unsupported file type ''.pdf'' for purpose ''vehicle_photo''.
+                        Allowed: [''jpeg'', ''jpg'', ''png'', ''webp''].'
+                  summary: INVALID_UPLOAD
+                INVALID:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID
+                      message: Request could not be processed.
+                      details:
+                        field:
+                        - This field is required.
+                  summary: INVALID
+          description: |-
+            One of:
+            - `INVALID_UPLOAD` - The file isn't an acceptable image/PDF (wrong type, too large, or corrupt).
+            - `INVALID` - The request body, query string or form is missing a required field or has a value that isn't acceptable. `details` names every offending field.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTAUTHENTICATED:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_AUTHENTICATED
+                      message: Authentication credentials were not provided.
+                  summary: NOT_AUTHENTICATED
+                TOKENNOTVALID:
+                  value:
+                    success: false
+                    error:
+                      code: TOKEN_NOT_VALID
+                      message: Given token not valid for any token type
+                  summary: TOKEN_NOT_VALID
+          description: |-
+            One of:
+            - `NOT_AUTHENTICATED` - No `Authorization` header was sent.
+            - `TOKEN_NOT_VALID` - The bearer token is expired, malformed, or was signed by another environment.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                NOTYOURTRIP:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_YOUR_TRIP
+                      message: This trip is not assigned to you.
+                  summary: NOT_YOUR_TRIP
+                PERMISSIONDENIED:
+                  value:
+                    success: false
+                    error:
+                      code: PERMISSION_DENIED
+                      message: You do not have permission to perform this action.
+                  summary: PERMISSION_DENIED
+          description: |-
+            One of:
+            - `NOT_YOUR_TRIP` - A driver called a trip endpoint for a trip that isn't assigned to them.
+            - `PERMISSION_DENIED` - You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse).
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                ITEMNOTFOUND:
+                  value:
+                    success: false
+                    error:
+                      code: ITEM_NOT_FOUND
+                      message: That item isn't on this order.
+                  summary: ITEM_NOT_FOUND
+                NOTFOUND:
+                  value:
+                    success: false
+                    error:
+                      code: NOT_FOUND
+                      message: No Trip matches the given query.
+                  summary: NOT_FOUND
+          description: |-
+            One of:
+            - `ITEM_NOT_FOUND` - `item_id` isn't an item of this trip.
+            - `NOT_FOUND` - No such resource - or it belongs to another company. The API never confirms that other companies' data exists.
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                PICKUPPHOTONOTREQUESTED:
+                  value:
+                    success: false
+                    error:
+                      code: PICKUP_PHOTO_NOT_REQUESTED
+                      message: This order doesn't need pickup photos.
+                  summary: PICKUP_PHOTO_NOT_REQUESTED
+                INVALIDTRIPSTATUSTRANSITION:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_TRIP_STATUS_TRANSITION
+                      message: Trip must be 'arrived_at_pickup' to do this (currently
+                        'assigned').
+                  summary: INVALID_TRIP_STATUS_TRANSITION
+          description: |-
+            One of:
+            - `PICKUP_PHOTO_NOT_REQUESTED` - The driver sent a pickup photo for an order booked with `pickup_photo: none`.
+            - `INVALID_TRIP_STATUS_TRANSITION` - The driver action isn't valid for the trip's current status (e.g. `start` before `arrive`).
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverTrip'
+              examples:
+                TheOrderPhotoAdded:
+                  value:
+                    arrived_at_pickup_at: '2026-09-21T09:42:21.711857Z'
+                    assigned_at: '2026-09-21T09:41:05.554924Z'
+                    base_fare: '30.00'
+                    bonus_fare: null
+                    cancellation_reason: ''
+                    cancelled_at: null
+                    cancelled_by: ''
+                    cod_collected_at: null
+                    completed_at: null
+                    created_at: '2026-09-21T09:40:17.136677Z'
+                    currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
+                    distance_fare: '42.00'
+                    distance_meters: 4200
+                    driver:
+                      full_name: Ravi Kumar
+                      id: bd316e30-cfde-4314-829e-3822e0c049bc
+                      phone_number: '+919876543210'
+                    driver_earning: null
+                    drop_address: 12 Indiranagar 100ft Road, Bengaluru
+                    drop_contact_name: Asha Menon
+                    drop_contact_phone: '+919888800002'
+                    drop_lat: '12.978300'
+                    drop_lng: '77.640800'
+                    duration_seconds: 780
+                    id: 5920b157-27b4-43c2-a3a9-8d9fd7f0e3db
+                    invoice_number: INV-1001
+                    invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
+                    items:
+                    - delivery_photo_url: null
+                      driver_note: ''
+                      id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
+                      image_url: https://files.example.com/img/cement.jpg
+                      name: Cement bag 50 kg
+                      notes: Keep dry
+                      pickup_photo_url: null
+                      position: 0
+                      proof_image_url: null
+                      quantity: 4
+                      sku: CEM-50
+                      status: pending
+                      unit: bags
+                      unit_price: '380.00'
+                      verified_at: null
+                    - delivery_photo_url: null
+                      driver_note: ''
+                      id: a25e41b6-4398-4ca2-8a07-d75090755d52
+                      image_url: null
+                      name: TMT bar 12 mm
+                      notes: ''
+                      pickup_photo_url: null
+                      position: 1
+                      proof_image_url: null
+                      quantity: 20
+                      sku: TMT-12
+                      status: pending
+                      unit: pcs
+                      unit_price: '95.00'
+                      verified_at: null
+                    notes: ''
+                    order_number: OD20260921000108
+                    payment_mode: cod
+                    payment_reference: ''
+                    payment_status: pending
+                    pickup_address: MG Road Metro Station, Bengaluru
+                    pickup_contact_name: Acme Hardware
+                    pickup_contact_phone: '+919888800001'
+                    pickup_lat: '12.975000'
+                    pickup_lng: '77.605000'
+                    pickup_photo: order
+                    pickup_photo_url: https://api.example.com/media/3f6c1d2e-8a41-4a7e-9d1b-2f0e5c7a9b10/pickup-proofs/package.jpg
+                    polyline_precision: 6
+                    reference_id: ORD-20260921-0042
+                    route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
+                    started_at: null
+                    status: arrived_at_pickup
+                    surge_multiplier: '1.00'
+                    time_fare: '13.00'
+                    total_fare: '85.00'
+                    updated_at: '2026-09-21T09:43:05.878992Z'
+                    vehicle:
+                      id: 34dbaab9-e77f-466a-93f3-3637131968ea
+                      registration_number: KA01AB1234
+                    vehicle_type:
+                      category: two_wheeler
+                      icon_image_url: null
+                      id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
+                      name: Bike
+                    verify_items: true
+                  summary: The order photo added
+          description: Success.
+      x-codeSamples:
+      - lang: Shell
+        label: cURL
+        source: |-
+          curl -X POST "$BASE_URL/driver/trips/${TRIP_ID}/pickup-photo" \
+            -H "Authorization: Bearer $DRIVER_TOKEN" \
+            -F 'photo=@/path/to/photo.jpg'
+      - lang: Python
+        label: Python
+        source: |-
+          import requests
+
+          BASE_URL = "http://localhost:8000/api/v1"
+          DRIVER_TOKEN = "..."  # see the Authentication guide
+
+          response = requests.post(
+              f"{BASE_URL}/driver/trips/{TRIP_ID}/pickup-photo",
+              headers={"Authorization": f"Bearer {DRIVER_TOKEN}"},
+              files={"photo": open("photo.jpg", "rb")},
+          )
+          print(response.status_code, response.json())
+      - lang: JavaScript
+        label: JavaScript
+        source: |-
+          const BASE_URL = "http://localhost:8000/api/v1";
+          const DRIVER_TOKEN = "..."; // see the Authentication guide
+
+          const form = new FormData();
+          form.append("photo", fileInput.files[0]);
+
+          const response = await fetch(`${BASE_URL}/driver/trips/${TRIP_ID}/pickup-photo`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${DRIVER_TOKEN}` },
+            body: form,
+          });
+          console.log(response.status, await response.json());
   /driver/trips/{id}/start:
     post:
       operationId: driverStart
@@ -6794,6 +7513,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
+                PICKUPPHOTOSREQUIRED:
+                  value:
+                    success: false
+                    error:
+                      code: PICKUP_PHOTOS_REQUIRED
+                      message: Take the pickup photos before starting the delivery.
+                  summary: PICKUP_PHOTOS_REQUIRED
                 INVALIDTRIPSTATUSTRANSITION:
                   value:
                     success: false
@@ -6802,8 +7528,10 @@ paths:
                       message: Trip must be 'arrived_at_pickup' to do this (currently
                         'assigned').
                   summary: INVALID_TRIP_STATUS_TRANSITION
-          description: '`INVALID_TRIP_STATUS_TRANSITION` - The driver action isn''t
-            valid for the trip''s current status (e.g. `start` before `arrive`).'
+          description: |-
+            One of:
+            - `PICKUP_PHOTOS_REQUIRED` - The order was booked with `pickup_photo` (`order` or `per_item`) and the driver hasn't taken all of those photos yet, so the delivery can't start.
+            - `INVALID_TRIP_STATUS_TRANSITION` - The driver action isn't valid for the trip's current status (e.g. `start` before `arrive`).
         '200':
           content:
             application/json:
@@ -6815,6 +7543,7 @@ paths:
                     arrived_at_pickup_at: '2026-09-21T09:42:21.711857Z'
                     assigned_at: '2026-09-21T09:41:05.554924Z'
                     base_fare: '30.00'
+                    bonus_fare: null
                     cancellation_reason: ''
                     cancelled_at: null
                     cancelled_by: ''
@@ -6822,6 +7551,9 @@ paths:
                     completed_at: null
                     created_at: '2026-09-21T09:40:17.136677Z'
                     currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
                     distance_fare: '42.00'
                     distance_meters: 4200
                     driver:
@@ -6839,11 +7571,13 @@ paths:
                     invoice_number: INV-1001
                     invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
                     items:
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
                       image_url: https://files.example.com/img/cement.jpg
                       name: Cement bag 50 kg
                       notes: Keep dry
+                      pickup_photo_url: null
                       position: 0
                       proof_image_url: null
                       quantity: 4
@@ -6852,11 +7586,13 @@ paths:
                       unit: bags
                       unit_price: '380.00'
                       verified_at: null
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: a25e41b6-4398-4ca2-8a07-d75090755d52
                       image_url: null
                       name: TMT bar 12 mm
                       notes: ''
+                      pickup_photo_url: null
                       position: 1
                       proof_image_url: null
                       quantity: 20
@@ -6865,6 +7601,8 @@ paths:
                       unit: pcs
                       unit_price: '95.00'
                       verified_at: null
+                    notes: ''
+                    order_number: OD20260921000109
                     payment_mode: cod
                     payment_reference: ''
                     payment_status: pending
@@ -6873,6 +7611,8 @@ paths:
                     pickup_contact_phone: '+919888800001'
                     pickup_lat: '12.975000'
                     pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
                     polyline_precision: 6
                     reference_id: ORD-20260921-0042
                     route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -6993,6 +7733,7 @@ paths:
                       arrived_at_pickup_at: null
                       assigned_at: '2026-09-21T09:41:05.554924Z'
                       base_fare: '30.00'
+                      bonus_fare: null
                       cancellation_reason: ''
                       cancelled_at: null
                       cancelled_by: ''
@@ -7000,6 +7741,9 @@ paths:
                       completed_at: null
                       created_at: '2026-09-21T09:40:17.136677Z'
                       currency: INR
+                      delivery_otp: false
+                      delivery_photo: none
+                      delivery_photo_url: null
                       distance_fare: '42.00'
                       distance_meters: 4200
                       driver:
@@ -7017,11 +7761,13 @@ paths:
                       invoice_number: INV-1001
                       invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
                       items:
-                      - driver_note: ''
+                      - delivery_photo_url: null
+                        driver_note: ''
                         id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
                         image_url: https://files.example.com/img/cement.jpg
                         name: Cement bag 50 kg
                         notes: Keep dry
+                        pickup_photo_url: null
                         position: 0
                         proof_image_url: null
                         quantity: 4
@@ -7030,11 +7776,13 @@ paths:
                         unit: bags
                         unit_price: '380.00'
                         verified_at: null
-                      - driver_note: ''
+                      - delivery_photo_url: null
+                        driver_note: ''
                         id: a25e41b6-4398-4ca2-8a07-d75090755d52
                         image_url: null
                         name: TMT bar 12 mm
                         notes: ''
+                        pickup_photo_url: null
                         position: 1
                         proof_image_url: null
                         quantity: 20
@@ -7043,6 +7791,8 @@ paths:
                         unit: pcs
                         unit_price: '95.00'
                         verified_at: null
+                      notes: Call before arriving. Use the side gate for unloading.
+                      order_number: OD20260921000101
                       payment_mode: cod
                       payment_reference: ''
                       payment_status: pending
@@ -7051,6 +7801,8 @@ paths:
                       pickup_contact_phone: '+919888800001'
                       pickup_lat: '12.975000'
                       pickup_lng: '77.605000'
+                      pickup_photo: none
+                      pickup_photo_url: null
                       polyline_precision: 6
                       reference_id: ORD-20260921-0042
                       route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -10006,7 +10758,8 @@ paths:
                     next: null
                     previous: null
                     results:
-                    - created_at: '2026-09-21T09:40:17.136677Z'
+                    - bonus_fare: null
+                      created_at: '2026-09-21T09:40:17.136677Z'
                       currency: INR
                       driver:
                         full_name: Ravi Kumar
@@ -10014,6 +10767,7 @@ paths:
                         phone_number: '+919876543210'
                       drop_address: 12 Indiranagar 100ft Road, Bengaluru
                       id: 5920b157-27b4-43c2-a3a9-8d9fd7f0e3db
+                      order_number: OD20260921000115
                       payment_mode: cod
                       payment_status: pending
                       pickup_address: MG Road Metro Station, Bengaluru
@@ -10261,6 +11015,7 @@ paths:
                     arrived_at_pickup_at: null
                     assigned_at: '2026-09-21T09:41:05.554924Z'
                     base_fare: '30.00'
+                    bonus_fare: null
                     cancellation_reason: ''
                     cancelled_at: null
                     cancelled_by: ''
@@ -10268,6 +11023,9 @@ paths:
                     completed_at: null
                     created_at: '2026-09-21T09:40:17.136677Z'
                     currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
                     distance_fare: '42.00'
                     distance_meters: 4200
                     driver:
@@ -10284,11 +11042,13 @@ paths:
                     invoice_number: INV-1001
                     invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
                     items:
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
                       image_url: https://files.example.com/img/cement.jpg
                       name: Cement bag 50 kg
                       notes: Keep dry
+                      pickup_photo_url: null
                       position: 0
                       proof_image_url: null
                       quantity: 4
@@ -10297,11 +11057,13 @@ paths:
                       unit: bags
                       unit_price: '380.00'
                       verified_at: null
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: a25e41b6-4398-4ca2-8a07-d75090755d52
                       image_url: null
                       name: TMT bar 12 mm
                       notes: ''
+                      pickup_photo_url: null
                       position: 1
                       proof_image_url: null
                       quantity: 20
@@ -10310,6 +11072,8 @@ paths:
                       unit: pcs
                       unit_price: '95.00'
                       verified_at: null
+                    notes: ''
+                    order_number: OD20260921000113
                     payment_mode: cod
                     payment_reference: ''
                     payment_status: pending
@@ -10318,6 +11082,8 @@ paths:
                     pickup_contact_phone: '+919888800001'
                     pickup_lat: '12.975000'
                     pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
                     polyline_precision: 6
                     reference_id: ORD-20260921-0042
                     route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -10580,6 +11346,7 @@ paths:
                     arrived_at_pickup_at: null
                     assigned_at: '2026-09-21T09:41:05.554924Z'
                     base_fare: '30.00'
+                    bonus_fare: null
                     cancellation_reason: ''
                     cancelled_at: null
                     cancelled_by: ''
@@ -10587,6 +11354,9 @@ paths:
                     completed_at: null
                     created_at: '2026-09-21T09:40:17.136677Z'
                     currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
                     distance_fare: '42.00'
                     distance_meters: 4200
                     driver:
@@ -10603,11 +11373,13 @@ paths:
                     invoice_number: INV-1001
                     invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
                     items:
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
                       image_url: https://files.example.com/img/cement.jpg
                       name: Cement bag 50 kg
                       notes: Keep dry
+                      pickup_photo_url: null
                       position: 0
                       proof_image_url: null
                       quantity: 4
@@ -10616,11 +11388,13 @@ paths:
                       unit: bags
                       unit_price: '380.00'
                       verified_at: null
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: a25e41b6-4398-4ca2-8a07-d75090755d52
                       image_url: null
                       name: TMT bar 12 mm
                       notes: ''
+                      pickup_photo_url: null
                       position: 1
                       proof_image_url: null
                       quantity: 20
@@ -10629,6 +11403,8 @@ paths:
                       unit: pcs
                       unit_price: '95.00'
                       verified_at: null
+                    notes: ''
+                    order_number: OD20260921000114
                     payment_mode: cod
                     payment_reference: ''
                     payment_status: pending
@@ -10637,6 +11413,8 @@ paths:
                     pickup_contact_phone: '+919888800001'
                     pickup_lat: '12.975000'
                     pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
                     polyline_precision: 6
                     reference_id: ORD-20260921-0042
                     route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -10794,6 +11572,7 @@ paths:
                     arrived_at_pickup_at: null
                     assigned_at: '2026-09-21T09:41:05.554924Z'
                     base_fare: '30.00'
+                    bonus_fare: null
                     cancellation_reason: ''
                     cancelled_at: null
                     cancelled_by: ''
@@ -10801,6 +11580,9 @@ paths:
                     completed_at: null
                     created_at: '2026-09-21T09:40:17.136677Z'
                     currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
                     distance_fare: '42.00'
                     distance_meters: 4200
                     driver:
@@ -10817,11 +11599,13 @@ paths:
                     invoice_number: INV-1001
                     invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
                     items:
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
                       image_url: https://files.example.com/img/cement.jpg
                       name: Cement bag 50 kg
                       notes: Keep dry
+                      pickup_photo_url: null
                       position: 0
                       proof_image_url: null
                       quantity: 4
@@ -10830,11 +11614,13 @@ paths:
                       unit: bags
                       unit_price: '380.00'
                       verified_at: null
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: a25e41b6-4398-4ca2-8a07-d75090755d52
                       image_url: null
                       name: TMT bar 12 mm
                       notes: ''
+                      pickup_photo_url: null
                       position: 1
                       proof_image_url: null
                       quantity: 20
@@ -10843,6 +11629,8 @@ paths:
                       unit: pcs
                       unit_price: '95.00'
                       verified_at: null
+                    notes: ''
+                    order_number: OD20260921000114
                     payment_mode: cod
                     payment_reference: ''
                     payment_status: pending
@@ -10851,6 +11639,8 @@ paths:
                     pickup_contact_phone: '+919888800001'
                     pickup_lat: '12.975000'
                     pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
                     polyline_precision: 6
                     reference_id: ORD-20260921-0042
                     route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -11038,6 +11828,7 @@ paths:
                     arrived_at_pickup_at: null
                     assigned_at: '2026-09-21T09:41:05.554924Z'
                     base_fare: '30.00'
+                    bonus_fare: null
                     cancellation_reason: Customer cancelled the order
                     cancelled_at: '2026-09-21T09:52:11.204118Z'
                     cancelled_by: company
@@ -11045,6 +11836,9 @@ paths:
                     completed_at: null
                     created_at: '2026-09-21T09:40:17.136677Z'
                     currency: INR
+                    delivery_otp: false
+                    delivery_photo: none
+                    delivery_photo_url: null
                     distance_fare: '42.00'
                     distance_meters: 4200
                     driver:
@@ -11061,11 +11855,13 @@ paths:
                     invoice_number: INV-1001
                     invoice_url: https://api.example.com/media/3b79be44-897b-43f7-8856-ce12c23e82ab/trip-invoices/525c9e10-884f-401a-b84a-8f8a1c99d4c8.pdf
                     items:
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: d3035b1c-78ce-44a0-b408-1d1c46c7916f
                       image_url: https://files.example.com/img/cement.jpg
                       name: Cement bag 50 kg
                       notes: Keep dry
+                      pickup_photo_url: null
                       position: 0
                       proof_image_url: null
                       quantity: 4
@@ -11074,11 +11870,13 @@ paths:
                       unit: bags
                       unit_price: '380.00'
                       verified_at: null
-                    - driver_note: ''
+                    - delivery_photo_url: null
+                      driver_note: ''
                       id: a25e41b6-4398-4ca2-8a07-d75090755d52
                       image_url: null
                       name: TMT bar 12 mm
                       notes: ''
+                      pickup_photo_url: null
                       position: 1
                       proof_image_url: null
                       quantity: 20
@@ -11087,6 +11885,8 @@ paths:
                       unit: pcs
                       unit_price: '95.00'
                       verified_at: null
+                    notes: ''
+                    order_number: OD20260921000114
                     payment_mode: cod
                     payment_reference: ''
                     payment_status: pending
@@ -11095,6 +11895,8 @@ paths:
                     pickup_contact_phone: '+919888800001'
                     pickup_lat: '12.975000'
                     pickup_lng: '77.605000'
+                    pickup_photo: none
+                    pickup_photo_url: null
                     polyline_precision: 6
                     reference_id: ORD-20260921-0042
                     route_polyline: ox|vWogs_sCw|Aoh\ooB_sg@
@@ -15064,7 +15866,7 @@ components:
           description: Confirmation that an SMS was sent to the number.
         otp:
           type: string
-          description: The six-digit code itself. **Only present on non-production
+          description: The four-digit code itself. **Only present on non-production
             servers** (`DRIVER_OTP_DEBUG_RESPONSE=True`) so login can be tested without
             an SMS gateway. A production server never returns it.
       required:
@@ -15079,7 +15881,7 @@ components:
         otp:
           type: string
           minLength: 1
-          description: The 6-digit code from the SMS (valid 5 minutes, single use).
+          description: The 4-digit code from the SMS (valid 5 minutes, single use).
             Required.
       required:
       - otp
@@ -15322,11 +16124,23 @@ components:
           description: 'Where the trip is in its lifecycle: `requested`, `no_driver_available`,
             `assigned`, `arrived_at_pickup`, `in_progress`, `completed` or `cancelled`.
             See the Trip lifecycle guide.'
+        order_number:
+          type: string
+          readOnly: true
+          nullable: true
+          description: 'Our order number, shown to the driver: `OD` + the booking
+            date (`YYYYMMDD`) + `000` + a running number, e.g. `OD20260925000123`.
+            Assigned at booking, never changes. (A trip with several drops would add
+            `_01`, `_02`... per delivery; every trip has one drop today.)'
         reference_id:
           type: string
           readOnly: true
           description: Your own order number, exactly as you sent it (empty string
             if you sent none).
+        notes:
+          type: string
+          readOnly: true
+          description: Your note for the driver about the whole order, or empty.
         vehicle_type:
           allOf:
           - $ref: '#/components/schemas/VehicleTypeSummary'
@@ -15449,6 +16263,16 @@ components:
           description: 'What the delivery costs: (base + distance + time) x surge,
             never below the vehicle type''s minimum fare. Decimal string. Fixed at
             booking - it does not change later.'
+        bonus_fare:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+          description: An extra flat amount for this trip specifically (e.g. for unloading
+            heavy goods), as sent when it was booked, or `null` if none. Decimal string.
+            Paid to the driver in full, on top of their usual share of `total_fare`;
+            never charged to the customer.
         currency:
           type: string
           readOnly: true
@@ -15492,6 +16316,38 @@ components:
           type: boolean
           readOnly: true
           description: Whether the driver must confirm every item before payment/completion.
+        pickup_photo:
+          allOf:
+          - $ref: '#/components/schemas/PhotoRequirementEnum'
+          readOnly: true
+          description: 'Camera photos the driver owes at the pickup before starting:
+            `none`, `order` (one of the whole package - `pickup_photo_url`) or `per_item`
+            (one per item - `items[].pickup_photo_url`).'
+        pickup_photo_url:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          description: 'The photo of the whole order the driver took at the pickup
+            (`pickup_photo: order`), or `null`.'
+        delivery_photo:
+          allOf:
+          - $ref: '#/components/schemas/PhotoRequirementEnum'
+          readOnly: true
+          description: 'Camera photos the driver owes at the drop before payment/completion:
+            `none`, `order` (`delivery_photo_url`) or `per_item` (`items[].delivery_photo_url`).'
+        delivery_photo_url:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          description: 'The photo of the whole order the driver took at the drop (`delivery_photo:
+            order`), or `null`.'
+        delivery_otp:
+          type: boolean
+          readOnly: true
+          description: Whether completing needs the customer's delivery OTP on a prepaid
+            trip (cash-on-delivery trips always do).
         items:
           type: array
           items:
@@ -15564,6 +16420,7 @@ components:
       - arrived_at_pickup_at
       - assigned_at
       - base_fare
+      - bonus_fare
       - cancellation_reason
       - cancelled_at
       - cancelled_by
@@ -15571,6 +16428,9 @@ components:
       - completed_at
       - created_at
       - currency
+      - delivery_otp
+      - delivery_photo
+      - delivery_photo_url
       - distance_fare
       - distance_meters
       - driver
@@ -15585,6 +16445,8 @@ components:
       - invoice_number
       - invoice_url
       - items
+      - notes
+      - order_number
       - payment_mode
       - payment_reference
       - payment_status
@@ -15593,6 +16455,8 @@ components:
       - pickup_contact_phone
       - pickup_lat
       - pickup_lng
+      - pickup_photo
+      - pickup_photo_url
       - polyline_precision
       - reference_id
       - route_polyline
@@ -15624,6 +16488,14 @@ components:
           description: 'Where the trip is in its lifecycle: `requested`, `no_driver_available`,
             `assigned`, `arrived_at_pickup`, `in_progress`, `completed` or `cancelled`.
             See the Trip lifecycle guide.'
+        order_number:
+          type: string
+          readOnly: true
+          nullable: true
+          description: 'Our order number, shown to the driver: `OD` + the booking
+            date (`YYYYMMDD`) + `000` + a running number, e.g. `OD20260925000123`.
+            Assigned at booking, never changes. (A trip with several drops would add
+            `_01`, `_02`... per delivery; every trip has one drop today.)'
         reference_id:
           type: string
           readOnly: true
@@ -15746,6 +16618,7 @@ components:
       - drop_address
       - duration_seconds
       - id
+      - order_number
       - payment_mode
       - payment_status
       - pickup_address
@@ -16571,6 +17444,16 @@ components:
       description: |-
         * `pending` - Pending
         * `paid` - Paid
+    PhotoRequirementEnum:
+      enum:
+      - none
+      - order
+      - per_item
+      type: string
+      description: |-
+        * `none` - None
+        * `order` - One photo of the whole order
+        * `per_item` - One photo of every item
     PointRequest:
       type: object
       properties:
@@ -16719,11 +17602,23 @@ components:
           description: 'Where the trip is in its lifecycle: `requested`, `no_driver_available`,
             `assigned`, `arrived_at_pickup`, `in_progress`, `completed` or `cancelled`.
             See the Trip lifecycle guide.'
+        order_number:
+          type: string
+          readOnly: true
+          nullable: true
+          description: 'Our order number, shown to the driver: `OD` + the booking
+            date (`YYYYMMDD`) + `000` + a running number, e.g. `OD20260925000123`.
+            Assigned at booking, never changes. (A trip with several drops would add
+            `_01`, `_02`... per delivery; every trip has one drop today.)'
         reference_id:
           type: string
           readOnly: true
           description: Your own order number, exactly as you sent it (empty string
             if you sent none).
+        notes:
+          type: string
+          readOnly: true
+          description: Your note for the driver about the whole order, or empty.
         vehicle_type:
           allOf:
           - $ref: '#/components/schemas/VehicleTypeSummary'
@@ -16846,6 +17741,16 @@ components:
           description: 'What the delivery costs: (base + distance + time) x surge,
             never below the vehicle type''s minimum fare. Decimal string. Fixed at
             booking - it does not change later.'
+        bonus_fare:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+          description: An extra flat amount for this trip specifically (e.g. for unloading
+            heavy goods), as sent when it was booked, or `null` if none. Decimal string.
+            Paid to the driver in full, on top of their usual share of `total_fare`;
+            never charged to the customer.
         currency:
           type: string
           readOnly: true
@@ -16889,6 +17794,38 @@ components:
           type: boolean
           readOnly: true
           description: Whether the driver must confirm every item before payment/completion.
+        pickup_photo:
+          allOf:
+          - $ref: '#/components/schemas/PhotoRequirementEnum'
+          readOnly: true
+          description: 'Camera photos the driver owes at the pickup before starting:
+            `none`, `order` (one of the whole package - `pickup_photo_url`) or `per_item`
+            (one per item - `items[].pickup_photo_url`).'
+        pickup_photo_url:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          description: 'The photo of the whole order the driver took at the pickup
+            (`pickup_photo: order`), or `null`.'
+        delivery_photo:
+          allOf:
+          - $ref: '#/components/schemas/PhotoRequirementEnum'
+          readOnly: true
+          description: 'Camera photos the driver owes at the drop before payment/completion:
+            `none`, `order` (`delivery_photo_url`) or `per_item` (`items[].delivery_photo_url`).'
+        delivery_photo_url:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          description: 'The photo of the whole order the driver took at the drop (`delivery_photo:
+            order`), or `null`.'
+        delivery_otp:
+          type: boolean
+          readOnly: true
+          description: Whether completing needs the customer's delivery OTP on a prepaid
+            trip (cash-on-delivery trips always do).
         items:
           type: array
           items:
@@ -16952,6 +17889,7 @@ components:
       - arrived_at_pickup_at
       - assigned_at
       - base_fare
+      - bonus_fare
       - cancellation_reason
       - cancelled_at
       - cancelled_by
@@ -16959,6 +17897,9 @@ components:
       - completed_at
       - created_at
       - currency
+      - delivery_otp
+      - delivery_photo
+      - delivery_photo_url
       - distance_fare
       - distance_meters
       - driver
@@ -16972,6 +17913,8 @@ components:
       - invoice_number
       - invoice_url
       - items
+      - notes
+      - order_number
       - payment_mode
       - payment_reference
       - payment_status
@@ -16980,6 +17923,8 @@ components:
       - pickup_contact_phone
       - pickup_lat
       - pickup_lng
+      - pickup_photo
+      - pickup_photo_url
       - polyline_precision
       - reference_id
       - route_polyline
@@ -17011,7 +17956,7 @@ components:
       properties:
         otp:
           type: string
-          description: The 6-digit delivery OTP the customer was texted. **Required
+          description: The 4-digit delivery OTP the customer was texted. **Required
             for a cash-on-delivery trip**, ignored for prepaid.
     TripCreateRequest:
       type: object
@@ -17043,6 +17988,12 @@ components:
           description: Your own order number. Echoed back on the trip so you can match
             it to your records. Optional, up to 100 characters; it does not have to
             be unique.
+        notes:
+          type: string
+          maxLength: 500
+          description: A note for the driver about the whole order - "Call before
+            arriving", "Use gate 2". Shown on the order details screen. Optional,
+            up to 500 characters.
         invoice_url:
           oneOf:
           - type: string
@@ -17066,12 +18017,44 @@ components:
             / not delivered, optionally with a photo) **before** the trip can be paid
             or completed; each answer is kept as delivery history. Requires at least
             one entry in `items`. Default `false`.'
+        pickup_photo:
+          allOf:
+          - $ref: '#/components/schemas/PhotoRequirementEnum'
+          default: none
+          description: 'Photos the driver must take **with the phone''s camera** at
+            the pickup before the delivery can start: `none` (default), `order` -
+            one photo of the whole package, or `per_item` - one photo of every item
+            (requires `items`). Kept as proof of what left the pickup.'
+        delivery_otp:
+          type: boolean
+          default: false
+          description: 'Prepaid trips only: `true` texts the customer (`drop.contact_phone`,
+            then required) a delivery OTP at the drop which the driver must enter
+            to complete - proof the right person got the goods. Cash-on-delivery trips
+            always use one. Default `false`.'
+        delivery_photo:
+          allOf:
+          - $ref: '#/components/schemas/PhotoRequirementEnum'
+          default: none
+          description: 'The same at the **drop**: camera photos the driver must take
+            once the delivery is under way, before it can be paid for or completed
+            - `none` (default), `order` or `per_item` (requires `items`). Kept as
+            proof of delivery.'
         items:
           type: array
           items:
             $ref: '#/components/schemas/TripItemInputRequest'
           description: The goods being delivered, one entry per line (at most 100).
             Optional; required if `verify_items` is `true`.
+        bonus_fare:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          description: An extra flat amount for this trip specifically - e.g. compensation
+            for unloading heavy goods - paid to the driver on top of the fare card.
+            Decimal, 0 or more. Never charged to the customer; does not affect `total_fare`.
+            Optional, omit or send `0` for none.
       required:
       - drop
       - payment_mode
@@ -17255,17 +18238,33 @@ components:
           readOnly: true
           description: The photo the driver took when checking this item, or `null`
             if they took none. Kept as delivery proof.
+        pickup_photo_url:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          description: 'The photo the driver took of this item at the pickup (orders
+            with `pickup_photo: per_item`), or `null`.'
+        delivery_photo_url:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          description: 'The photo the driver took of this item at the drop (orders
+            with `delivery_photo: per_item`), or `null`.'
         driver_note:
           type: string
           readOnly: true
           description: What the driver wrote - always present when `status` is `not_delivered`
             (what happened), otherwise usually empty.
       required:
+      - delivery_photo_url
       - driver_note
       - id
       - image_url
       - name
       - notes
+      - pickup_photo_url
       - position
       - proof_image_url
       - quantity
@@ -17369,6 +18368,14 @@ components:
           description: 'Where the trip is in its lifecycle: `requested`, `no_driver_available`,
             `assigned`, `arrived_at_pickup`, `in_progress`, `completed` or `cancelled`.
             See the Trip lifecycle guide.'
+        order_number:
+          type: string
+          readOnly: true
+          nullable: true
+          description: 'Our order number, shown to the driver: `OD` + the booking
+            date (`YYYYMMDD`) + `000` + a running number, e.g. `OD20260925000123`.
+            Assigned at booking, never changes. (A trip with several drops would add
+            `_01`, `_02`... per delivery; every trip has one drop today.)'
         reference_id:
           type: string
           readOnly: true
@@ -17434,6 +18441,7 @@ components:
       - driver
       - drop_address
       - id
+      - order_number
       - payment_mode
       - payment_status
       - pickup_address
@@ -17442,6 +18450,28 @@ components:
       - total_fare
       - vehicle
       - vehicle_type
+    TripPickupPhotoRequest:
+      type: object
+      description: |-
+        POST /driver/trips/{id}/pickup-photo and /delivery-photo — multipart:
+        the `photo`, and the `item_id` it shows when the trip wants one photo per
+        item.
+      properties:
+        photo:
+          type: string
+          format: binary
+          description: The picture, taken with the phone's camera at the pickup (the
+            app stamps it with the location and time). Image, up to 10 MB. Replaces
+            any earlier photo for the same slot.
+        item_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Which item the photo shows - one of the trip's `items[].id`.
+            **Required when the order's `pickup_photo` (or, for delivery photos, `delivery_photo`)
+            is `per_item`**; leave out for `order`.
+      required:
+      - photo
     TripStatusEnum:
       enum:
       - requested
@@ -17493,6 +18523,7 @@ components:
       - trip_invoice
       - trip_item_image
       - delivery_proof
+      - pickup_proof
       type: string
       description: |-
         * `vehicle_type_icon` - Vehicle Type Icon
@@ -17503,6 +18534,7 @@ components:
         * `trip_invoice` - Trip Invoice
         * `trip_item_image` - Trip Item Image
         * `delivery_proof` - Delivery Proof Photo
+        * `pickup_proof` - Pickup Proof Photo
     UploadRequest:
       type: object
       properties:
@@ -17527,6 +18559,7 @@ components:
             * `trip_invoice` - Trip Invoice
             * `trip_item_image` - Trip Item Image
             * `delivery_proof` - Delivery Proof Photo
+            * `pickup_proof` - Pickup Proof Photo
       required:
       - file
       - purpose
@@ -18596,7 +19629,7 @@ tags:
 
     Drivers have no passwords. They sign in with their **phone number and an SMS code**:
 
-    1. `POST /driver/auth/otp/request` with the phone number - the driver gets a 6-digit code (valid 5 minutes).
+    1. `POST /driver/auth/otp/request` with the phone number - the driver gets a 4-digit code (valid 5 minutes).
     2. `POST /driver/auth/otp/verify` with the phone and the code - you get an `accessToken`, a `refreshToken` and the driver's profile.
     3. Send `Authorization: Bearer <accessToken>` on every driver call.
     4. Before the access token expires, `POST /driver/auth/refresh` returns a **new pair** - store both tokens again. A driver stays signed in for up to 30 days without another SMS.
@@ -18834,6 +19867,10 @@ tags:
     | `ITEMS_NOT_VERIFIED` | 409 | The order asked for its items to be verified (`verify_items: true`) and some are still unanswered. Payment and completion are blocked until every item is marked delivered / not delivered. | Have the driver answer each item (`POST /driver/trips/{id}/items/{item_id}/verify`), then retry. |
     | `ITEM_NOT_FOUND` | 404 | `item_id` isn't an item of this trip. | Use the ids in the trip's `items` array. |
     | `VERIFICATION_NOT_REQUESTED` | 409 | The driver tried to verify items on an order created without `verify_items`. | Only orders created with `verify_items: true` have a verification step. |
+    | `PICKUP_PHOTOS_REQUIRED` | 409 | The order was booked with `pickup_photo` (`order` or `per_item`) and the driver hasn't taken all of those photos yet, so the delivery can't start. | Have the driver take them (`POST /driver/trips/{id}/pickup-photo`), then retry. |
+    | `DELIVERY_PHOTOS_REQUIRED` | 409 | The order was booked with `delivery_photo` (`order` or `per_item`) and the driver hasn't taken all of those photos at the drop yet, so it can't be paid for or completed. | Have the driver take them (`POST /driver/trips/{id}/delivery-photo`), then retry. |
+    | `DELIVERY_PHOTO_NOT_REQUESTED` | 409 | The driver sent a delivery photo for an order booked with `delivery_photo: none`. | Only orders booked with `delivery_photo: order` or `per_item` take delivery photos. |
+    | `PICKUP_PHOTO_NOT_REQUESTED` | 409 | The driver sent a pickup photo for an order booked with `pickup_photo: none`. | Only orders booked with `pickup_photo: order` or `per_item` take pickup photos. |
 
     ### Driver duty & vehicles
 
@@ -18929,7 +19966,7 @@ tags:
     **4. At the drop**, depending on how the order was booked:
 
     - If `verify_items` is on: the driver checks **every item** (delivered / not delivered, optionally with a photo). Nothing below can happen until they have all been answered.
-    - **Cash on delivery** (`payment_mode: cod`): the driver shows a **Razorpay QR** for the exact fare; the customer pays; the server marks the trip **paid** and texts the customer a **6-digit delivery OTP**. See *Payments (Razorpay)*.
+    - **Cash on delivery** (`payment_mode: cod`): the driver shows a **Razorpay QR** for the exact fare; the customer pays; the server marks the trip **paid** and texts the customer a **4-digit delivery OTP**. See *Payments (Razorpay)*.
     - **Prepaid** (`payment_mode: prepaid`): already paid - there is nothing to collect.
 
     **5. The driver completes** (`complete` -> `completed`, `completed_at` set). For cash on delivery they enter the customer's OTP - proof the goods were handed over. In the same step the **driver's wallet is credited**
@@ -19160,10 +20197,10 @@ tags:
     { "message": "OTP sent to +919000000001." }
     ```
 
-    (A non-production server also returns `"otp": "482913"` so you can test without an SMS gateway.) Then verify the code the driver received:
+    (A non-production server also returns `"otp": "4829"` so you can test without an SMS gateway.) Then verify the code the driver received:
 
     ```bash
-    curl -X POST "$BASE_URL/driver/auth/otp/verify" -H "Content-Type: application/json" -d '{"phone_number": "+919000000001", "otp": "482913"}'
+    curl -X POST "$BASE_URL/driver/auth/otp/verify" -H "Content-Type: application/json" -d '{"phone_number": "+919000000001", "otp": "4829"}'
     ```
     ```json
     {
@@ -19310,7 +20347,7 @@ tags:
       "amount": 85.0, "currency": "INR", "expires_at": "2026-09-21T10:15:00Z", "qr_payload": null }
     ```
 
-    The customer scans and pays. Razorpay tells the server, which marks the trip **paid** and texts the customer a 6-digit delivery OTP - so the app just **waits** (re-read `GET /driver/trips/$TRIP` and watch `payment_status`).
+    The customer scans and pays. Razorpay tells the server, which marks the trip **paid** and texts the customer a 4-digit delivery OTP - so the app just **waits** (re-read `GET /driver/trips/$TRIP` and watch `payment_status`).
     "Check payment" asks the server to look right now:
 
     ```bash
@@ -19325,7 +20362,7 @@ tags:
 
     ```bash
     # Cash on delivery: the customer tells you the OTP they were texted
-    curl -X POST "$BASE_URL/driver/trips/$TRIP/complete" -H "Authorization: Bearer $DRIVER_TOKEN" -H "Content-Type: application/json" -d '{"otp": "387406"}'
+    curl -X POST "$BASE_URL/driver/trips/$TRIP/complete" -H "Authorization: Bearer $DRIVER_TOKEN" -H "Content-Type: application/json" -d '{"otp": "3874"}'
     # Prepaid: no body
     curl -X POST "$BASE_URL/driver/trips/$TRIP/complete" -H "Authorization: Bearer $DRIVER_TOKEN"
     ```

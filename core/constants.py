@@ -17,7 +17,9 @@ REGISTRATION_NUMBER_RE = re.compile(r"^[A-Z0-9-]+$")
 # drivers -------------------------------------------------------------------
 
 PHONE_NUMBER_RE = re.compile(r"^\+?[0-9]{10,15}$")
-OTP_RE = re.compile(r"^\d{6}$")
+# Login and delivery OTPs are both this many digits.
+OTP_LENGTH = 4
+OTP_RE = re.compile(rf"^\d{{{OTP_LENGTH}}}$")
 OTP_TTL_SECONDS = 300
 OTP_THROTTLE_SECONDS = 30
 DRIVER_REFRESH_TOKEN_REVOKED_CACHE_PREFIX = "driver_refresh_revoked:"
@@ -42,7 +44,7 @@ FARE_ROUNDING_CENTS = "0.01"  # str, not Decimal — Decimal isn't module-safe t
 
 # OTP sent to the drop contact once a COD trip's payment is collected —
 # entering it is what lets the driver finalize (complete) the trip. Same
-# 6-digit shape as OTP_RE; kept as its own TTL since it's a distinct flow
+# same shape as OTP_RE; kept as its own TTL since it's a distinct flow
 # from driver login.
 DELIVERY_OTP_TTL_SECONDS = 300
 # Minimum gap between delivery-OTP (re)sends for one trip, so the resend
@@ -81,6 +83,7 @@ UPLOAD_PURPOSE_PATH_SEGMENT = {
     "trip_invoice": "trip-invoices",
     "trip_item_image": "trip-items",
     "delivery_proof": "delivery-proofs",
+    "pickup_proof": "pickup-proofs",
 }
 
 UPLOAD_PURPOSE_ALLOWED_EXTENSIONS = {
@@ -92,4 +95,5 @@ UPLOAD_PURPOSE_ALLOWED_EXTENSIONS = {
     "trip_invoice": UPLOAD_DOCUMENT_EXTENSIONS,
     "trip_item_image": UPLOAD_IMAGE_EXTENSIONS,
     "delivery_proof": UPLOAD_IMAGE_EXTENSIONS,
+    "pickup_proof": UPLOAD_IMAGE_EXTENSIONS,
 }

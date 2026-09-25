@@ -57,7 +57,7 @@ curl -X POST "$BASE_URL/auth/client-token" \
 
 Drivers have no passwords. They sign in with their **phone number and an SMS code**:
 
-1. `POST /driver/auth/otp/request` with the phone number - the driver gets a 6-digit code (valid 5 minutes).
+1. `POST /driver/auth/otp/request` with the phone number - the driver gets a 4-digit code (valid 5 minutes).
 2. `POST /driver/auth/otp/verify` with the phone and the code - you get an `accessToken`, a `refreshToken` and the driver's profile.
 3. Send `Authorization: Bearer <accessToken>` on every driver call.
 4. Before the access token expires, `POST /driver/auth/refresh` returns a **new pair** - store both tokens again. A driver stays signed in for up to 30 days without another SMS.

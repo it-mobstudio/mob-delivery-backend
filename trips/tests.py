@@ -89,15 +89,15 @@ class DriverTripLifecycleTests(TripApiTestCase):
         self.assertEqual(qr["amount"], 85.0)  # a raw Decimal in a plain dict renders as a JSON number
 
         # Completing before payment is collected is refused.
-        early = self.client.post(self.url(trip, "/complete"), {"otp": "123456"}, format="json")
+        early = self.client.post(self.url(trip, "/complete"), {"otp": "1234"}, format="json")
         self.assertEqual(early.status_code, 409)
         self.assertEqual(early.json()["error"]["code"], "PAYMENT_NOT_COLLECTED")
 
         collected = self.client.post(self.url(trip, "/payment/collect")).json()
         otp = collected["otp"]  # only present because DRIVER_OTP_DEBUG_RESPONSE is on
-        self.assertRegex(otp, r"^\d{6}$")
+        self.assertRegex(otp, r"^\d{4}$")
 
-        wrong = self.client.post(self.url(trip, "/complete"), {"otp": "000000" if otp != "000000" else "111111"}, format="json")
+        wrong = self.client.post(self.url(trip, "/complete"), {"otp": "0000" if otp != "0000" else "1111"}, format="json")
         self.assertEqual(wrong.status_code, 400)
         self.assertEqual(wrong.json()["error"]["code"], "INVALID_DELIVERY_OTP")
         self.assertEqual(self.status_of(trip), TripStatus.IN_PROGRESS)
@@ -318,6 +318,20 @@ class DriverNavigationTests(TripApiTestCase):
 
 @LOCMEM_CACHES
 class BookTestTripCommandTests(DriverTestMixin, TestCase):
+    def test_orders_look_real_and_say_what_the_app_will_ask_for(self):
+        self.go_on_duty()
+        output, _ = self.run_command("--mode", "prepaid")
+        from trips import dev_samples
+        from trips.models import Trip
+
+        trip = Trip.objects.latest("created_at")
+
+        self.assertIn(trip.pickup_contact_name, dev_samples.SHOPS)
+        self.assertIn(trip.drop_contact_name, dev_samples.CUSTOMERS)
+        self.assertTrue(trip.pickup_address.startswith("Shop No."), trip.pickup_address)
+        self.assertIn("pickup photo: order", output)
+        self.assertIn("delivery OTP: yes", output)
+
     """`manage.py book_test_trip` — the one-liner for putting an order on a
     driver's screen without writing a booking client."""
 
@@ -340,8 +354,13 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
 
         from django.core.management import call_command
 
+        from trips import dev_samples
+
         out = StringIO()
-        with patch.object(RoutingService, "get_route", return_value=route) as get_route:
+        # No OpenStreetMap lookups from tests: the offline addresses are used.
+        with patch.object(RoutingService, "get_route", return_value=route) as get_route, patch.object(
+            dev_samples, "_reverse_geocode", return_value=None
+        ):
             call_command("book_test_trip", *args, stdout=out)
         return out.getvalue(), get_route
 
@@ -561,7 +580,7 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
             self.run_command()
         # ...but explicit coordinates are enough.
         output, _ = self.run_command("--pickup-lat", "12.9", "--pickup-lng", "77.6")
-        self.assertIn("Trip ", output)
+        self.assertIn("Order OD", output)
 
     def test_routing_being_down_points_at_the_stand_in(self):
         from django.core.management import call_command

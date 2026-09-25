@@ -10,6 +10,7 @@ from accounts.models import Company
 from core.choices import VehicleCategory, VehicleStatus, VehicleTypeStatus, VerificationStatus
 from drivers.models import Driver, Vehicle, VehicleType
 from drivers.services import DriverKycService, DriverService
+from trips.dev_samples import DRIVERS as DRIVER_NAMES
 
 # A rough Bengaluru bounding box — random points inside it give seeded
 # drivers a realistic spread, so trips.matching.MatchingService actually
@@ -109,9 +110,9 @@ class Command(BaseCommand):
         with transaction.atomic():
             driver = DriverService.create(
                 company,
-                full_name=f"Seed Driver {index + 1}",
+                full_name=DRIVER_NAMES[index % len(DRIVER_NAMES)],
                 phone_number=phone_number,
-                emergency_contact_name="Seed Emergency Contact",
+                emergency_contact_name="Sunita Devi",
                 emergency_contact_phone="+919999900000",
             )
             DriverKycService.verify_aadhar(driver, VerificationStatus.VERIFIED, admin_id=None)

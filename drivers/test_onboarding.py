@@ -99,7 +99,7 @@ class SignupTests(SignupMixin, TestCase):
     def test_a_wrong_otp_does_not_create_an_account(self):
         client = APIClient()
         client.post("/api/v1/driver/auth/otp/request", {"phone_number": PHONE})
-        response = client.post("/api/v1/driver/auth/otp/verify", {"phone_number": PHONE, "otp": "000000"})
+        response = client.post("/api/v1/driver/auth/otp/verify", {"phone_number": PHONE, "otp": "0000"})
         self.assertEqual(response.status_code, 400)
         self.assertFalse(Driver.objects.filter(phone_number=PHONE).exists())
 
@@ -116,7 +116,7 @@ class SignupTests(SignupMixin, TestCase):
             self.assertEqual(response.json()["error"]["code"], "DRIVER_NOT_FOUND")
 
             # …and verifying can't sneak an account in either.
-            response = APIClient().post("/api/v1/driver/auth/otp/verify", {"phone_number": PHONE, "otp": "123456"})
+            response = APIClient().post("/api/v1/driver/auth/otp/verify", {"phone_number": PHONE, "otp": "1234"})
             self.assertEqual(response.status_code, 404)
             self.assertFalse(Driver.objects.filter(phone_number=PHONE).exists())
 

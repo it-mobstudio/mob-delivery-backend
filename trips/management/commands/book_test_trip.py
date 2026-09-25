@@ -1,4 +1,5 @@
 import argparse
+import random
 import time
 from decimal import Decimal
 from math import cos, radians
@@ -33,7 +34,8 @@ class Command(BaseCommand):
         "(delivered / problem + reason, camera photo optional), a real invoice PDF (download / "
         "WhatsApp / share), cash on delivery (payment QR then the customer's OTP). Use "
         "--items N (0 for none), --no-verify-items, --no-invoice, --invoice-url URL or "
-        "--mode prepaid to change it.\n\n"
+        "--mode prepaid to change it. The driver also photographs the whole order at the pickup "
+        "(--pickup-photo per_item for one photo per item, none to skip).\n\n"
         "The pickup is placed at the driver's own last reported location (so they're the "
         "nearest driver and get it) with the drop ~4 km away. The driver must already be ON "
         "DUTY: open the app and tap 'Start duty' first."
@@ -49,7 +51,7 @@ class Command(BaseCommand):
         parser.add_argument("--drop-lat", type=float, help="Default: --distance-km north-east of the pickup.")
         parser.add_argument("--drop-lng", type=float)
         parser.add_argument("--distance-km", type=float, default=4.0, help="Pickup→drop distance when --drop-lat/lng are omitted (default: %(default)s).")
-        parser.add_argument("--customer-name", default="Asha (test customer)")
+        parser.add_argument("--customer-name", default=None, help="Default: a realistic random name.")
         parser.add_argument("--customer-phone", default="+919888800002", help="The delivery OTP is texted here on a COD trip.")
         parser.add_argument(
             "--items", type=int, default=len(dev_samples.CATALOGUE), metavar="N",
@@ -68,6 +70,28 @@ class Command(BaseCommand):
             "--invoice-url", default=None,
             help="Use this invoice link instead of the sample one (only with an invoice).",
         )
+        parser.add_argument(
+            "--bonus", type=Decimal, default=None, metavar="AMOUNT",
+            help="An extra flat amount for the driver on top of the fare (e.g. --bonus 100), for trying out "
+                 "the new-order screen's bonus chip. Default: none.",
+        )
+        parser.add_argument(
+            "--pickup-photo", choices=["none", "order", "per_item"], default=None,
+            help="Camera photos the driver must take at the pickup: one of the whole order, or one per item "
+                 "(default: order; per_item needs items).",
+        )
+        parser.add_argument(
+            "--delivery-otp", action=argparse.BooleanOptionalAction, default=True,
+            help="Prepaid trips: the customer's delivery OTP is still needed to complete (default: on; COD always needs it).",
+        )
+        parser.add_argument(
+            "--note", default="Call before arriving. Use the side gate for unloading.",
+            help="A note for the driver on the order (default: a sample; pass '' for none).",
+        )
+        parser.add_argument(
+            "--delivery-photo", choices=["none", "order", "per_item"], default=None,
+            help="The same at the drop, before payment / completion (default: order).",
+        )
 
     def handle(self, *args, **options):
         driver = self._driver(options["phone"])
@@ -76,22 +100,25 @@ class Command(BaseCommand):
         pickup_lat, pickup_lng = self._pickup(driver, options)
         drop_lat, drop_lng = self._drop(pickup_lat, pickup_lng, options)
 
+        # Real-looking people and street addresses (from OpenStreetMap for these
+        # exact coordinates). The phone numbers stay the fixed test ones, so an
+        # OTP text can never reach a stranger.
         pickup = _point(
             pickup_lat,
             pickup_lng,
-            options["pickup_address"] or f"Test pickup ({pickup_lat:.4f}, {pickup_lng:.4f})",
-            "Test shop",
+            options["pickup_address"] or dev_samples.realistic_address(pickup_lat, pickup_lng, "shop"),
+            random.choice(dev_samples.SHOPS),
             "+919888800001",
         )
         drop = _point(
             drop_lat,
             drop_lng,
-            options["drop_address"] or f"Test drop ({drop_lat:.4f}, {drop_lng:.4f})",
-            options["customer_name"],
+            options["drop_address"] or dev_samples.realistic_address(drop_lat, drop_lng, "home"),
+            options["customer_name"] or random.choice(dev_samples.CUSTOMERS),
             options["customer_phone"],
         )
 
-        reference = f"TEST-{int(time.time())}"
+        reference = f"SO-{int(time.time()) % 10_000_000:07d}"
         item_count = options["items"]
         if item_count < 0:
             raise CommandError("--items can't be negative.")
@@ -99,6 +126,12 @@ class Command(BaseCommand):
         if verify_items and item_count == 0:
             raise CommandError("--verify-items needs at least one item: pass --items N (N ≥ 1).")
         items = dev_samples.sample_items(item_count) if item_count else None
+        pickup_photo = options["pickup_photo"] or "order"
+        delivery_photo = options["delivery_photo"] or "order"
+        if delivery_photo == "per_item" and item_count == 0:
+            raise CommandError("--delivery-photo per_item needs at least one item: pass --items N (N ≥ 1).")
+        if pickup_photo == "per_item" and item_count == 0:
+            raise CommandError("--pickup-photo per_item needs at least one item: pass --items N (N ≥ 1).")
         invoice_number = dev_samples.INVOICE_NUMBER if options["invoice"] else ""
         invoice_url = (options["invoice_url"] or dev_samples.INVOICE_URL) if options["invoice"] else ""
 
@@ -114,6 +147,11 @@ class Command(BaseCommand):
                 invoice_number=invoice_number,
                 verify_items=verify_items,
                 items=items,
+                bonus_fare=options["bonus"],
+                pickup_photo=pickup_photo,
+                delivery_photo=delivery_photo,
+                notes=options["note"],
+                delivery_otp=options["delivery_otp"],
             )
         except DomainError as exc:
             if exc.code == "ROUTING_UNAVAILABLE":
@@ -168,9 +206,18 @@ class Command(BaseCommand):
 
     def _report(self, trip, driver, options):
         w = self.stdout.write
-        w(f"Trip {trip.id}")
-        w(f"  {trip.pickup_address}  →  {trip.drop_address}")
-        w(f"  {trip.distance_meters / 1000:.1f} km · ₹{trip.total_fare} · {trip.get_payment_mode_display()} · status: {trip.status}")
+        w(f"Order {trip.order_number}  (trip {trip.id})")
+        w(f"  Pickup: {trip.pickup_contact_name} — {trip.pickup_address}")
+        w(f"  Drop:   {trip.drop_contact_name} — {trip.drop_address}")
+        asks = [
+            f"pickup photo: {trip.pickup_photo}",
+            f"delivery photo: {trip.delivery_photo}",
+            f"delivery OTP: {'yes' if trip.delivery_otp or trip.payment_mode == PaymentMode.COD else 'no'}",
+            f"item check: {'yes' if trip.verify_items else 'no'}",
+        ]
+        w("  The app will ask for → " + " · ".join(asks))
+        bonus = f" + ₹{trip.bonus_fare} bonus" if trip.bonus_fare else ""
+        w(f"  {trip.distance_meters / 1000:.1f} km · ₹{trip.total_fare}{bonus} · {trip.get_payment_mode_display()} · status: {trip.status}")
         items = list(trip.items.all())
         if items:
             w(f"  {len(items)} item(s)" + (" — driver must verify each one at the drop:" if trip.verify_items else ":"))

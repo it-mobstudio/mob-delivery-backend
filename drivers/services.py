@@ -15,7 +15,7 @@ from core.choices import (
     VehicleStatus,
     VerificationStatus,
 )
-from core.constants import OTP_THROTTLE_SECONDS, OTP_TTL_SECONDS
+from core.constants import OTP_LENGTH, OTP_THROTTLE_SECONDS, OTP_TTL_SECONDS
 from core.exceptions import DomainError
 from core.uploads import UploadService
 
@@ -127,7 +127,7 @@ class DriverService:
         #         status_code=429,
         #     )
 
-        otp = f"{random.randint(0, 999999):06d}"
+        otp = f"{random.randint(0, 10**OTP_LENGTH - 1):0{OTP_LENGTH}d}"
         cache.set(cls._otp_cache_key(phone_number), otp, timeout=OTP_TTL_SECONDS)
 
         get_sms_provider().send_otp(phone_number, otp)

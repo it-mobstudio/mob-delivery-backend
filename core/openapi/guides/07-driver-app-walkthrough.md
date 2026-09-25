@@ -16,10 +16,10 @@ curl -X POST "$BASE_URL/driver/auth/otp/request" -H "Content-Type: application/j
 { "message": "OTP sent to +919000000001." }
 ```
 
-(A non-production server also returns `"otp": "482913"` so you can test without an SMS gateway.) Then verify the code the driver received:
+(A non-production server also returns `"otp": "4829"` so you can test without an SMS gateway.) Then verify the code the driver received:
 
 ```bash
-curl -X POST "$BASE_URL/driver/auth/otp/verify" -H "Content-Type: application/json" -d '{"phone_number": "+919000000001", "otp": "482913"}'
+curl -X POST "$BASE_URL/driver/auth/otp/verify" -H "Content-Type: application/json" -d '{"phone_number": "+919000000001", "otp": "4829"}'
 ```
 ```json
 {
@@ -166,7 +166,7 @@ curl "$BASE_URL/driver/trips/$TRIP/payment/qr" -H "Authorization: Bearer $DRIVER
   "amount": 85.0, "currency": "INR", "expires_at": "2026-09-21T10:15:00Z", "qr_payload": null }
 ```
 
-The customer scans and pays. Razorpay tells the server, which marks the trip **paid** and texts the customer a 6-digit delivery OTP - so the app just **waits** (re-read `GET /driver/trips/$TRIP` and watch `payment_status`).
+The customer scans and pays. Razorpay tells the server, which marks the trip **paid** and texts the customer a 4-digit delivery OTP - so the app just **waits** (re-read `GET /driver/trips/$TRIP` and watch `payment_status`).
 "Check payment" asks the server to look right now:
 
 ```bash
@@ -181,7 +181,7 @@ If the customer says the SMS didn't arrive: `POST /driver/trips/$TRIP/delivery-o
 
 ```bash
 # Cash on delivery: the customer tells you the OTP they were texted
-curl -X POST "$BASE_URL/driver/trips/$TRIP/complete" -H "Authorization: Bearer $DRIVER_TOKEN" -H "Content-Type: application/json" -d '{"otp": "387406"}'
+curl -X POST "$BASE_URL/driver/trips/$TRIP/complete" -H "Authorization: Bearer $DRIVER_TOKEN" -H "Content-Type: application/json" -d '{"otp": "3874"}'
 # Prepaid: no body
 curl -X POST "$BASE_URL/driver/trips/$TRIP/complete" -H "Authorization: Bearer $DRIVER_TOKEN"
 ```

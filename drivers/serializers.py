@@ -11,6 +11,7 @@ from core.constants import (
     DRIVER_MIN_AGE_YEARS,
     DRIVING_LICENCE_NUMBER_RE,
     IFSC_RE,
+    OTP_LENGTH,
     OTP_RE,
     PHONE_NUMBER_RE,
     PINCODE_RE,
@@ -38,7 +39,7 @@ class DriverOtpVerifySerializer(DriverOtpRequestSerializer):
 
     def validate_otp(self, value):
         if not OTP_RE.match(value):
-            raise serializers.ValidationError("OTP must be exactly 6 digits.")
+            raise serializers.ValidationError(f"OTP must be exactly {OTP_LENGTH} digits.")
         return value
 
 
@@ -596,7 +597,7 @@ class DriverOtpRequestResultSerializer(serializers.Serializer):
     message = serializers.CharField(help_text="Confirmation that an SMS was sent to the number.")
     otp = serializers.CharField(
         required=False,
-        help_text="The six-digit code itself. **Only present on non-production servers** (`DRIVER_OTP_DEBUG_RESPONSE=True`) so login can be tested without an SMS gateway. A production server never returns it.",
+        help_text="The four-digit code itself. **Only present on non-production servers** (`DRIVER_OTP_DEBUG_RESPONSE=True`) so login can be tested without an SMS gateway. A production server never returns it.",
     )
 
 

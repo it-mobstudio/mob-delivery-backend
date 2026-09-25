@@ -67,6 +67,19 @@ class EarningTests(WalletTestCase):
             self.complete(self.in_progress_trip(total_fare=Decimal("85.00")))
         self.assertEqual(WalletService.balance(self.driver), Decimal("42.50"))
 
+    def test_a_trip_bonus_is_paid_in_full_on_top_of_the_fare_share(self):
+        trip = self.in_progress_trip(total_fare=Decimal("85.00"), bonus_fare=Decimal("100.00"))
+
+        response = self.complete(trip)
+
+        self.assertEqual(response.json()["driver_earning"], "168.00")  # 80% of 85, plus the full 100 bonus
+        self.assertEqual(WalletService.balance(self.driver), Decimal("168.00"))
+
+    def test_no_bonus_means_no_change_from_the_plain_fare_share(self):
+        trip = self.in_progress_trip(total_fare=Decimal("85.00"), bonus_fare=None)
+        self.complete(trip)
+        self.assertEqual(WalletService.balance(self.driver), Decimal("68.00"))
+
     def test_a_trip_pays_only_once(self):
         trip = self.in_progress_trip()
         self.complete(trip)
@@ -81,8 +94,8 @@ class EarningTests(WalletTestCase):
         cod = self.in_progress_trip(payment_mode=PaymentMode.COD, payment_status=PaymentStatus.PAID)
         from django.core.cache import cache
 
-        cache.set(f"trip_delivery_otp:{cod.id}", "123456")
-        response = self.client.post(f"/api/v1/driver/trips/{cod.id}/complete", {"otp": "123456"}, format="json")
+        cache.set(f"trip_delivery_otp:{cod.id}", "1234")
+        response = self.client.post(f"/api/v1/driver/trips/{cod.id}/complete", {"otp": "1234"}, format="json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(WalletService.balance(self.driver), Decimal("68.00"))
 

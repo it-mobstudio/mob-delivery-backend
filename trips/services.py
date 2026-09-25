@@ -12,18 +12,19 @@ from core.choices import (
     ItemVerificationStatus,
     PaymentMode,
     PaymentStatus,
+    PickupPhotoMode,
     TripStatus,
     UploadPurpose,
     VehicleTypeStatus,
 )
-from core.constants import DELIVERY_OTP_RESEND_THROTTLE_SECONDS, DELIVERY_OTP_TTL_SECONDS
+from core.constants import DELIVERY_OTP_RESEND_THROTTLE_SECONDS, DELIVERY_OTP_TTL_SECONDS, OTP_LENGTH
 from core.exceptions import DomainError
 from drivers.services import DriverKycService
 from drivers.sms import get_sms_provider
 from drivers.wallet import WalletService
 
 from .matching import MatchingService
-from .models import Trip, TripItem
+from .models import Trip, TripItem, TripNumber
 from .notifications import trip_notifier
 from .payments import PaymentQr, get_payment_provider, to_paise
 from .pricing import PricingService
@@ -68,7 +69,7 @@ class TripService:
         """Generates a fresh delivery OTP (replacing any earlier one), texts
         it to the drop contact, and starts the resend throttle. Shared by
         collect_cod_payment (first send) and resend_delivery_otp."""
-        otp = f"{random.randint(0, 999999):06d}"
+        otp = f"{random.randint(0, 10**OTP_LENGTH - 1):0{OTP_LENGTH}d}"
         cache.set(cls._delivery_otp_cache_key(trip.id), otp, timeout=DELIVERY_OTP_TTL_SECONDS)
         cache.set(cls._delivery_otp_throttle_key(trip.id), 1, timeout=DELIVERY_OTP_RESEND_THROTTLE_SECONDS)
         get_sms_provider().send_otp(trip.drop_contact_phone, otp)
@@ -103,6 +104,11 @@ class TripService:
         invoice_number="",
         verify_items=False,
         items=None,
+        bonus_fare=None,
+        pickup_photo=PickupPhotoMode.NONE,
+        delivery_photo=PickupPhotoMode.NONE,
+        notes="",
+        delivery_otp=False,
     ):
         """Creates a Trip priced against a freshly-computed route, then
         makes one synchronous attempt to assign the nearest available
@@ -117,7 +123,11 @@ class TripService:
 
         `items` (dicts: name, quantity, ...) and `invoice_url` describe the
         goods; with `verify_items` the driver has to confirm every item at the
-        drop — see verify_item.
+        drop — see verify_item. `bonus_fare` is an extra flat amount paid to
+        the driver on top of the fare card (never charged to the customer) —
+        see drivers.wallet.WalletService.credit_trip_earning. `pickup_photo`
+        / `delivery_photo` say which camera photos the driver owes before
+        starting / finishing the delivery (see add_photo).
         """
         cls._require_vehicle_type(vehicle_type, company.id)
 
@@ -133,6 +143,8 @@ class TripService:
             company=company,
             vehicle_type=vehicle_type,
             reference_id=reference_id,
+            notes=notes,
+            delivery_otp=delivery_otp,
             payment_mode=payment_mode,
             payment_status=PaymentStatus.PAID if payment_mode == PaymentMode.PREPAID else PaymentStatus.PENDING,
             pickup_address=pickup["address"],
@@ -154,11 +166,18 @@ class TripService:
             time_fare=fare["time_fare"],
             surge_multiplier=fare["surge_multiplier"],
             total_fare=fare["total_fare"],
+            bonus_fare=bonus_fare,
             currency=fare["currency"],
             invoice_url=invoice_url,
             invoice_number=invoice_number,
             verify_items=verify_items,
+            pickup_photo=pickup_photo,
+            delivery_photo=delivery_photo,
         )
+        trip.order_number = TripNumber.order_number_for(
+            timezone.localdate(trip.created_at), TripNumber.objects.create().pk
+        )
+        trip.save(update_fields=["order_number"])
         TripItem.objects.bulk_create(
             [
                 TripItem(company=company, trip=trip, position=position, **item)
@@ -216,6 +235,7 @@ class TripService:
             )
         # Verify-then-pay: no code to scan until the items have been checked.
         cls._require_items_verified(trip)
+        cls._require_photos(trip, "delivery")
 
         provider = get_payment_provider()
         has_code = trip.payment_qr_id and trip.payment_provider == provider.name
@@ -293,6 +313,7 @@ class TripService:
                 "TRIP_NOT_IN_PROGRESS", "Payment can only be collected while the trip is in progress.", status_code=409
             )
         cls._require_items_verified(trip)
+        cls._require_photos(trip, "delivery")
 
         reference = ""
         provider = get_payment_provider()
@@ -353,16 +374,20 @@ class TripService:
         never arrived would leave a paid trip impossible to finish."""
         if trip.driver_id != driver.id:
             raise DomainError("NOT_YOUR_TRIP", "This trip is not assigned to you.", status_code=403)
-        if trip.payment_mode != PaymentMode.COD:
+        if trip.payment_mode != PaymentMode.COD and not trip.delivery_otp:
             raise DomainError("NOT_COD_TRIP", "This trip is not COD; there's no delivery OTP.", status_code=409)
         if trip.status != TripStatus.IN_PROGRESS:
             raise DomainError(
                 "TRIP_NOT_IN_PROGRESS", "The delivery OTP can only be resent while the trip is in progress.", status_code=409
             )
-        if trip.payment_status != PaymentStatus.PAID:
+        if trip.payment_mode == PaymentMode.COD and trip.payment_status != PaymentStatus.PAID:
             raise DomainError(
                 "PAYMENT_NOT_COLLECTED", "Collect the COD payment first; that's what sends the OTP.", status_code=409
             )
+        # A prepaid trip's OTP is the last step, so what comes before it
+        # (items, delivery photos) must be done — as payment ensures for COD.
+        cls._require_items_verified(trip)
+        cls._require_photos(trip, "delivery")
 
         if cache.get(cls._delivery_otp_throttle_key(trip.id)) is not None:
             raise DomainError(
@@ -402,6 +427,8 @@ class TripService:
 
     @classmethod
     def driver_start(cls, trip, driver):
+        if trip.driver_id == driver.id and trip.status == TripStatus.ARRIVED_AT_PICKUP:
+            cls._require_pickup_photos(trip)
         return cls._transition(
             trip,
             from_status=TripStatus.ARRIVED_AT_PICKUP,
@@ -423,11 +450,12 @@ class TripService:
         can't get out of step.
         """
         cls._require_items_verified(trip)
-        if trip.payment_mode == PaymentMode.COD:
-            if trip.payment_status != PaymentStatus.PAID:
-                raise DomainError(
-                    "PAYMENT_NOT_COLLECTED", "Collect the COD payment before completing this trip.", status_code=409
-                )
+        cls._require_photos(trip, "delivery")
+        if trip.payment_mode == PaymentMode.COD and trip.payment_status != PaymentStatus.PAID:
+            raise DomainError(
+                "PAYMENT_NOT_COLLECTED", "Collect the COD payment before completing this trip.", status_code=409
+            )
+        if trip.payment_mode == PaymentMode.COD or trip.delivery_otp:
             cache_key = cls._delivery_otp_cache_key(trip.id)
             stored_otp = cache.get(cache_key)
             if not otp or stored_otp is None or stored_otp != otp:
@@ -493,6 +521,76 @@ class TripService:
         item.save()
         trip_notifier.notify("trip.item_verified", trip)
         return item
+
+    # Where each stage keeps its mode and photos, and what it may be taken in.
+    PHOTO_STAGES = {
+        "pickup": ("pickup_photo", "pickup_photo_url", (TripStatus.ASSIGNED, TripStatus.ARRIVED_AT_PICKUP)),
+        "delivery": ("delivery_photo", "delivery_photo_url", (TripStatus.IN_PROGRESS,)),
+    }
+
+    @classmethod
+    def _require_photos(cls, trip, stage):
+        """A trip booked with `pickup_photo` / `delivery_photo` can't leave
+        the pickup / be finished until the driver has photographed the order
+        (or every item)."""
+        mode_field, url_field, _ = cls.PHOTO_STAGES[stage]
+        mode = getattr(trip, mode_field)
+        missing = (mode == PickupPhotoMode.ORDER and not getattr(trip, url_field)) or (
+            mode == PickupPhotoMode.PER_ITEM and trip.items.filter(**{url_field: ""}).exists()
+        )
+        if missing:
+            if stage == "pickup":
+                raise DomainError(
+                    "PICKUP_PHOTOS_REQUIRED", "Take the pickup photos before starting the delivery.", status_code=409
+                )
+            raise DomainError(
+                "DELIVERY_PHOTOS_REQUIRED", "Take the delivery photos before finishing the delivery.", status_code=409
+            )
+
+    @classmethod
+    def _require_pickup_photos(cls, trip):
+        cls._require_photos(trip, "pickup")
+
+    @classmethod
+    def add_photo(cls, trip, driver, stage, photo, item_id=None):
+        """A camera photo at the pickup (`stage` = pickup, before the delivery
+        starts) or at the drop (`delivery`, while it's in progress): of the
+        whole order (mode `order`, no item_id) or of one item (`per_item`,
+        with item_id). A new photo replaces the old one."""
+        mode_field, url_field, statuses = cls.PHOTO_STAGES[stage]
+        mode = getattr(trip, mode_field)
+        if trip.driver_id != driver.id:
+            raise DomainError("NOT_YOUR_TRIP", "This trip is not assigned to you.", status_code=403)
+        if mode == PickupPhotoMode.NONE:
+            if stage == "pickup":
+                raise DomainError(
+                    "PICKUP_PHOTO_NOT_REQUESTED", "This order doesn't need pickup photos.", status_code=409
+                )
+            raise DomainError(
+                "DELIVERY_PHOTO_NOT_REQUESTED", "This order doesn't need delivery photos.", status_code=409
+            )
+        if trip.status not in statuses:
+            raise DomainError(
+                "INVALID_TRIP_STATUS_TRANSITION",
+                "Pickup photos can only be taken before the delivery starts."
+                if stage == "pickup"
+                else "Delivery photos are taken at the drop, while the delivery is in progress.",
+                status_code=409,
+            )
+        purpose = UploadPurpose.PICKUP_PROOF if stage == "pickup" else UploadPurpose.DELIVERY_PROOF
+        if mode == PickupPhotoMode.PER_ITEM:
+            if item_id is None:
+                raise DomainError("ITEM_NOT_FOUND", "Say which item this photo shows (item_id).", status_code=404)
+            try:
+                item = trip.items.get(pk=item_id)
+            except TripItem.DoesNotExist:
+                raise DomainError("ITEM_NOT_FOUND", "That item isn't on this order.", status_code=404)
+            setattr(item, url_field, DriverKycService.store_file(photo, driver, purpose))
+            item.save(update_fields=[url_field, "updated_at"])
+        else:
+            setattr(trip, url_field, DriverKycService.store_file(photo, driver, purpose))
+            trip.save(update_fields=[url_field, "updated_at"])
+        return trip
 
     @classmethod
     def reset_item(cls, trip, driver, item_id):

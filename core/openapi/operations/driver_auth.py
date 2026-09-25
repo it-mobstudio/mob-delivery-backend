@@ -21,7 +21,7 @@ document(
         tag=TAG,
         summary="Send a sign-in code by SMS",
         description="""
-**Step 1 of signing a driver in.** Sends a 6-digit one-time code by SMS to `phone_number`. It is valid for **5 minutes**.
+**Step 1 of signing a driver in.** Sends a 4-digit one-time code by SMS to `phone_number`. It is valid for **5 minutes**.
 
 The answer is the same whether or not the number belongs to a driver yet, so this endpoint never reveals who is registered. When the
 server allows **self sign-up**, a number nobody has registered also gets a code - and becomes a new, empty driver account once
@@ -56,7 +56,7 @@ A wrong or expired code is `INVALID_OTP`; the code is single-use.
 """,
         auth=PUBLIC,
         request=DriverOtpVerifySerializer,
-        request_examples=[raw_ex("Phone and the code from the SMS", {"phone_number": PHONE, "otp": "482913"}, request=True)],
+        request_examples=[raw_ex("Phone and the code from the SMS", {"phone_number": PHONE, "otp": "4829"}, request=True)],
         responses={200: ok(DriverSessionSerializer, ex("driver_auth.otp_verify", "Signed in"))},
         errors=["INVALID_OTP", "DRIVER_NOT_FOUND", "ACCOUNT_DISABLED", "ACCOUNT_LOCKED", "DRIVER_PHONE_AMBIGUOUS"],
     ),

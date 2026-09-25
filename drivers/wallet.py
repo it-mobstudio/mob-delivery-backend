@@ -98,7 +98,11 @@ class WalletService:
         if existing is not None:
             return existing
 
-        earning = (trip.total_fare * settings.DRIVER_EARNING_PERCENT / 100).quantize(CENTS, ROUND_HALF_UP)
+        # The bonus (if any) is compensation for this trip specifically — paid
+        # to the driver in full, on top of their share of the fare, not
+        # reduced by DRIVER_EARNING_PERCENT like total_fare is.
+        fare_share = (trip.total_fare * settings.DRIVER_EARNING_PERCENT / 100).quantize(CENTS, ROUND_HALF_UP)
+        earning = fare_share + Decimal(trip.bonus_fare or 0)
         trip.driver_earning = earning
         trip.save(update_fields=["driver_earning", "updated_at"])
         if earning <= 0:

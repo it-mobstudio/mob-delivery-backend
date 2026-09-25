@@ -46,7 +46,7 @@ If one qualifies the trip is `assigned` in the same response; if none does it is
 **4. At the drop**, depending on how the order was booked:
 
 - If `verify_items` is on: the driver checks **every item** (delivered / not delivered, optionally with a photo). Nothing below can happen until they have all been answered.
-- **Cash on delivery** (`payment_mode: cod`): the driver shows a **Razorpay QR** for the exact fare; the customer pays; the server marks the trip **paid** and texts the customer a **6-digit delivery OTP**. See *Payments (Razorpay)*.
+- **Cash on delivery** (`payment_mode: cod`): the driver shows a **Razorpay QR** for the exact fare; the customer pays; the server marks the trip **paid** and texts the customer a **4-digit delivery OTP**. See *Payments (Razorpay)*.
 - **Prepaid** (`payment_mode: prepaid`): already paid - there is nothing to collect.
 
 **5. The driver completes** (`complete` -> `completed`, `completed_at` set). For cash on delivery they enter the customer's OTP - proof the goods were handed over. In the same step the **driver's wallet is credited**

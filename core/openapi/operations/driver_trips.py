@@ -10,6 +10,7 @@ from trips.serializers import (
     TripCancelSerializer,
     TripCompleteSerializer,
     TripItemVerifySerializer,
+    TripPickupPhotoSerializer,
 )
 from trips.views import (
     DriverActiveTripView,
@@ -20,6 +21,8 @@ from trips.views import (
     DriverTripItemVerifyView,
     DriverTripListView,
     DriverTripNavigationView,
+    DriverTripDeliveryPhotoView,
+    DriverTripPickupPhotoView,
     DriverTripStartView,
 )
 
@@ -131,7 +134,7 @@ document(
         params=[TRIP_ID],
         by_id=True,
         responses={200: ok(DriverTripSerializer, ex("driver_trip.start", "On the way to the drop"))},
-        errors=["INVALID_TRIP_STATUS_TRANSITION", "NOT_YOUR_TRIP"],
+        errors=["PICKUP_PHOTOS_REQUIRED", "INVALID_TRIP_STATUS_TRANSITION", "NOT_YOUR_TRIP"],
     ),
 )
 
@@ -144,7 +147,7 @@ document(
         description="""
 Finishes the trip (`in_progress` -> `completed`), records `completed_at`, and **credits the driver's wallet** with their share of the fare in the same step.
 
-**Prepaid** trip: send an empty body. **Cash on delivery**: the fare must have been paid (see *Driver payments*) and `otp` - the 6-digit code texted to the customer
+**Prepaid** trip: send an empty body. **Cash on delivery**: the fare must have been paid (see *Driver payments*) and `otp` - the 4-digit code texted to the customer
 - is **required**; it proves the customer received the goods. If the order asked for item verification, every item must be answered first.
 
 The checks run in this order, so the first that fails is the one you see: `ITEMS_NOT_VERIFIED` -> `PAYMENT_NOT_COLLECTED` -> `INVALID_DELIVERY_OTP` -> status.
@@ -154,11 +157,11 @@ The checks run in this order, so the first that fails is the one you see: `ITEMS
         by_id=True,
         request=TripCompleteSerializer,
         request_examples=[
-            raw_ex("Cash on delivery: the customer's code", {"otp": "387406"}, request=True),
+            raw_ex("Cash on delivery: the customer's code", {"otp": "3874"}, request=True),
             raw_ex("Prepaid: no body needed", {}, request=True),
         ],
         responses={200: ok(DriverTripSerializer, ex("driver_trip.complete", "Completed - the driver earned 89.30"))},
-        errors=["ITEMS_NOT_VERIFIED", "PAYMENT_NOT_COLLECTED", "INVALID_DELIVERY_OTP", "INVALID_TRIP_STATUS_TRANSITION", "NOT_YOUR_TRIP"],
+        errors=["ITEMS_NOT_VERIFIED", "DELIVERY_PHOTOS_REQUIRED", "PAYMENT_NOT_COLLECTED", "INVALID_DELIVERY_OTP", "INVALID_TRIP_STATUS_TRANSITION", "NOT_YOUR_TRIP"],
         validates=True,
     ),
 )
@@ -228,5 +231,51 @@ Send as **`multipart/form-data`**. The response is the **whole trip**, so the ch
         responses={200: ok(DriverTripSerializer, ex("item.reset", "Back to pending"))},
         errors=["VERIFICATION_NOT_REQUESTED", "TRIP_NOT_IN_PROGRESS", "ITEM_NOT_FOUND", "NOT_YOUR_TRIP"],
         notes=VERIFY_INTRO,
+    ),
+)
+
+# -- pickup photos -------------------------------------------------------------------------------
+document(
+    DriverTripPickupPhotoView,
+    post=doc(
+        id="driverAddPickupPhoto",
+        tag=ITEMS,
+        summary="Add a pickup photo",
+        description="""
+For orders booked with `pickup_photo: order` or `per_item`. Before the delivery starts (`assigned` or `arrived_at_pickup`) the driver photographs what they
+are taking, **with the phone's camera** (the app never offers the gallery, and stamps each photo with the location and time): one photo of the whole package
+(`order`), or one of every item (`per_item`, with `item_id`). Until all are in, `POST /driver/trips/{id}/start` answers `PICKUP_PHOTOS_REQUIRED`.
+A new photo for the same slot replaces the old one.
+
+Send as **`multipart/form-data`**. The response is the **whole trip** (`pickup_photo_url`, `items[].pickup_photo_url`).
+""",
+        auth=DRIVER,
+        params=[TRIP_ID],
+        by_id=True,
+        request={"multipart/form-data": TripPickupPhotoSerializer},
+        responses={200: ok(DriverTripSerializer, ex("driver_trip.pickup_photo", "The order photo added"))},
+        errors=["PICKUP_PHOTO_NOT_REQUESTED", "INVALID_TRIP_STATUS_TRANSITION", "ITEM_NOT_FOUND", "NOT_YOUR_TRIP", "INVALID_UPLOAD"],
+    ),
+)
+
+document(
+    DriverTripDeliveryPhotoView,
+    post=doc(
+        id="driverAddDeliveryPhoto",
+        tag=ITEMS,
+        summary="Add a delivery photo",
+        description="""
+For orders booked with `delivery_photo: order` or `per_item`. At the drop, while the delivery is `in_progress`, the driver photographs what they handed over,
+**with the phone's camera** (stamped with the location and time): one photo of the whole order (`order`), or one of every item (`per_item`, with `item_id`).
+Until all are in, the payment QR, payment check and completion answer `DELIVERY_PHOTOS_REQUIRED`. A new photo for the same slot replaces the old one.
+
+Send as **`multipart/form-data`**. The response is the **whole trip** (`delivery_photo_url`, `items[].delivery_photo_url`).
+""",
+        auth=DRIVER,
+        params=[TRIP_ID],
+        by_id=True,
+        request={"multipart/form-data": TripPickupPhotoSerializer},
+        responses={200: ok(DriverTripSerializer, ex("driver_trip.delivery_photo", "The order photo added"))},
+        errors=["DELIVERY_PHOTO_NOT_REQUESTED", "INVALID_TRIP_STATUS_TRANSITION", "ITEM_NOT_FOUND", "NOT_YOUR_TRIP", "INVALID_UPLOAD"],
     ),
 )

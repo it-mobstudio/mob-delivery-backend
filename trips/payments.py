@@ -117,6 +117,10 @@ class RazorpayPaymentProvider(PaymentProvider):
                 timeout=settings.RAZORPAY_TIMEOUT_SECONDS,
                 **kwargs,
             )
+            print("********")
+            print(response.json())
+            print("********")
+
         except requests.RequestException:
             logger.exception("Razorpay request failed (%s %s)", method, path)
             raise DomainError(

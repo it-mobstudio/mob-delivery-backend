@@ -9,6 +9,8 @@ from .views import (
     DriverTripDeliveryOtpResendView,
     DriverTripDetailView,
     DriverTripItemVerifyView,
+    DriverTripPickupPhotoView,
+    DriverTripDeliveryPhotoView,
     DriverTripListView,
     DriverTripNavigationView,
     DriverTripPaymentCollectView,
@@ -44,6 +46,10 @@ urlpatterns = [
         "driver/trips/<uuid:pk>/delivery-otp/resend",
         DriverTripDeliveryOtpResendView.as_view(),
         name="driver-trip-delivery-otp-resend",
+    ),
+    path("driver/trips/<uuid:pk>/pickup-photo", DriverTripPickupPhotoView.as_view(), name="driver-trip-pickup-photo"),
+    path(
+        "driver/trips/<uuid:pk>/delivery-photo", DriverTripDeliveryPhotoView.as_view(), name="driver-trip-delivery-photo"
     ),
     path(
         "driver/trips/<uuid:pk>/items/<uuid:item_id>/verify",

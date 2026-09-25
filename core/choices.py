@@ -119,6 +119,17 @@ class PaymentStatus(models.TextChoices):
     PAID = "paid", "Paid"
 
 
+class PickupPhotoMode(models.TextChoices):
+    """Which photos the driver must take at the pickup before starting the
+    delivery (Trip.pickup_photo), or at the drop before finishing it
+    (Trip.delivery_photo). Always taken with the camera, never picked from the
+    gallery."""
+
+    NONE = "none", "None"
+    ORDER = "order", "One photo of the whole order"
+    PER_ITEM = "per_item", "One photo of every item"
+
+
 class ItemVerificationStatus(models.TextChoices):
     """What the driver has said about one line of a trip's item list when the
     company asked for verification (Trip.verify_items)."""
@@ -140,3 +151,4 @@ class UploadPurpose(models.TextChoices):
     TRIP_INVOICE = "trip_invoice", "Trip Invoice"
     TRIP_ITEM_IMAGE = "trip_item_image", "Trip Item Image"
     DELIVERY_PROOF = "delivery_proof", "Delivery Proof Photo"
+    PICKUP_PROOF = "pickup_proof", "Pickup Proof Photo"

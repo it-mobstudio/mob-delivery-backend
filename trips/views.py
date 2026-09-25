@@ -31,6 +31,7 @@ from .serializers import (
     TripEstimateRequestSerializer,
     TripItemVerifySerializer,
     TripListSerializer,
+    TripPickupPhotoSerializer,
     TripSerializer,
 )
 from .services import TripService
@@ -108,10 +109,15 @@ class TripViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
             drop=data["drop"],
             payment_mode=data["payment_mode"],
             reference_id=data.get("reference_id", ""),
+            notes=data.get("notes", "").strip(),
+            delivery_otp=data.get("delivery_otp", False),
             invoice_url=data.get("invoice_url", ""),
             invoice_number=data.get("invoice_number", ""),
             verify_items=data.get("verify_items", False),
             items=data.get("items"),
+            bonus_fare=data.get("bonus_fare"),
+            pickup_photo=data.get("pickup_photo", "none"),
+            delivery_photo=data.get("delivery_photo", "none"),
         )
         return Response(TripSerializer(trip, context={"request": request}).data, status=201)
 
@@ -286,6 +292,34 @@ class DriverTripCancelView(DriverTripMixin, APIView):
         serializer.is_valid(raise_exception=True)
         trip = TripService.driver_cancel(self.get_trip(), request.user, serializer.validated_data["reason"])
         return self.trip_response(trip)
+
+
+class _DriverTripPhotoView(DriverTripMixin, APIView):
+    """Multipart: `photo` (taken with the phone's camera) and, when the trip
+    wants one per item, `item_id`. Answers with the whole trip."""
+
+    parser_classes = [MultiPartParser]
+    stage = None
+
+    def post(self, request, pk=None):
+        serializer = TripPickupPhotoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        trip = self.get_trip()
+        TripService.add_photo(trip, request.user, self.stage, data["photo"], item_id=data.get("item_id"))
+        return self.trip_response(Trip.objects.prefetch_related("items").get(pk=trip.pk))
+
+
+class DriverTripPickupPhotoView(_DriverTripPhotoView):
+    """POST /api/v1/driver/trips/{id}/pickup-photo"""
+
+    stage = "pickup"
+
+
+class DriverTripDeliveryPhotoView(_DriverTripPhotoView):
+    """POST /api/v1/driver/trips/{id}/delivery-photo"""
+
+    stage = "delivery"
 
 
 class DriverTripItemVerifyView(DriverTripMixin, APIView):

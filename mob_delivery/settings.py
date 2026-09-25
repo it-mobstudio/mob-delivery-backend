@@ -280,6 +280,7 @@ SPECTACULAR_SETTINGS = {
         "OnboardingStatusEnum": "core.choices.OnboardingStatus",
         "WalletTransactionKindEnum": "core.choices.WalletTransactionKind",
         "ItemVerificationStatusEnum": "core.choices.ItemVerificationStatus",
+        "PhotoRequirementEnum": "core.choices.PickupPhotoMode",
         "CancelledByEnum": "core.choices.CancelledBy",
         "UploadPurposeEnum": "core.choices.UploadPurpose",
         "KycDecisionEnum": ["verified", "rejected"],
@@ -358,7 +359,7 @@ RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", default="")
 # Set the same value in Razorpay Dashboard → Webhooks (event: qr_code.credited);
 # POST /api/v1/webhooks/razorpay refuses anything not signed with it.
 RAZORPAY_WEBHOOK_SECRET = env("RAZORPAY_WEBHOOK_SECRET", default="")
-RAZORPAY_API_BASE = env("RAZORPAY_API_BASE", default="https://api.razorpay.com/v1")
+RAZORPAY_API_BASE = env("RAZORPAY_API_BASE", default="  ")
 RAZORPAY_QR_VALID_MINUTES = env.int("RAZORPAY_QR_VALID_MINUTES", default=30)
 RAZORPAY_TIMEOUT_SECONDS = env.int("RAZORPAY_TIMEOUT_SECONDS", default=10)
 
