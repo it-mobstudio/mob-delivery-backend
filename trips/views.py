@@ -254,7 +254,11 @@ class DriverTripPaymentCollectView(DriverTripMixin, APIView):
     customer has paid. Sends the delivery OTP that finalizes the trip."""
 
     def post(self, request, pk=None):
-        trip, otp = TripService.collect_cod_payment(self.get_trip(), request.user)
+        from .serializers import PaymentCollectRequestSerializer
+
+        body = PaymentCollectRequestSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        trip, otp = TripService.collect_cod_payment(self.get_trip(), request.user, method=body.validated_data["method"])
         data = {"message": f"Payment collected. An OTP was sent to {trip.drop_contact_phone} to finalize the trip."}
         if settings.DRIVER_OTP_DEBUG_RESPONSE:
             data["otp"] = otp

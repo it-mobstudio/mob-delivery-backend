@@ -46,6 +46,9 @@ CANCELLABLE_STATUSES = [
 ]
 
 
+# How a COD customer paid the driver (POST .../payment/collect `method`).
+COD_METHODS = ("qr", "cash")
+
 class TripService:
     """Trip booking and lifecycle. Every state-changing method here notifies
     `trip_notifier` (core.observers.Subject) rather than reaching for a
@@ -331,14 +334,25 @@ class TripService:
         return trip, otp
 
     @classmethod
-    def collect_cod_payment(cls, trip, driver):
-        """The driver says the customer has paid a COD trip. With a payment
-        provider that can verify (Razorpay) we don't take their word for it: the
+    def collect_cod_payment(cls, trip, driver, method="qr"):
+        """The driver says the customer has paid a COD trip.
+
+        `method="qr"`: they paid by scanning the trip's code. With a provider
+        that can verify (Razorpay) we don't take the driver's word for it: the
         provider is asked whether the code was paid, and if not the driver is
-        told to wait. Either way, once paid the customer is texted a delivery
-        OTP — driver_complete won't finalize the trip without it, so completion
-        can't happen before payment does.
+        told to wait.
+
+        `method="cash"`: they paid the driver directly — cash, or any way the
+        company can't see. The driver's word is taken, and the whole fare is
+        debited from their wallet (WalletService.debit_cod_cash): the company
+        collects it from the driver.
+
+        Either way, once paid the customer is texted a delivery OTP —
+        driver_complete won't finalize the trip without it, so completion can't
+        happen before payment does.
         """
+        if method not in COD_METHODS:
+            raise DomainError("INVALID_PAYMENT_METHOD", "Say how the customer paid: qr or cash.", status_code=400)
         if trip.driver_id != driver.id:
             raise DomainError("NOT_YOUR_TRIP", "This trip is not assigned to you.", status_code=403)
         if trip.payment_mode != PaymentMode.COD:
@@ -351,6 +365,17 @@ class TripService:
             )
         cls._require_items_verified(trip)
         cls._require_photos(trip, "delivery")
+
+        if method == "cash":
+            from drivers.wallet import WalletService
+
+            with transaction.atomic():
+                trip, otp = cls.confirm_payment(trip, reference=f"cash:{driver.id}")
+                if otp is not None:  # this call marked it paid
+                    trip.payment_provider = "cash"
+                    trip.save(update_fields=["payment_provider", "updated_at"])
+                    WalletService.debit_cod_cash(trip)
+            return trip, otp
 
         reference = ""
         provider = get_payment_provider()

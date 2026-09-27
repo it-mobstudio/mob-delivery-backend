@@ -349,6 +349,11 @@ SPECTACULAR_SETTINGS = {
 # trips.routing.get_route for turn-by-turn distance/duration/polyline.
 # Build tiles from a Bengaluru/Karnataka OSM extract before first use (see
 # docker-compose.yml's valhalla service comment).
+# Road routes (distance, time, the line drawn on every map): "google" (the
+# Directions API, needs GOOGLE_MAPS_API_KEY — any city in India), "valhalla"
+# (self-hosted; only the map data you load into it) or "auto" = google when a
+# key is set, else valhalla. Google failing falls back to valhalla.
+ROUTING_PROVIDER = env("ROUTING_PROVIDER", default="auto")
 VALHALLA_URL = env("VALHALLA_URL", default="http://localhost:8002")
 VALHALLA_TIMEOUT_SECONDS = env.int("VALHALLA_TIMEOUT_SECONDS", default=10)
 

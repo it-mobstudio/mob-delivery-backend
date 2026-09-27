@@ -332,7 +332,7 @@ class TripEstimateSerializer(serializers.Serializer):
     distance_meters = serializers.IntegerField(help_text="Route distance in metres.")
     duration_seconds = serializers.IntegerField(help_text="Estimated driving time in seconds.")
     route_polyline = serializers.CharField(help_text="The route as an encoded polyline (precision given by `polyline_precision`).")
-    polyline_precision = serializers.IntegerField(help_text="Decimal places the polyline is encoded at (6 — not Google's 5).")
+    polyline_precision = serializers.IntegerField(help_text="Decimal places the polyline is encoded at: 6 for Valhalla routes, 5 for Google's. Always decode with this value.")
     base_fare = serializers.FloatField(help_text="Flat starting fare.")
     distance_fare = serializers.FloatField(help_text="Per-km charge for this route.")
     time_fare = serializers.FloatField(help_text="Per-minute charge for this route.")
@@ -354,7 +354,7 @@ class NavigationRouteSerializer(serializers.Serializer):
     target_lat = serializers.FloatField(help_text="Latitude of that stop.")
     target_lng = serializers.FloatField(help_text="Longitude of that stop.")
     polyline = serializers.CharField(help_text="Route from the driver's position to the stop, encoded at `polyline_precision`.")
-    polyline_precision = serializers.IntegerField(help_text="Decimal places the polyline is encoded at (6).")
+    polyline_precision = serializers.IntegerField(help_text="Decimal places the polyline is encoded at: 6 for Valhalla routes, 5 for Google's. Always decode with this value.")
     distance_meters = serializers.IntegerField(help_text="Remaining distance in metres.")
     duration_seconds = serializers.IntegerField(help_text="Estimated remaining driving time in seconds.")
 
@@ -378,3 +378,11 @@ class PaymentCollectedSerializer(serializers.Serializer):
         required=False,
         help_text="The delivery OTP. **Only present on non-production servers** (`DRIVER_OTP_DEBUG_RESPONSE=True`); in production only the customer ever sees it.",
     )
+
+
+class PaymentCollectRequestSerializer(serializers.Serializer):
+    """How the customer paid: `qr` (scanned the trip's code — checked with the
+    payment provider) or `cash` (paid the driver directly; the fare is debited
+    from the driver's wallet for the company to collect)."""
+
+    method = serializers.ChoiceField(choices=[("qr", "Scanned the QR code"), ("cash", "Cash or another way, to the driver")], default="qr")

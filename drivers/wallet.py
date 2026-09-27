@@ -115,6 +115,25 @@ class WalletService:
             description=f"Delivery to {trip.drop_address}",
         )
 
+    @classmethod
+    def debit_cod_cash(cls, trip):
+        """The driver took this COD trip's fare in cash (or another way the
+        company can't see): debit the whole fare, since the money is in their
+        hands. With their earning credited at completion, the balance ends up
+        short by the company's share — what the driver owes. Once per trip."""
+        if trip.driver_id is None or not trip.total_fare:
+            return None
+        existing = WalletTransaction.objects.filter(trip_id=trip.id, kind=Kind.COD_CASH).first()
+        if existing is not None:
+            return existing
+        return cls.add_entry(
+            trip.driver,
+            Kind.COD_CASH,
+            -Decimal(trip.total_fare),
+            trip_id=trip.id,
+            description=f"Cash collected for {trip.order_number or 'a delivery'}",
+        )
+
     # -- reading -----------------------------------------------------------
 
     @staticmethod

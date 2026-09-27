@@ -88,3 +88,11 @@ class DevCorsIsOffInProductionTests(SimpleTestCase):
         self.assertNotIn("Access-Control-Allow-Origin", response)
         # ...and the preflight is not answered on the API's behalf.
         self.assertNotEqual(response.status_code, 204)
+
+
+class MediaTypeTests(SimpleTestCase):
+    def test_voice_notes_are_served_as_mp4_audio(self):
+        import mimetypes
+
+        # Not "audio/mp4a-latm", which iPhones and strict players refuse.
+        self.assertEqual(mimetypes.guess_type("note.m4a")[0], "audio/mp4")

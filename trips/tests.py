@@ -1,7 +1,8 @@
+import requests
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from core.choices import PaymentMode, PaymentStatus, TripStatus
@@ -665,3 +666,69 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
 
         self.assertEqual(Trip.objects.get().driver_id, rival.id)
         self.assertIn("another online driver was nearer", output)
+
+
+class GoogleRoutingTests(TestCase):
+    """Real roads anywhere in India from Google's Directions API when a key is
+    set; Valhalla when it isn't (or Google can't answer)."""
+
+    @staticmethod
+    def directions():
+        from core.polyline import encode
+
+        # Two steps that meet at the corner, as Google's always do.
+        a, corner, b = (26.8503, 80.9489), (26.8601, 80.9555), (26.8724, 80.9914)
+        return {"status": "OK", "routes": [{
+            "overview_polyline": {"points": encode([a, b], 5)},
+            "legs": [{"distance": {"value": 7279}, "duration": {"value": 913}, "steps": [
+                {"polyline": {"points": encode([a, corner], 5)}},
+                {"polyline": {"points": encode([corner, b], 5)}},
+            ]}],
+        }]}
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    @override_settings(GOOGLE_MAPS_API_KEY="k", ROUTING_PROVIDER="auto")
+    def test_google_route_follows_every_step_and_is_cached(self):
+        from core.polyline import decode
+
+        class Reply:
+            def json(self_inner):
+                return GoogleRoutingTests.directions()
+
+        with patch("trips.routing.requests.get", return_value=Reply()) as get, \
+                patch("trips.routing.requests.post") as valhalla:
+            route = RoutingService.get_route(38.5, -120.2, 43.252, -126.453)
+            RoutingService.get_route(38.5, -120.2, 43.252, -126.453)
+        self.assertEqual((route["distance_meters"], route["duration_seconds"], route["polyline_precision"]), (7279, 913, 5))
+        self.assertEqual(len(decode(route["polyline"], 5)), 3, "both steps joined, the shared point once")
+        self.assertEqual(get.call_count, 1, "the second ask came from the cache")
+        valhalla.assert_not_called()
+
+    @override_settings(GOOGLE_MAPS_API_KEY="k", ROUTING_PROVIDER="auto", VALHALLA_URL="http://valhalla")
+    def test_google_refusing_falls_back_to_valhalla(self):
+        class Denied:
+            def json(self_inner):
+                return {"status": "REQUEST_DENIED"}
+
+        class Valhalla:
+            def raise_for_status(self_inner):
+                pass
+
+            def json(self_inner):
+                return {"trip": {"legs": [{"shape": "abc"}], "summary": {"length": 4.2, "time": 780}}}
+
+        with patch("trips.routing.requests.get", return_value=Denied()), \
+                patch("trips.routing.requests.post", return_value=Valhalla()):
+            route = RoutingService.get_route(26.85, 80.94, 26.87, 80.99)
+        self.assertEqual((route["distance_meters"], route["polyline_precision"]), (4200, 6))
+
+    @override_settings(GOOGLE_MAPS_API_KEY="k", ROUTING_PROVIDER="valhalla", VALHALLA_URL="http://valhalla")
+    def test_valhalla_can_be_forced(self):
+        with patch("trips.routing.requests.get") as get, patch("trips.routing.requests.post", side_effect=requests.RequestException("down")):
+            with self.assertRaises(DomainError):
+                RoutingService.get_route(26.85, 80.94, 26.87, 80.99)
+        get.assert_not_called()

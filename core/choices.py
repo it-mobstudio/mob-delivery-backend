@@ -89,6 +89,9 @@ class WalletTransactionKind(models.TextChoices):
     PENALTY = "penalty", "Penalty"
     PAYOUT = "payout", "Payout"
     ADJUSTMENT = "adjustment", "Adjustment"
+    # A COD fare the driver took in cash (or another way the company doesn't
+    # see): debited in full, so what they hold for the company is on the books.
+    COD_CASH = "cod_cash", "Cash collected"
 
 
 # trips -----------------------------------------------------------------

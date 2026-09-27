@@ -1,7 +1,7 @@
 """Cash on delivery: the Razorpay code, confirming the payment, the delivery OTP."""
 
 from core.openapi.dsl import DRIVER, doc, document, ex, ok, path_param, raw_ex
-from trips.serializers import PaymentCollectedSerializer, PaymentQrSerializer
+from trips.serializers import PaymentCollectedSerializer, PaymentCollectRequestSerializer, PaymentQrSerializer
 from trips.views import DriverTripDeliveryOtpResendView, DriverTripPaymentCollectView, DriverTripPaymentQrView
 
 TAG = "Driver payments"
@@ -71,9 +71,12 @@ document(
     post=doc(
         id="driverConfirmPayment",
         tag=TAG,
-        summary="Check the payment and send the delivery OTP",
+        summary="Record how the customer paid, and send the delivery OTP",
         description="""
-The driver's **"Check payment"** button. With Razorpay, the server **asks Razorpay** whether this trip's code has been paid (in full) - it does not take the driver's word for it:
+At the drop the app asks the driver **how the customer paid** and sends it as `method`:
+
+- **`cash`** - the customer paid the driver directly (cash, or any way the company can't see). The driver's word is taken: the trip is marked paid at once, and the **whole fare is debited from the driver's wallet** (a `cod_cash` "Cash collected" entry) - the company collects it from the driver. Their usual earning is still credited when the trip completes, so the balance ends up short by the company's share.
+- **`qr`** (the default) - the customer scanned the trip's code. The driver's **"Check payment"** button. With Razorpay, the server **asks Razorpay** whether this trip's code has been paid (in full) - it does not take the driver's word for it:
 
 - **Paid** -> the trip is marked paid, the customer is texted their **delivery OTP**, and this returns `200`.
 - **Not paid (yet)** -> `409 PAYMENT_NOT_RECEIVED`. That is *not a fault*: ask the customer to scan and pay, then check again in a moment.
@@ -85,9 +88,9 @@ On a non-production server the response also echoes the delivery OTP in `otp`.
         auth=DRIVER,
         params=[TRIP_ID],
         by_id=True,
-        request=None,
+        request=PaymentCollectRequestSerializer,
         responses={200: ok(PaymentCollectedSerializer, ex("driver_trip.collect", "Paid - OTP sent (test server shows the code)"))},
-        errors=["PAYMENT_NOT_RECEIVED", "ALREADY_PAID", "NOT_COD_TRIP", "TRIP_NOT_IN_PROGRESS", "ITEMS_NOT_VERIFIED", "DELIVERY_PHOTOS_REQUIRED", "PAYMENT_PROVIDER_UNAVAILABLE", "PAYMENT_PROVIDER_ERROR", "PAYMENT_PROVIDER_NOT_CONFIGURED", "NOT_YOUR_TRIP"],
+        errors=["INVALID_PAYMENT_METHOD", "PAYMENT_NOT_RECEIVED", "ALREADY_PAID", "NOT_COD_TRIP", "TRIP_NOT_IN_PROGRESS", "ITEMS_NOT_VERIFIED", "DELIVERY_PHOTOS_REQUIRED", "PAYMENT_PROVIDER_UNAVAILABLE", "PAYMENT_PROVIDER_ERROR", "PAYMENT_PROVIDER_NOT_CONFIGURED", "NOT_YOUR_TRIP"],
         notes=FLOW,
     ),
 )

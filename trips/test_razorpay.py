@@ -460,3 +460,53 @@ class RazorpayWebhookTests(RazorpayTestCase):
         self.assertEqual(response.json(), {"status": "trip_not_in_progress"})
         self.assertEqual(self.reload().payment_status, PaymentStatus.PENDING)
         self.assertEqual(self.sent_otps(), [])
+
+
+class CashCollectionTests(RazorpayTestCase):
+    """The customer paid the driver directly: the driver's word is taken (no
+    Razorpay involved — not even set up), and the company collects the fare
+    from the driver through their wallet."""
+
+    def collect_cash(self):
+        return self.client.post(self.url("/payment/collect"), {"method": "cash"}, format="json")
+
+    def test_cash_marks_it_paid_sends_the_otp_and_debits_the_fare_from_the_driver(self):
+        from core.choices import WalletTransactionKind
+        from drivers.models import WalletTransaction
+
+        response = self.collect_cash()
+        self.assertEqual(response.status_code, 200, response.content)
+        trip = self.reload()
+        self.assertEqual((trip.payment_status, trip.payment_provider), ("paid", "cash"))
+        self.assertEqual(len(self.sent_otps()), 1, "the customer gets their delivery OTP")
+        self.assertEqual(self.fake.calls, [], "Razorpay isn't asked about cash")
+        debit = WalletTransaction.objects.get(driver=self.driver, kind=WalletTransactionKind.COD_CASH)
+        self.assertEqual(debit.amount, -trip.total_fare)
+        self.assertEqual(debit.trip_id, trip.id)
+
+    def test_after_completion_the_driver_owes_the_company_its_share(self):
+        from django.conf import settings
+
+        from drivers.wallet import WalletService
+        from trips.services import TripService
+
+        self.collect_cash()
+        trip = self.reload()
+        otp = self.sent_otps()[-1][1]
+        TripService.driver_complete(trip, self.driver, otp=otp)
+        share = trip.total_fare * (100 - settings.DRIVER_EARNING_PERCENT) / 100
+        self.assertEqual(WalletService.balance(self.driver), -share.quantize(Decimal("0.01")))
+
+    def test_cash_is_one_shot_and_unknown_methods_are_refused(self):
+        self.assertEqual(self.client.post(self.url("/payment/collect"), {"method": "cheque"}, format="json").status_code, 400)
+        self.collect_cash()
+        again = self.collect_cash()
+        self.assertEqual((again.status_code, again.json()["error"]["code"]), (409, "ALREADY_PAID"))
+        from drivers.models import WalletTransaction
+
+        self.assertEqual(WalletTransaction.objects.filter(driver=self.driver).count(), 1, "debited once")
+
+    def test_qr_stays_the_default_and_is_still_verified(self):
+        self.qr()
+        response = self.collect()  # no method: the old app keeps working
+        self.assertEqual((response.status_code, response.json()["error"]["code"]), (409, "PAYMENT_NOT_RECEIVED"))
