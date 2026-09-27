@@ -1,0 +1,100 @@
+{% load static console %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Console{% endblock %} · MOB Delivery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'console/console.css' %}">
+  {% block head %}{% endblock %}
+<script>window.MOB_MAP = { url: "{{ map_tiles.url|escapejs }}", attribution: "{{ map_tiles.attribution|escapejs }}" };</script>
+</head>
+<body>
+<script>try{if(localStorage.getItem("console-nav")==="collapsed")document.body.classList.add("nav-collapsed")}catch(e){}</script>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="{% url 'console:dashboard' %}">
+      <span class="brand-mark">M</span>
+      <span class="lbl">MOB Delivery<small>Operations console</small></span>
+    </a>
+    {% with s=section %}
+    <nav class="nav">
+      <div class="nav-section">Overview</div>
+      <a href="{% url 'console:dashboard' %}" class="{% if s == 'dashboard' %}on{% endif %}">{% icon 'layout-dashboard' %} <span class="lbl">Dashboard</span></a>
+      <a href="{% url 'console:live' %}" class="{% if s == 'live' %}on{% endif %}">{% icon 'map' %} <span class="lbl">Live map</span></a>
+
+      <div class="nav-section">Operations</div>
+      <a href="{% url 'console:orders' %}" class="{% if s == 'orders' %}on{% endif %}">{% icon 'package' %} <span class="lbl">Orders</span>
+        {% if nav.active_orders %}<span class="count">{{ nav.active_orders }}</span>{% endif %}</a>
+      <a href="{% url 'console:orders' %}?status=unassigned" class="{% if s == 'dispatch' %}on{% endif %}">{% icon 'radio-tower' %} <span class="lbl">Dispatch</span>
+        {% if nav.unassigned %}<span class="count hot">{{ nav.unassigned }}</span>{% endif %}</a>
+      <a href="{% url 'console:gallery' %}" class="{% if s == 'gallery' %}on{% endif %}">{% icon 'images' %} <span class="lbl">Proof gallery</span></a>
+
+      <div class="nav-section">Fleet</div>
+      <a href="{% url 'console:drivers' %}" class="{% if s == 'drivers' %}on{% endif %}">{% icon 'users' %} <span class="lbl">Drivers</span></a>
+      <a href="{% url 'console:kyc' %}" class="{% if s == 'kyc' %}on{% endif %}">{% icon 'shield-check' %} <span class="lbl">KYC review</span>
+        {% if nav.pending_kyc %}<span class="count hot">{{ nav.pending_kyc }}</span>{% endif %}</a>
+      <a href="{% url 'console:vehicles' %}" class="{% if s == 'vehicles' %}on{% endif %}">{% icon 'truck' %} <span class="lbl">Vehicles</span></a>
+      <a href="{% url 'console:fares' %}" class="{% if s == 'fares' %}on{% endif %}">{% icon 'badge-indian-rupee' %} <span class="lbl">Vehicle types &amp; fares</span></a>
+
+      <div class="nav-section">Finance</div>
+      <a href="{% url 'console:payouts' %}" class="{% if s == 'payouts' %}on{% endif %}">{% icon 'wallet' %} <span class="lbl">Payouts</span></a>
+      <a href="{% url 'console:ledger' %}" class="{% if s == 'ledger' %}on{% endif %}">{% icon 'receipt-text' %} <span class="lbl">Wallet ledger</span></a>
+
+      <div class="nav-section">Settings</div>
+      {% if is_platform %}<a href="{% url 'console:companies' %}" class="{% if s == 'companies' %}on{% endif %}">{% icon 'building-2' %} <span class="lbl">Companies</span></a>{% endif %}
+      <a href="{% url 'console:team' %}" class="{% if s == 'team' %}on{% endif %}">{% icon 'user-cog' %} <span class="lbl">Team</span></a>
+      {% if is_platform %}<a href="{% url 'console:api_clients' %}" class="{% if s == 'api' %}on{% endif %}">{% icon 'key-round' %} <span class="lbl">API clients</span></a>{% endif %}
+      <a href="{% url 'admin:index' %}">{% icon 'database' %} <span class="lbl">Raw data</span></a>
+    </nav>
+    {% endwith %}
+    <div class="me">
+      <span class="avatar">{{ request.user.first_name|default:request.user.email|initials }}</span>
+      <div class="grow ellipsis"><b class="ellipsis">{{ request.user.get_full_name|default:request.user.email }}</b>
+        <span>{% if is_platform %}Platform admin{% else %}{{ request.user.get_role_display }} · {{ request.user.company.name }}{% endif %}</span></div>
+      <form method="post" action="{% url 'console:logout' %}">{% csrf_token %}
+        <button class="btn btn-ghost btn-sm" title="Sign out" style="color:#7f8da0">{% icon 'log-out' 16 %}</button></form>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="btn btn-ghost btn-sm" id="nav-toggle" title="Collapse sidebar" aria-label="Toggle sidebar">{% icon 'panel-left' 18 %}</button>
+      <form class="search" action="{% url 'console:search' %}" method="get" role="search">
+        {% icon 'search' 16 %}
+        <input id="global-search" type="search" name="q" value="{{ search_q|default:'' }}" placeholder="Search orders, drivers, phone numbers, vehicles…" autocomplete="off">
+        <kbd>/</kbd>
+      </form>
+      <div class="spacer"></div>
+      {% if companies %}
+        <form method="post" action="{% url 'console:switch_company' %}" class="row">{% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          {% icon 'building-2' 16 %}
+          <select name="company" data-autosubmit aria-label="Company">
+            <option value="">All companies</option>
+            {% for c in companies %}<option value="{{ c.id }}" {% if c.id|stringformat:'s' == current_company %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+          </select>
+        </form>
+      {% endif %}
+      <span class="muted small nowrap">{% now "D, j M · g:i A" %}</span>
+    </header>
+
+    <main class="page">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<div class="toasts">
+  {% for m in messages %}
+    <div class="toast {{ m.tags }}">{% if m.tags == 'success' %}{% icon 'circle-check' 16 %}{% elif m.tags == 'error' %}{% icon 'circle-alert' 16 %}{% else %}{% icon 'info' 16 %}{% endif %} {{ m }}</div>
+  {% endfor %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="{% static 'console/console.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

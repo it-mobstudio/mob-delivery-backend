@@ -111,6 +111,8 @@ class TripViewSet(CompanyScopedMixin, viewsets.ModelViewSet):
             reference_id=data.get("reference_id", ""),
             notes=data.get("notes", "").strip(),
             delivery_otp=data.get("delivery_otp", False),
+            voice_note_url=data.get("voice_note_url", ""),
+            voice_note_seconds=data.get("voice_note_seconds"),
             invoice_url=data.get("invoice_url", ""),
             invoice_number=data.get("invoice_number", ""),
             verify_items=data.get("verify_items", False),

@@ -1,0 +1,21 @@
+{% load console %}
+{% if page_obj.paginator.count %}
+<div class="pager">
+  <span>Showing <b>{{ page_obj.start_index }}–{{ page_obj.end_index }}</b> of <b>{{ page_obj.paginator.count }}</b></span>
+  <div class="row">
+    <form method="get" class="row">
+      {% for k, v in request.GET.items %}{% if k != 'size' and k != 'page' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+      <select name="size" data-autosubmit aria-label="Rows per page">
+        <option value="25" {% if request.GET.size == '25' or not request.GET.size %}selected{% endif %}>25 / page</option>
+        <option value="50" {% if request.GET.size == '50' %}selected{% endif %}>50 / page</option>
+        <option value="100" {% if request.GET.size == '100' %}selected{% endif %}>100 / page</option>
+      </select>
+    </form>
+    <div class="pages">
+      {% if page_obj.has_previous %}<a class="btn btn-sm" href="{% qs page=page_obj.previous_page_number %}">{% icon 'chevron-left' 15 %}</a>{% endif %}
+      <span class="btn btn-sm btn-ghost">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a class="btn btn-sm" href="{% qs page=page_obj.next_page_number %}">{% icon 'chevron-right' 15 %}</a>{% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}

@@ -1,0 +1,21 @@
+{% extends "console/base.html" %}
+{% load console %}
+{% block title %}Search{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Results for “{{ search_q }}”</h1><p>{{ n_orders }} order{{ n_orders|pluralize }}, {{ drivers|length }} driver{{ drivers|length|pluralize }}, {{ vehicles|length }} vehicle{{ vehicles|length|pluralize }}</p></div></div>
+<div class="grid g-main">
+  <div class="card"><div class="card-head"><h2>Orders</h2>{% if n_orders > 20 %}<a class="btn btn-sm" href="{% url 'console:orders' %}?q={{ search_q|urlencode }}">All {{ n_orders }}</a>{% endif %}</div>
+    <div class="table-wrap"><table class="t"><tbody>
+      {% for t in orders %}<tr class="clickable" data-href="{% url 'console:order' t.pk %}"><td class="strong mono">{{ t.order_number }}</td><td class="small">{{ t.drop_contact_name }} · {{ t.drop_address|truncatechars:50 }}</td><td>{{ t.status|badge }}</td><td class="muted small">{{ t.created_at|ago }}</td></tr>
+      {% empty %}<tr><td class="empty">No orders.</td></tr>{% endfor %}
+    </tbody></table></div></div>
+  <div class="grid" style="gap:16px">
+    <div class="card"><div class="card-head"><h2>Drivers</h2></div><div class="card-body">
+      {% for d in drivers %}<a class="row" href="{% url 'console:driver' d.pk %}" style="padding:6px 0;color:inherit"><span class="avatar">{{ d.full_name|initials }}</span><span class="stack"><b>{{ d.full_name }}</b><span class="muted small">{{ d.phone_number }}</span></span></a>
+      {% empty %}<div class="muted">No drivers.</div>{% endfor %}</div></div>
+    <div class="card"><div class="card-head"><h2>Vehicles</h2></div><div class="card-body">
+      {% for v in vehicles %}<a class="row" href="{% url 'console:vehicle' v.pk %}" style="padding:6px 0;color:inherit">{% icon 'truck' 18 %}<span class="stack"><b class="mono">{{ v.registration_number }}</b><span class="muted small">{{ v.vehicle_type.name }}</span></span></a>
+      {% empty %}<div class="muted">No vehicles.</div>{% endfor %}</div></div>
+  </div>
+</div>
+{% endblock %}

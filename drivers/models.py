@@ -113,7 +113,17 @@ class Driver(BaseModel):
         dl_needed = kyc.dl_status != VerificationStatus.VERIFIED and not kyc.dl_doc_url
         if aadhar_needed or dl_needed:
             return OnboardingStatus.DOCUMENTS_REQUIRED
+        # A driver joining on their own brings their own vehicle: its details
+        # and at least one photo are part of what the company reviews.
+        if not self.has_vehicle_for_review:
+            return OnboardingStatus.VEHICLE_REQUIRED
         return OnboardingStatus.UNDER_REVIEW
+
+    @property
+    def has_vehicle_for_review(self):
+        from django.db.models import Q
+
+        return self.own_vehicles.filter(Q(photos__isnull=False) | (Q(photo_url__isnull=False) & ~Q(photo_url=""))).exists()
 
 
 class DriverKyc(TimeStampedUUIDModel):
@@ -279,6 +289,8 @@ class WalletTransaction(BaseModel):
     created_by = models.UUIDField(null=True, blank=True)  # the admin who recorded it, if manual
 
     class Meta:
+        verbose_name = "wallet entry"
+        verbose_name_plural = "wallet ledger"
         ordering = ["-created_at", "-id"]
         indexes = [models.Index(fields=["driver", "-created_at"])]
         constraints = [

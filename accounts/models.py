@@ -18,6 +18,7 @@ class Company(TimeStampedUUIDModel, SoftDeleteModel):
     status = models.CharField(max_length=20, choices=CompanyStatus.choices, default=CompanyStatus.ACTIVE)
 
     class Meta:
+        verbose_name_plural = "companies"
         ordering = ["-created_at"]
 
     def __str__(self):
@@ -68,6 +69,10 @@ class AdminUser(TimeStampedUUIDModel, SoftDeleteModel, AbstractBaseUser, Permiss
     def __str__(self):
         return self.email
 
+    class Meta:
+        verbose_name = "admin login"
+
+
 
 class ApiClient(TimeStampedUUIDModel, SoftDeleteModel):
     """A machine principal (partner integration, mobile backend, etc.)
@@ -104,3 +109,7 @@ class ApiClient(TimeStampedUUIDModel, SoftDeleteModel):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        verbose_name = "API client"
+

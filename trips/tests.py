@@ -329,7 +329,9 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
         self.assertIn(trip.pickup_contact_name, dev_samples.SHOPS)
         self.assertIn(trip.drop_contact_name, dev_samples.CUSTOMERS)
         self.assertTrue(trip.pickup_address.startswith("Shop No."), trip.pickup_address)
-        self.assertIn("pickup photo: order", output)
+        self.assertIn("pickup photo: both", output)
+        self.assertIn("voice note: 10 s", output)
+        self.assertIn("voice-notes", trip.voice_note_url)
         self.assertIn("delivery OTP: yes", output)
 
     """`manage.py book_test_trip` — the one-liner for putting an order on a
@@ -423,8 +425,8 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
         self.assertIn("verify each one at the drop", output)
         self.assertIn("Try, in the app:", output)
         self.assertIn("item checklist", output)
-        self.assertIn("stay locked", output, "tells you to try payment before the items are answered")
-        self.assertIn(f"GET /api/v1/trips/{trip.id}", output, "where the recorded history can be read")
+        self.assertIn("the item checklist", output, "walks you through the item check at the drop")
+        self.assertIn(f"/admin/orders/{trip.id}/", output)
 
     def test_quantities_are_random_within_sensible_bounds(self):
         from trips import dev_samples
@@ -520,7 +522,7 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
     def test_a_prepaid_order_gets_no_payment_steps(self):
         self.go_on_duty()
         output, _ = self.run_command("--mode", "prepaid")
-        self.assertIn("prepaid: nothing to collect", output)
+        self.assertIn("no payment step", output)
         self.assertNotIn("Payment:", output)
         self.assertNotIn("Payment isn't set up", output)
 

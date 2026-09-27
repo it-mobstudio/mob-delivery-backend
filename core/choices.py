@@ -77,6 +77,7 @@ class OnboardingStatus(models.TextChoices):
 
     PROFILE_INCOMPLETE = "profile_incomplete", "Profile incomplete"
     DOCUMENTS_REQUIRED = "documents_required", "Documents required"
+    VEHICLE_REQUIRED = "vehicle_required", "Vehicle required"
     UNDER_REVIEW = "under_review", "Under review"
     ACTION_REQUIRED = "action_required", "Action required"
     APPROVED = "approved", "Approved"
@@ -107,6 +108,7 @@ class CancelledBy(models.TextChoices):
     COMPANY = "company", "Company"
     DRIVER = "driver", "Driver"
     SYSTEM = "system", "System"
+    CUSTOMER = "customer", "Customer"
 
 
 class PaymentMode(models.TextChoices):
@@ -128,6 +130,18 @@ class PickupPhotoMode(models.TextChoices):
     NONE = "none", "None"
     ORDER = "order", "One photo of the whole order"
     PER_ITEM = "per_item", "One photo of every item"
+    BOTH = "both", "The whole order and every item"
+
+
+class StopKind(models.TextChoices):
+    PICKUP = "pickup", "Pickup"
+    DROP = "drop", "Drop"
+
+
+class StopStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    ARRIVED = "arrived", "Driver arrived"
+    DONE = "done", "Done"
 
 
 class ItemVerificationStatus(models.TextChoices):
@@ -152,3 +166,4 @@ class UploadPurpose(models.TextChoices):
     TRIP_ITEM_IMAGE = "trip_item_image", "Trip Item Image"
     DELIVERY_PROOF = "delivery_proof", "Delivery Proof Photo"
     PICKUP_PROOF = "pickup_proof", "Pickup Proof Photo"
+    TRIP_VOICE_NOTE = "trip_voice_note", "Trip Voice Note"

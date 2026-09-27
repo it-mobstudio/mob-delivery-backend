@@ -1,0 +1,30 @@
+{% extends "console/base.html" %}
+{% load console %}
+{% block title %}Proof gallery{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Proof gallery</h1><p>Every photo drivers took at pickup and drop — camera only, stamped with location and time.</p></div>
+  <span class="chip">{% icon 'images' 14 %} {{ total }} photo{{ total|pluralize }}</span></div>
+<div class="card" style="margin-bottom:16px">
+  <form method="get" class="filters" style="border-bottom:0">
+    <div class="q">{% icon 'search' 16 %}<input type="search" name="q" value="{{ request.GET.q }}" placeholder="Order number, driver, customer…"></div>
+    <nav class="seg">{% for key, name in kinds %}<a href="{% qs kind=key %}" class="{% if key == kind %}on{% endif %}">{{ name }}</a>{% endfor %}</nav>
+    <input type="hidden" name="kind" value="{{ kind }}">
+    <input type="date" name="from" value="{{ request.GET.from }}" aria-label="From"><input type="date" name="to" value="{{ request.GET.to }}" aria-label="To">
+    <button class="btn btn-primary">Apply</button>
+  </form>
+</div>
+{% if page_obj.object_list %}
+  <div class="gallery" data-gallery>
+    {% for s in page_obj %}
+      <a class="shot" href="{{ s.url }}" data-lightbox data-caption="<b>{{ s.trip.order_number }}</b> · {{ s.kind|capfirst }} · {{ s.title }} · {{ s.trip.driver.full_name|default:'' }} · {{ s.when|date:'j M, g:i A' }} · <a href='{% url 'console:order' s.trip.pk %}'>Open order</a>">
+        <img src="{{ s.url }}" loading="lazy" alt="{{ s.title }}">
+        <span class="tag" {% if s.issue %}style="background:#fdecea;color:#d64534"{% endif %}>{% if s.issue %}Issue{% else %}{{ s.kind }}{% endif %}</span>
+        <span class="cap"><b>{{ s.trip.order_number }}</b>{{ s.title|truncatechars:34 }}<br>{{ s.when|date:"j M, g:i A" }}</span>
+      </a>
+    {% endfor %}
+  </div>
+  <div class="card" style="margin-top:16px">{% include "console/partials/pager.html" %}</div>
+{% else %}
+  <div class="card empty">{% icon 'image-off' 36 %}<div>No photos match.</div></div>
+{% endif %}
+{% endblock %}

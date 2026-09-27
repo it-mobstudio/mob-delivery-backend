@@ -1,0 +1,86 @@
+{% extends "booking/base.html" %}
+{% load static %}
+{% block title %}Book a vehicle{% endblock %}
+{% block head %}<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
+{% block body %}
+<div class="map-app">
+  <div id="map"></div>
+  <div class="top-float">
+    <span class="pill"><i data-lucide="sparkles" style="width:16px;height:16px;color:#1463ff"></i>Hi {{ customer.full_name|default:"there"|truncatewords:1 }}</span>
+    <span class="grow"></span>
+    <span class="pill" id="nearby-pill" hidden><span class="dot p" style="width:8px;height:8px;box-shadow:none"></span><span id="nearby-n">0</span> drivers nearby</span>
+  </div>
+  <button class="round locate" id="locate" aria-label="My location" style="bottom:340px"><i data-lucide="locate-fixed"></i></button>
+
+  <!-- where from / to -->
+  <section class="sheet" id="sheet-where">
+    <div class="grab"></div>
+    {% if active %}
+      <a href="{% url 'booking:trip' active.pk %}" class="card row" style="padding:14px;margin-bottom:14px;color:inherit;border-color:#c9dbff;background:#f4f8ff">
+        <span class="status-ic" style="width:40px;height:40px"><i data-lucide="navigation"></i></span>
+        <span class="grow"><b>Booking {{ active.order_number }}</b><br><span class="small muted">{{ active.get_status_display }} · tap to track</span></span>
+        <i data-lucide="chevron-right"></i></a>
+    {% endif %}
+    <h2 style="margin-bottom:12px">Where are you sending?</h2>
+    <div class="where">
+      <button id="btn-pickup"><span class="dot p"></span><span class="grow"><span class="lbl">Pickup</span><br><span class="val empty ellipsis" id="val-pickup">Finding your location…</span></span></button>
+      <hr>
+      <button id="btn-drop"><span class="dot d"></span><span class="grow"><span class="lbl">Drop</span><br><span class="val empty ellipsis" id="val-drop">Where should it go?</span></span></button>
+    </div>
+    <div class="row" style="margin-top:16px;justify-content:space-around">
+      <img src="{% static 'vehicles/bike.svg' %}" alt="Bike" style="width:64px"><img src="{% static 'vehicles/auto.svg' %}" alt="Auto" style="width:64px"><img src="{% static 'vehicles/mini_truck.svg' %}" alt="Mini truck" style="width:64px"><img src="{% static 'vehicles/truck.svg' %}" alt="Truck" style="width:64px">
+    </div>
+  </section>
+
+  <!-- pin on the map -->
+  <section class="sheet away" id="sheet-pin">
+    <div class="grab"></div>
+    <p class="small muted" style="margin:0 0 4px" id="pin-title">Move the map to set the pickup</p>
+    <h3 id="pin-address" class="ellipsis" style="margin-bottom:14px">…</h3>
+    <button class="btn btn-primary" id="pin-confirm">Confirm location</button>
+    <button class="btn btn-ghost" id="pin-cancel">Back</button>
+  </section>
+  <div id="center-pin" hidden style="position:absolute;left:50%;top:50%;z-index:15;transform:translate(-50%,-100%);pointer-events:none">
+    <svg width="40" height="52" viewBox="0 0 40 52"><path d="M20 0C9 0 0 9 0 20c0 15 20 32 20 32s20-17 20-32C40 9 31 0 20 0z" fill="#0f1d2e"/><circle cx="20" cy="20" r="8" fill="#fff"/></svg>
+  </div>
+
+  <!-- choose a vehicle -->
+  <section class="sheet away" id="sheet-options">
+    <div class="grab"></div>
+    <div class="row" style="margin-bottom:6px"><button class="round" id="opts-back" style="width:38px;height:38px;box-shadow:none;background:#f3f6fa" aria-label="Back"><i data-lucide="arrow-left"></i></button>
+      <div class="grow"><h2>Choose a vehicle</h2><span class="small muted" id="trip-summary"></span></div></div>
+    <div class="opts" id="opts"></div>
+    <details id="more" style="margin-bottom:14px">
+      <summary class="small" style="cursor:pointer;font-weight:600;color:#334456;padding:6px 0">Receiver &amp; instructions</summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+        <label class="field">Receiver's name<input id="rcv-name" placeholder="{{ customer.full_name|default:'Name' }}"></label>
+        <label class="field">Receiver's mobile<input id="rcv-phone" type="tel" inputmode="numeric" maxlength="10" placeholder="Leave empty if it's you"></label>
+        <label class="field">Note for the driver<textarea id="note" rows="2" maxlength="300" placeholder="e.g. Fragile, call on arrival, use gate 2"></textarea></label>
+      </div>
+    </details>
+    <div class="row small muted" style="margin-bottom:12px"><i data-lucide="wallet" style="width:18px;height:18px"></i>Pay cash or UPI to the driver at delivery</div>
+    <button class="btn btn-primary" id="book" disabled>Choose a vehicle</button>
+  </section>
+</div>
+
+<!-- place search -->
+<div class="overlay" id="search" hidden>
+  <header><button class="round" id="search-close" style="box-shadow:none" aria-label="Close"><i data-lucide="arrow-left"></i></button>
+    <input id="search-input" type="search" placeholder="Search a place, area or landmark" autocomplete="off"></header>
+  <div class="results">
+    <button class="result" id="use-current"><span class="ic"><i data-lucide="locate-fixed"></i></span><span><b>Use my current location</b><span>Pick up from where you are</span></span></button>
+    <button class="result" id="use-map"><span class="ic"><i data-lucide="map-pin"></i></span><span><b>Choose on map</b><span>Drop a pin exactly where it is</span></span></button>
+    <div id="search-results"></div>
+  </div>
+</div>
+
+<div class="finding" id="finding" hidden>
+  <div><div class="radar"><span></span><span></span><span></span><i></i></div>
+    <h2>Booking your <span id="finding-name">vehicle</span></h2><p class="muted">Finding the nearest driver…</p></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>window.BOOK = { places: "{% url 'booking:api_places' %}", reverse: "{% url 'booking:api_reverse' %}", nearby: "{% url 'booking:api_nearby' %}", options: "{% url 'booking:api_options' %}", book: "{% url 'booking:api_book' %}" };</script>
+<script src="{% static 'booking/app.js' %}"></script>
+{% endblock %}

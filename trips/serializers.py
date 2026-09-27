@@ -51,6 +51,10 @@ class TripCreateSerializer(serializers.Serializer):
     payment_mode = serializers.ChoiceField(choices=PaymentMode.choices)
     reference_id = serializers.CharField(max_length=100, required=False, allow_blank=True)
     notes = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    # A short voice note for the driver: a link to a .wav/.m4a/.mp3/.aac of at
+    # most 30 s (host it, or POST /uploads with purpose=trip_voice_note).
+    voice_note_url = HttpUrlField(max_length=500, required=False, allow_blank=True)
+    voice_note_seconds = serializers.IntegerField(min_value=1, max_value=30, required=False, allow_null=True)
 
     # The goods. `invoice_url` is a link to the invoice document (host it
     # yourself, or upload it via POST /uploads with purpose=trip_invoice and
@@ -99,7 +103,8 @@ class TripCreateSerializer(serializers.Serializer):
             )
         if attrs.get("verify_items") and not attrs.get("items"):
             raise serializers.ValidationError({"items": "Add at least one item to have the driver verify it."})
-        per_item = PickupPhotoMode.PER_ITEM in (attrs.get("pickup_photo"), attrs.get("delivery_photo"))
+        needs_items = (PickupPhotoMode.PER_ITEM, PickupPhotoMode.BOTH)
+        per_item = attrs.get("pickup_photo") in needs_items or attrs.get("delivery_photo") in needs_items
         if per_item and not attrs.get("items"):
             raise serializers.ValidationError({"items": "Add at least one item to have the driver photograph it."})
         return attrs
@@ -152,6 +157,7 @@ class TripSerializer(serializers.ModelSerializer):
     invoice_url = MediaUrlField()
     pickup_photo_url = MediaUrlField()
     delivery_photo_url = MediaUrlField()
+    voice_note_url = MediaUrlField()
     items = TripItemSerializer(many=True, read_only=True)
 
     class Meta:
@@ -162,6 +168,8 @@ class TripSerializer(serializers.ModelSerializer):
             "order_number",
             "reference_id",
             "notes",
+            "voice_note_url",
+            "voice_note_seconds",
             "vehicle_type",
             "driver",
             "vehicle",

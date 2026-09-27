@@ -1,0 +1,152 @@
+{% extends "admin/base_site.html" %}
+{% load mob_admin %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+{% block content_title %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="mob-dash" id="mob-dashboard">
+  <div class="mob-dash__bar">
+    <div>
+      <h1 style="margin:0">Operations</h1>
+      <div class="mob-sub">{{ period_label }}{% if company_id and companies %} · filtered to one company{% endif %}</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      {% if companies %}
+      <form method="get" style="margin:0">
+        <input type="hidden" name="period" value="{{ period }}">
+        <select name="company" onchange="this.form.submit()" aria-label="Company">
+          <option value="">All companies</option>
+          {% for c in companies %}<option value="{{ c.id }}" {% if c.id|stringformat:"s" == company_id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+        </select>
+      </form>
+      {% endif %}
+      <nav class="mob-seg" aria-label="Period">
+        {% for key, name in periods %}
+          <a href="?period={{ key }}{% if company_id %}&company={{ company_id }}{% endif %}" class="{% if key == period %}is-on{% endif %}">{{ name }}</a>
+        {% endfor %}
+      </nav>
+    </div>
+  </div>
+
+  <section class="mob-kpis">
+    {% for k in kpis %}
+      {% if k.url %}<a class="mob-card" href="{{ k.url }}">{% else %}<div class="mob-card">{% endif %}
+        <div class="mob-kpi__label">{{ k.label }}</div>
+        <div class="mob-kpi__value {% if k.tone == 'red' %}is-red{% endif %}">{{ k.value }}</div>
+        <div class="mob-kpi__hint">{{ k.hint }}</div>
+      {% if k.url %}</a>{% else %}</div>{% endif %}
+    {% endfor %}
+  </section>
+
+  <section class="mob-grid">
+    <div class="mob-card">
+      <h3>Orders per day <small>peak {{ series_peak }}</small></h3>
+      <div class="mob-chart" role="img" aria-label="Orders per day">
+        {% for s in series %}
+          <div class="mob-chart__col" data-tip="{{ s.day|date:'j M' }} · {{ s.total }} orders · {{ s.completed }} done · {{ s.cancelled }} cancelled">
+            <span class="c-cancel" style="height:{{ s.h_cancelled }}%"></span>
+            <span class="c-other" style="height:{{ s.h_other }}%"></span>
+            <span class="c-done" style="height:{{ s.h_completed }}%"></span>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="mob-chart__axis"><span>{{ series.0.day|date:"j M" }}</span><span>{{ series_last_day|date:"j M" }}</span></div>
+      <div class="mob-legend">
+        <span><i style="background:#16a36a"></i>Completed</span>
+        <span><i style="background:#8fb4ff"></i>Open / other</span>
+        <span><i style="background:#f0a39a"></i>Cancelled</span>
+      </div>
+    </div>
+
+    <div class="mob-card">
+      <h3>Needs attention</h3>
+      <div class="mob-attn">
+        {% for a in attention %}
+          <a href="{{ a.url }}">{{ a.label }} <b>{{ a.n }}</b></a>
+        {% empty %}
+          <div class="mob-empty">All clear — nothing waiting on you.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="mob-grid mob-grid--even">
+    <div class="mob-card">
+      <h3>Order status <small>{{ period_label }}</small></h3>
+      <div class="mob-rows">
+        {% for row in by_status %}
+          <div class="mob-row"><span>{{ row.label }}</span><b>{{ row.n }} <span class="mob-sub">· {{ row.pct }}%</span></b>
+            <div class="mob-meter"><span style="width:{{ row.pct }}%"></span></div></div>
+        {% empty %}<div class="mob-empty">No orders in this period.</div>{% endfor %}
+      </div>
+    </div>
+    <div class="mob-card">
+      <h3>By vehicle type</h3>
+      <div class="mob-rows">
+        {% for row in by_type %}
+          <div class="mob-row"><span>{{ row.vehicle_type__name }}</span><b>{{ row.n }} <span class="mob-sub">· ₹{{ row.gmv|default:0|floatformat:"0g" }}</span></b>
+            <div class="mob-meter"><span style="width:{{ row.pct }}%;background:#16a36a"></span></div></div>
+        {% empty %}<div class="mob-empty">No orders in this period.</div>{% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="mob-grid">
+    <div class="mob-card">
+      <h3>Recent orders <small><a href="{% url 'admin:trips_trip_changelist' %}">All orders →</a></small></h3>
+      <table class="mob-table">
+        <thead><tr><th>Order</th><th>Status</th><th>Driver</th><th>Drop</th><th style="text-align:right">Fare</th><th>Placed</th></tr></thead>
+        <tbody>
+        {% for t in recent_trips %}
+          <tr>
+            <td><a href="{% url 'admin:trips_trip_change' t.pk %}"><b>{{ t.order_number|default:t.pk }}</b></a></td>
+            <td>{{ t.status|mob_badge }}</td>
+            <td>{{ t.driver.full_name|default:"—" }}</td>
+            <td class="mob-sub">{{ t.drop_contact_name|default:t.drop_address|truncatechars:28 }}</td>
+            <td style="text-align:right">₹{{ t.total_fare|default:0|floatformat:"2g" }}</td>
+            <td class="mob-sub">{{ t.created_at|timesince }} ago</td>
+          </tr>
+        {% empty %}<tr><td colspan="6" class="mob-empty">No orders in this period.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="mob-card">
+      <h3>Top drivers <small>completed</small></h3>
+      <div class="mob-rows">
+        {% for d in top_drivers %}
+          <div class="mob-row"><a href="{{ d.url }}">{{ d.driver__full_name|default:d.driver__phone_number }}</a>
+            <b>{{ d.trips }} <span class="mob-sub">· ₹{{ d.earned|default:0|floatformat:"0g" }}</span></b></div>
+        {% empty %}<div class="mob-empty">No completed deliveries yet.</div>{% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="mob-card">
+    <h3>Latest proof photos <small>geo-stamped at pickup and drop</small></h3>
+    {% if photos %}
+      <div class="mob-photos">
+        {% for p in photos %}
+          <a href="{% url 'admin:trips_trip_change' p.trip.pk %}" title="Open order"><img src="{{ p.url }}" loading="lazy" alt="{{ p.label }}">{{ p.label|truncatechars:34 }}</a>
+        {% endfor %}
+      </div>
+    {% else %}<div class="mob-empty">No photos yet.</div>{% endif %}
+  </section>
+
+  <section>
+    <h3 style="margin:4px 0 12px;font-size:14.5px">Manage</h3>
+    <div class="mob-apps">
+      {% for app in app_list %}
+        <div class="mob-card">
+          <h4>{{ app.name }}</h4>
+          {% for model in app.models %}
+            {% if model.admin_url %}<a href="{{ model.admin_url }}">{{ model.name }}</a>{% endif %}
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

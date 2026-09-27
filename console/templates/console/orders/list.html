@@ -1,0 +1,100 @@
+{% extends "console/base.html" %}
+{% load console %}
+{% block title %}Orders{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if tab == 'unassigned' %}Dispatch{% else %}Orders{% endif %}</h1>
+    <p>{% if tab == 'unassigned' %}Orders no driver has taken yet — retry, or hand one to a driver yourself.{% else %}Every order, live and past. Click a row for the full story.{% endif %}</p>
+  </div>
+  <div class="row">
+    <a class="btn" href="{% qs export='csv' %}">{% icon 'download' 16 %} Export CSV</a>
+  </div>
+</div>
+
+<nav class="tabs">
+  {% for key, name, n in tabs %}
+    <a href="{% qs status=key %}" class="{% if key == tab %}on{% endif %}">{{ name }} <span class="n">{{ n }}</span></a>
+  {% endfor %}
+</nav>
+
+<div class="card">
+  <form method="get" class="filters">
+    <input type="hidden" name="status" value="{{ tab }}">
+    <div class="q">{% icon 'search' 16 %}<input type="search" name="q" value="{{ request.GET.q }}" placeholder="Order no., customer, phone, address, driver, vehicle…"></div>
+    <input type="date" name="from" value="{{ request.GET.from }}" aria-label="From" title="Booked from">
+    <input type="date" name="to" value="{{ request.GET.to }}" aria-label="To" title="Booked until">
+    <select name="vehicle_type" data-autosubmit aria-label="Vehicle type">
+      <option value="">All vehicles</option>
+      {% for vt in vehicle_types %}<option value="{{ vt.id }}" {% if request.GET.vehicle_type == vt.id|stringformat:'s' %}selected{% endif %}>{{ vt.name }}</option>{% endfor %}
+    </select>
+    <select name="payment" data-autosubmit aria-label="Payment">
+      <option value="">Any payment</option>
+      <option value="prepaid" {% if request.GET.payment == 'prepaid' %}selected{% endif %}>Prepaid</option>
+      <option value="cod" {% if request.GET.payment == 'cod' %}selected{% endif %}>Cash on delivery</option>
+    </select>
+    <select name="photos" data-autosubmit aria-label="Photos">
+      <option value="">Any photos</option>
+      <option value="has" {% if request.GET.photos == 'has' %}selected{% endif %}>Has proof photos</option>
+      <option value="missing" {% if request.GET.photos == 'missing' %}selected{% endif %}>Owes photos</option>
+    </select>
+    <select name="sort" data-autosubmit aria-label="Sort">
+      <option value="new">Newest first</option>
+      <option value="old" {% if request.GET.sort == 'old' %}selected{% endif %}>Oldest first</option>
+      <option value="fare" {% if request.GET.sort == 'fare' %}selected{% endif %}>Highest fare</option>
+      <option value="fare_low" {% if request.GET.sort == 'fare_low' %}selected{% endif %}>Lowest fare</option>
+    </select>
+    <label class="row small" style="gap:6px"><input type="checkbox" name="issues" value="1" data-autosubmit {% if request.GET.issues %}checked{% endif %}> Item issues</label>
+    <button class="btn btn-primary">Apply</button>
+  </form>
+  {% if active_filters %}
+    <div class="active-filters">
+      {% for label, url in active_filters %}<a href="{{ url }}">{{ label }} {% icon 'x' 12 %}</a>{% endfor %}
+    </div>
+  {% endif %}
+  <div class="table-wrap">
+    <table class="t">
+      <thead><tr>
+        <th>Order</th><th>Route</th><th>Driver</th><th>Status</th><th class="right">Fare · payment</th><th>Booked</th><th class="right col-actions">Actions</th>
+      </tr></thead>
+      <tbody>
+      {% for t in page_obj %}
+        <tr class="clickable" data-href="{% url 'console:order' t.pk %}">
+          <td>
+            <div class="stack">
+              <span class="strong mono">{{ t.order_number|default:t.pk }}</span>
+              <span class="muted small">{{ t.n_items }} item{{ t.n_items|pluralize }} · {{ t.vehicle_type.name }}{% if is_platform and not current_company %} · {{ t.company.name }}{% endif %}</span>
+            </div>
+          </td>
+          <td style="min-width:200px;max-width:260px">
+            <div class="route">
+              <span class="pin p"></span><div class="stack"><span class="who">{{ t.pickup_contact_name|default:"Pickup" }}</span><span class="where ellipsis" style="max-width:230px">{{ t.pickup_address }}</span></div>
+              <span class="pin d"></span><div class="stack"><span class="who">{{ t.drop_contact_name|default:"Drop" }}</span><span class="where ellipsis" style="max-width:230px">{{ t.drop_address }}</span></div>
+            </div>
+          </td>
+          <td>
+            {% if t.driver %}<div class="row"><span class="avatar" style="width:30px;height:30px;font-size:11px">{% if t.driver.profile_photo_url %}<img src="{{ t.driver.profile_photo_url }}" alt="">{% else %}{{ t.driver.full_name|initials }}{% endif %}</span>
+              <div class="stack"><a class="nowrap" href="{% url 'console:driver' t.driver.pk %}" style="color:inherit">{{ t.driver.full_name }}</a><span class="muted small">{{ t.vehicle.registration_number|default:"" }}</span></div></div>
+            {% else %}<span class="muted">Unassigned</span>{% endif %}
+          </td>
+          <td>{{ t.status|badge }}</td>
+          <td class="right"><div class="stack" style="align-items:flex-end;gap:3px"><b class="mono">{{ t.total_fare|money }}{% if t.bonus_fare %} <span class="small" style="color:var(--green)">+{{ t.bonus_fare|money }}</span>{% endif %}</b>
+            <span class="small muted nowrap">{% if t.payment_mode == 'cod' %}COD{% else %}Prepaid{% endif %} · {% if t.payment_status == 'paid' %}<span style="color:var(--green)">Paid</span>{% else %}<span style="color:var(--amber)">Pending</span>{% endif %}</span></div></td>
+          <td class="nowrap"><div class="stack"><span>{{ t.created_at|date:"j M, g:i A" }}</span><span class="muted small">{{ t.created_at|ago }}</span></div></td>
+          <td class="col-actions"><div class="actions">
+            <a class="icon-btn" href="{% url 'console:order' t.pk %}" title="Open order">{% icon 'eye' 16 %}</a>
+            {% if t.drop_contact_phone %}<a class="icon-btn" href="tel:{{ t.drop_contact_phone }}" title="Call customer">{% icon 'phone' 16 %}</a>{% endif %}
+            {% if can_edit and t.status in assignable_statuses %}<a class="icon-btn primary" href="{% url 'console:order' t.pk %}#assign" title="{% if t.driver %}Reassign{% else %}Assign driver{% endif %}">{% icon 'user-plus' 16 %}</a>{% endif %}
+            {% if t.invoice_url %}<a class="icon-btn" href="{{ t.invoice_url }}" target="_blank" rel="noopener" title="Invoice">{% icon 'file-text' 16 %}</a>{% endif %}
+            {% if can_edit and t.status in cancellable_statuses %}<a class="icon-btn danger" href="{% url 'console:order' t.pk %}#cancel" title="Cancel order">{% icon 'circle-x' 16 %}</a>{% endif %}
+          </div></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="empty">{% icon 'package-search' 32 %}<div>No orders match these filters.</div></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "console/partials/pager.html" %}
+</div>
+{% endblock %}

@@ -1,6 +1,15 @@
 from django.db import models
 
-from core.choices import CancelledBy, ItemVerificationStatus, PaymentMode, PaymentStatus, PickupPhotoMode, TripStatus
+from core.choices import (
+    CancelledBy,
+    ItemVerificationStatus,
+    PaymentMode,
+    PaymentStatus,
+    PickupPhotoMode,
+    StopKind,
+    StopStatus,
+    TripStatus,
+)
 from core.models import BaseModel
 from drivers.models import Driver, Vehicle, VehicleType
 
@@ -19,6 +28,10 @@ ACTIVE_TRIP_STATUSES = [
 class Trip(BaseModel):
     vehicle_type = models.ForeignKey(VehicleType, on_delete=models.PROTECT, related_name="trips")
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, blank=True, related_name="trips")
+    # Who booked it on the customer web app (/book/); empty for API bookings.
+    customer = models.ForeignKey(
+        "booking.Customer", on_delete=models.SET_NULL, null=True, blank=True, related_name="trips"
+    )
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, related_name="trips")
     status = models.CharField(max_length=30, choices=TripStatus.choices, default=TripStatus.REQUESTED)
 
@@ -35,6 +48,10 @@ class Trip(BaseModel):
     # A note for the driver about the whole order ("Call before arriving, use
     # gate 2") — shown on the order details screen.
     notes = models.CharField(max_length=500, blank=True, default="")
+    # A short spoken note for the driver (max 30 s) — recorded by the
+    # dispatcher in the console, or a URL sent with the booking.
+    voice_note_url = models.URLField(max_length=500, blank=True, default="")
+    voice_note_seconds = models.PositiveSmallIntegerField(null=True, blank=True)
 
     pickup_address = models.CharField(max_length=255)
     pickup_lat = models.DecimalField(max_digits=9, decimal_places=6)
@@ -127,6 +144,7 @@ class Trip(BaseModel):
     cancelled_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        verbose_name = "order"
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["company", "status"]),
@@ -134,7 +152,7 @@ class Trip(BaseModel):
         ]
 
     def __str__(self):
-        return f"Trip {self.id} ({self.status})"
+        return self.order_number or f"Trip {str(self.id)[:8]}"
 
 
 class TripItem(BaseModel):
@@ -171,6 +189,7 @@ class TripItem(BaseModel):
     driver_note = models.CharField(max_length=255, blank=True, default="")
 
     class Meta:
+        verbose_name = "order item"
         ordering = ["position", "created_at"]
 
     def __str__(self):
@@ -186,3 +205,36 @@ class TripNumber(models.Model):
     @staticmethod
     def order_number_for(day, number):
         return f"OD{day:%Y%m%d}000{number}"
+
+
+class TripStop(BaseModel):
+    """One stop of a trip, in the order the driver visits them: the first is
+    always the main pickup (Trip.pickup_*), the last the final drop
+    (Trip.drop_*), and any in between are extra pickups or drops.
+
+    The first and last stops follow the trip's own lifecycle (arrive / start /
+    complete); the ones in between are marked arrived and done by the driver
+    as they reach them (TripService.arrive_at_stop / finish_stop)."""
+
+    trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name="stops")
+    position = models.PositiveSmallIntegerField()
+    kind = models.CharField(max_length=10, choices=StopKind.choices)
+    address = models.CharField(max_length=255)
+    lat = models.DecimalField(max_digits=9, decimal_places=6)
+    lng = models.DecimalField(max_digits=9, decimal_places=6)
+    contact_name = models.CharField(max_length=150, blank=True, default="")
+    contact_phone = models.CharField(max_length=20, blank=True, default="")
+    notes = models.CharField(max_length=255, blank=True, default="")
+    # Drops on a trip with several of them are numbered OD…_01, OD…_02.
+    reference = models.CharField(max_length=50, blank=True, default="")
+    status = models.CharField(max_length=10, choices=StopStatus.choices, default=StopStatus.PENDING)
+    arrived_at = models.DateTimeField(null=True, blank=True)
+    done_at = models.DateTimeField(null=True, blank=True)
+    photo_url = models.URLField(max_length=500, blank=True, default="")
+
+    class Meta:
+        ordering = ["position"]
+        constraints = [models.UniqueConstraint(fields=["trip", "position"], name="unique_stop_position_per_trip")]
+
+    def __str__(self):
+        return f"{self.trip} · stop {self.position + 1} ({self.kind})"

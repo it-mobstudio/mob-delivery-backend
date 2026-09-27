@@ -76,9 +76,9 @@ class Command(BaseCommand):
                  "the new-order screen's bonus chip. Default: none.",
         )
         parser.add_argument(
-            "--pickup-photo", choices=["none", "order", "per_item"], default=None,
-            help="Camera photos the driver must take at the pickup: one of the whole order, or one per item "
-                 "(default: order; per_item needs items).",
+            "--pickup-photo", choices=["none", "order", "per_item", "both"], default=None,
+            help="Camera photos the driver must take at the pickup: 'order' (one of the whole order), 'per_item' "
+                 "(one per item) or 'both' (default: both when there are items, else order).",
         )
         parser.add_argument(
             "--delivery-otp", action=argparse.BooleanOptionalAction, default=True,
@@ -89,8 +89,12 @@ class Command(BaseCommand):
             help="A note for the driver on the order (default: a sample; pass '' for none).",
         )
         parser.add_argument(
-            "--delivery-photo", choices=["none", "order", "per_item"], default=None,
-            help="The same at the drop, before payment / completion (default: order).",
+            "--delivery-photo", choices=["none", "order", "per_item", "both"], default=None,
+            help="The same at the drop, before payment / completion (default: both when there are items, else order).",
+        )
+        parser.add_argument(
+            "--voice-note", action=argparse.BooleanOptionalAction, default=True,
+            help="Attach a short spoken note from the dispatcher, which the driver plays in the app (default: on).",
         )
 
     def handle(self, *args, **options):
@@ -126,11 +130,12 @@ class Command(BaseCommand):
         if verify_items and item_count == 0:
             raise CommandError("--verify-items needs at least one item: pass --items N (N ≥ 1).")
         items = dev_samples.sample_items(item_count) if item_count else None
-        pickup_photo = options["pickup_photo"] or "order"
-        delivery_photo = options["delivery_photo"] or "order"
-        if delivery_photo == "per_item" and item_count == 0:
+        default_photos = "both" if item_count else "order"
+        pickup_photo = options["pickup_photo"] or default_photos
+        delivery_photo = options["delivery_photo"] or default_photos
+        if delivery_photo in ("per_item", "both") and item_count == 0:
             raise CommandError("--delivery-photo per_item needs at least one item: pass --items N (N ≥ 1).")
-        if pickup_photo == "per_item" and item_count == 0:
+        if pickup_photo in ("per_item", "both") and item_count == 0:
             raise CommandError("--pickup-photo per_item needs at least one item: pass --items N (N ≥ 1).")
         invoice_number = dev_samples.INVOICE_NUMBER if options["invoice"] else ""
         invoice_url = (options["invoice_url"] or dev_samples.INVOICE_URL) if options["invoice"] else ""
@@ -162,6 +167,8 @@ class Command(BaseCommand):
                 )
             raise CommandError(f"{exc.code}: {exc.detail}")
 
+        if options["voice_note"]:
+            self._attach_voice_note(trip)
         self._report(trip, driver, options)
 
     # -- inputs ------------------------------------------------------------------
@@ -202,6 +209,22 @@ class Command(BaseCommand):
         each = options["distance_km"] / (2**0.5)
         return pickup_lat + each / 111.0, pickup_lng + each / (111.0 * cos(radians(pickup_lat)))
 
+    def _attach_voice_note(self, trip):
+        """A real recording (trips/dev_assets/voice_note.m4a), stored the way a
+        dispatcher's upload from the console would be."""
+        from pathlib import Path
+
+        from django.core.files import File
+
+        from core.choices import UploadPurpose
+        from core.uploads import UploadService
+
+        path = Path(__file__).resolve().parents[2] / "dev_assets" / "voice_note.m4a"
+        with path.open("rb") as fh:
+            trip.voice_note_url = UploadService.store(File(fh, name="voice_note.m4a"), UploadPurpose.TRIP_VOICE_NOTE, trip.company_id)
+        trip.voice_note_seconds = 10
+        trip.save(update_fields=["voice_note_url", "voice_note_seconds", "updated_at"])
+
     # -- output ------------------------------------------------------------------
 
     def _report(self, trip, driver, options):
@@ -214,6 +237,7 @@ class Command(BaseCommand):
             f"delivery photo: {trip.delivery_photo}",
             f"delivery OTP: {'yes' if trip.delivery_otp or trip.payment_mode == PaymentMode.COD else 'no'}",
             f"item check: {'yes' if trip.verify_items else 'no'}",
+            f"voice note: {str(trip.voice_note_seconds) + ' s' if trip.voice_note_url else 'no'}",
         ]
         w("  The app will ask for → " + " · ".join(asks))
         bonus = f" + ₹{trip.bonus_fare} bonus" if trip.bonus_fare else ""
@@ -251,21 +275,30 @@ class Command(BaseCommand):
             w(f"    {step}. {text}")
 
         w("  Try, in the app:")
-        line("Arrive at the pickup, then Start (the map draws the route).")
-        if trip.verify_items:
-            line("At the drop, open the item checklist: tick each item Delivered (camera photo optional) "
-                 "or Problem + a reason.")
-            line("Before every item has an answer, payment and completion stay locked — tap them early to see that.")
-        if trip.invoice_url:
-            line("On the trip card, Download / WhatsApp / Share the invoice.")
-        if trip.payment_mode == PaymentMode.COD:
-            line("Collect the payment (QR), then enter the customer's OTP and Complete.")
-            self._payment_note()
+        if trip.voice_note_url:
+            line("Open the order and play the dispatcher's voice note.")
+        line("Swipe 'Reached pickup'.")
+        if trip.pickup_photo != "none":
+            line({"order": "Swipe 'Pickup order' — it asks for a camera photo of the whole order first.",
+                  "per_item": "Swipe 'Pickup order' — it asks for a camera photo of every item first.",
+                  "both": "Swipe 'Pickup order' — it asks for a photo of the whole order AND one of every item first."}[trip.pickup_photo])
         else:
-            line("Complete (prepaid: nothing to collect).")
+            line("Swipe 'Pickup order'.")
+        line("Swipe 'Deliver order' — it walks you through what the drop needs:")
         if trip.verify_items:
-            w(f"  Afterwards the recorded delivery history (status, time, photo, note per item) is on "
-              f"GET /api/v1/trips/{trip.id} with a company token.")
+            w("         • the item checklist: Delivered (photo optional) or Problem + a reason for each item")
+        if trip.delivery_photo != "none":
+            w(f"         • delivery photos ({trip.get_delivery_photo_display().lower()})")
+        if trip.payment_mode == PaymentMode.COD:
+            w("         • collect the payment (QR), then the customer's OTP")
+            self._payment_note()
+        elif trip.delivery_otp:
+            w("         • the customer's 4-digit OTP (shown on screen in dev) — no payment step")
+        else:
+            w("         • confirm the handover")
+        if trip.invoice_url:
+            line("On the order details, Download / WhatsApp / Share the invoice.")
+        w(f"  Everything the driver sent (photos, notes, voice note) shows in the console: /admin/orders/{trip.id}/")
 
     def _payment_note(self):
         """The payment step comes right after the item checks, so say now whether it will work."""

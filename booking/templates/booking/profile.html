@@ -1,0 +1,19 @@
+{% extends "booking/base.html" %}
+{% block title %}Account{% endblock %}
+{% block body %}
+<div class="app"><div class="screen">
+  <div class="row" style="margin-bottom:18px"><span class="avatar" style="width:60px;height:60px;font-size:20px">{{ customer.full_name|default:"?"|slice:":1"|upper }}</span>
+    <div><h1>{{ customer.full_name|default:"Your account" }}</h1><span class="muted">{{ customer.phone_number }}</span></div></div>
+  <div class="stat-grid">
+    <div class="stat"><span class="small muted">Bookings</span><b>{{ stats.trips }}</b></div>
+    <div class="stat"><span class="small muted">Delivered</span><b>{{ stats.done }}</b></div>
+  </div>
+  <form method="post" class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">{% csrf_token %}
+    <h3>Your details</h3>
+    <label class="field">Name<input name="full_name" value="{{ customer.full_name }}" autocomplete="name"></label>
+    <label class="field">Email (for receipts)<input name="email" type="email" value="{{ customer.email }}" autocomplete="email"></label>
+    <button class="btn btn-dark">Save</button>
+  </form>
+  <form method="post" action="{% url 'booking:logout' %}" style="margin-top:14px">{% csrf_token %}<button class="btn btn-ghost" style="color:#d64534">Sign out</button></form>
+</div></div>
+{% endblock %}

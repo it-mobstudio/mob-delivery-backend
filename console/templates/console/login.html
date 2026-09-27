@@ -1,0 +1,26 @@
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · MOB Delivery</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'console/console.css' %}"></head>
+<body>
+<div class="login">
+  <div class="art">
+    <div class="brand" style="padding:0"><span class="brand-mark">M</span><span>MOB Delivery<small>Operations console</small></span></div>
+    <div><h2>Every order, driver and rupee — in one place.</h2>
+      <p>Dispatch, live tracking, proof-of-delivery photos, KYC review and driver payouts for your delivery fleet.</p></div>
+    <p class="small">© {% now "Y" %} MOB Delivery</p>
+  </div>
+  <div class="form">
+    <form method="post">{% csrf_token %}
+      <div><h1>Sign in</h1><p class="muted" style="margin:6px 0 0">Use your company admin login.</p></div>
+      {% if form.non_field_errors %}<div class="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+      {% if form.errors and not form.non_field_errors %}<div class="alert">Email or password is incorrect.</div>{% endif %}
+      <label class="field">Email<input type="email" name="username" value="{{ form.username.value|default:'' }}" autofocus required autocomplete="username"></label>
+      <label class="field">Password<input type="password" name="password" required autocomplete="current-password"></label>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="btn btn-primary">Sign in</button>
+    </form>
+  </div>
+</div>
+</body></html>

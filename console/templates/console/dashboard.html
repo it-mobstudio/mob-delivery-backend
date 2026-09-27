@@ -1,0 +1,148 @@
+{% extends "console/base.html" %}
+{% load console %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Dashboard</h1>
+    <p>{{ period_label }} · {{ start|date:"j M" }} – {{ end|date:"j M Y" }}</p>
+  </div>
+  <form class="row" method="get">
+    <nav class="seg">
+      {% for key, meta in periods %}<a href="?period={{ key }}" class="{% if key == period %}on{% endif %}">{{ meta.0 }}</a>{% endfor %}
+    </nav>
+    <input type="date" name="from" value="{% if period == 'custom' %}{{ start|date:'Y-m-d' }}{% endif %}" aria-label="From">
+    <input type="date" name="to" value="{% if period == 'custom' %}{{ end|date:'Y-m-d' }}{% endif %}" aria-label="To">
+    <button class="btn">Apply</button>
+  </form>
+</div>
+
+<section class="grid g4" style="margin-bottom:16px">
+  {% for k in kpis %}
+    <{% if k.url %}a href="{{ k.url }}"{% else %}div{% endif %} class="card kpi">
+      <div class="label">{% icon k.icon 15 %} {{ k.label }}</div>
+      <div class="value">{{ k.value }}</div>
+      <div class="sub">{% if k.delta != '—' and k.label != 'Active right now' %}<span class="delta {{ k.dir }}">{{ k.delta }}</span>{% endif %}<span>{{ k.hint }}</span></div>
+    </{% if k.url %}a{% else %}div{% endif %}>
+  {% endfor %}
+</section>
+
+<section class="grid g-dash" style="margin-bottom:16px">
+  <div class="card">
+    <div class="card-head"><h2>Orders &amp; order value</h2><div class="legend"><span><i class="dot" style="background:#0e9f6e"></i>Delivered</span><span><i class="dot" style="background:#9dbdff"></i>Open</span><span><i class="dot" style="background:#f3a397"></i>Cancelled</span><span><i class="dot" style="background:#0f1d2e"></i>Value</span></div></div>
+    <div class="card-body"><div class="chart-box"><canvas id="trend"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>Needs attention</h2></div>
+    <div class="card-body attn">
+      {% for icon_name, text, n, url in attention %}
+        <a href="{{ url }}"><span class="ico">{% icon icon_name 16 %}</span>{{ text }}<span class="n">{{ n }}</span></a>
+      {% empty %}
+        <div class="empty">{% icon 'party-popper' 28 %}<div>All clear — nothing is waiting on you.</div></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="grid g3" style="margin-bottom:16px">
+  <div class="card">
+    <div class="card-head"><h2>Order status</h2></div>
+    <div class="card-body"><div class="chart-box sm"><canvas id="status"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>Delivery funnel</h2></div>
+    <div class="card-body funnel">
+      {% for f in funnel %}
+        <div class="step"><span class="muted">{{ f.label }}</span><div><div class="bar" style="width:{{ f.pct }}%"></div></div><b class="right mono">{{ f.n }} <span class="faint small">{{ f.pct }}%</span></b></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>Orders by hour</h2></div>
+    <div class="card-body"><div class="chart-box sm"><canvas id="hours"></canvas></div></div>
+  </div>
+</section>
+
+<section class="grid g-dash" style="margin-bottom:16px">
+  <div class="card">
+    <div class="card-head"><h2>Recent orders</h2><a href="{% url 'console:orders' %}" class="btn btn-sm">View all</a></div>
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>Order</th><th>Customer</th><th>Driver</th><th>Status</th><th class="right">Fare</th><th>Booked</th></tr></thead>
+        <tbody>
+        {% for t in recent %}
+          <tr class="clickable" data-href="{% url 'console:order' t.pk %}">
+            <td class="strong mono">{{ t.order_number|default:t.pk }}</td>
+            <td><div class="stack"><span>{{ t.drop_contact_name|default:"—" }}</span><span class="muted small">{{ t.vehicle_type.name }}</span></div></td>
+            <td>{{ t.driver.full_name|default:"—" }}</td>
+            <td>{{ t.status|badge }}</td>
+            <td class="right mono">{{ t.total_fare|money }}</td>
+            <td class="muted small nowrap">{{ t.created_at|ago }}</td>
+          </tr>
+        {% empty %}<tr><td colspan="6" class="empty">No orders in this period.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="grid" style="gap:16px">
+    <div class="card">
+      <div class="card-head"><h2>Top drivers</h2><span class="muted small">delivered</span></div>
+      <div class="card-body">
+        {% for d in top_drivers %}
+          <a class="row" href="{% url 'console:driver' d.driver_id %}" style="padding:7px 0;color:inherit">
+            <span class="avatar">{% if d.driver__profile_photo_url %}<img src="{{ d.driver__profile_photo_url }}" alt="">{% else %}{{ d.driver__full_name|initials }}{% endif %}</span>
+            <span class="grow stack"><b>{{ d.driver__full_name|default:d.driver__phone_number }}</b><span class="muted small">{{ d.trips }} deliveries</span></span>
+            <b class="mono">{{ d.earned|money:0 }}</b>
+          </a>
+        {% empty %}<div class="empty">No deliveries yet.</div>{% endfor %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>By vehicle type</h2></div>
+      <div class="card-body">
+        {% for r in by_type %}
+          <div class="bar-row"><span>{{ r.vehicle_type__name }}</span><b class="mono">{{ r.n }} · {{ r.gmv|money:0 }}</b><div class="meter"><span style="width:{{ r.pct }}%;background:#0e9f6e"></span></div></div>
+        {% empty %}<div class="muted">No orders in this period.</div>{% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  var s = {{ series_json|safe }}, hours = {{ by_hour_json|safe }}, st = {{ status_json|safe }};
+  Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+  Chart.defaults.color = "#6b7a8c";
+  Chart.defaults.plugins.legend.display = false;
+  var grid = { color: "#eef2f6" };
+  new Chart(document.getElementById("trend"), {
+    data: {
+      labels: s.labels,
+      datasets: [
+        { type: "bar", label: "Delivered", data: s.done, backgroundColor: "#0e9f6e", stack: "o", borderRadius: 4, yAxisID: "y" },
+        { type: "bar", label: "Open", data: s.other, backgroundColor: "#9dbdff", stack: "o", borderRadius: 4, yAxisID: "y" },
+        { type: "bar", label: "Cancelled", data: s.cancelled, backgroundColor: "#f3a397", stack: "o", borderRadius: 4, yAxisID: "y" },
+        { type: "line", label: "Order value (₹)", data: s.gmv, borderColor: "#0f1d2e", backgroundColor: "#0f1d2e", tension: .35, pointRadius: 2, yAxisID: "y2" }
+      ]
+    },
+    options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+      scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, grid: grid, ticks: { precision: 0 } },
+                y2: { position: "right", beginAtZero: true, grid: { display: false }, ticks: { callback: function (v) { return "₹" + v.toLocaleString("en-IN"); } } } } }
+  });
+  var tones = { completed: "#0e9f6e", cancelled: "#f3a397", no_driver_available: "#d64534", in_progress: "#6b4fd8", assigned: "#1463ff", arrived_at_pickup: "#f0b24a", requested: "#9dbdff" };
+  new Chart(document.getElementById("status"), {
+    type: "doughnut",
+    data: { labels: st.labels, datasets: [{ data: st.values, backgroundColor: st.keys.map(function (k) { return tones[k] || "#c3ccd7"; }), borderWidth: 0 }] },
+    options: { maintainAspectRatio: false, cutout: "68%", plugins: { legend: { display: true, position: "right", labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true } } } }
+  });
+  new Chart(document.getElementById("hours"), {
+    type: "bar",
+    data: { labels: hours.map(function (_, h) { return (h % 12 || 12) + (h < 12 ? "a" : "p"); }), datasets: [{ data: hours, backgroundColor: "#1463ff", borderRadius: 3 }] },
+    options: { maintainAspectRatio: false, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } }, y: { beginAtZero: true, grid: grid, ticks: { precision: 0 } } } }
+  });
+})();
+</script>
+{% endblock %}

@@ -20,6 +20,36 @@ class RoutingService:
         return CATEGORY_COSTING.get(category, "auto")
 
     @classmethod
+    def get_route_via(cls, points, costing="auto"):
+        """One route through several stops, in order ([(lat, lng), ...]):
+        total distance/time, and every leg joined into one polyline."""
+        if len(points) == 2:
+            (a_lat, a_lng), (b_lat, b_lng) = points
+            return cls.get_route(a_lat, a_lng, b_lat, b_lng, costing=costing)
+        body = {"locations": [{"lat": float(lat), "lon": float(lng)} for lat, lng in points],
+                "costing": costing, "units": "kilometers"}
+        try:
+            response = requests.post(f"{settings.VALHALLA_URL}/route", json=body, timeout=settings.VALHALLA_TIMEOUT_SECONDS)
+            response.raise_for_status()
+            data = response.json()
+            legs, summary = data["trip"]["legs"], data["trip"]["summary"]
+        except (requests.RequestException, KeyError, IndexError, ValueError):
+            logger.exception("Valhalla multi-stop routing failed (costing=%s)", costing)
+            raise DomainError("ROUTING_UNAVAILABLE", "Could not compute a route through these stops.", status_code=503)
+        from core.polyline import decode, encode
+
+        joined = []
+        for leg in legs:
+            pts = decode(leg["shape"], VALHALLA_POLYLINE_PRECISION)
+            joined.extend(pts[1:] if joined else pts)
+        return {
+            "polyline": encode(joined, VALHALLA_POLYLINE_PRECISION),
+            "polyline_precision": VALHALLA_POLYLINE_PRECISION,
+            "distance_meters": round(summary["length"] * 1000),
+            "duration_seconds": round(summary["time"]),
+        }
+
+    @classmethod
     def get_route(cls, pickup_lat, pickup_lng, drop_lat, drop_lng, costing="auto"):
         """Calls Valhalla's /route endpoint. Raises DomainError(503) if
         Valhalla is unreachable or returns something unparseable — callers

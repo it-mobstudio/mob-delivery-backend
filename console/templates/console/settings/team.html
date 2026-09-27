@@ -1,0 +1,36 @@
+{% extends "console/base.html" %}
+{% load console %}
+{% block title %}Team{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Team</h1><p>Who can sign in to this console. <b>Owner</b> and <b>Admin</b> can change things; <b>Staff</b> can only look.</p></div>
+  <button class="btn btn-primary" data-open="add-user">{% icon 'user-plus' 16 %} Add teammate</button></div>
+<div class="card"><div class="table-wrap"><table class="t">
+  <thead><tr><th>Person</th>{% if is_platform %}<th>Company</th>{% endif %}<th>Role</th><th>Last sign-in</th><th>Status</th><th></th></tr></thead>
+  <tbody>{% for u in users %}
+    <tr><td><div class="row"><span class="avatar">{{ u.get_full_name|default:u.email|initials }}</span><div class="stack"><b>{{ u.get_full_name|default:u.email }}</b><span class="muted small">{{ u.email }}</span></div></div></td>
+      {% if is_platform %}<td>{{ u.company.name }}{% if u.is_superuser %} <span class="chip">Platform</span>{% endif %}</td>{% endif %}
+      <td>{{ u.get_role_display }}</td><td class="small">{{ u.last_login|ago }}</td>
+      <td>{% if u.is_active %}<span class="badge badge-green"><i></i>Active</span>{% else %}<span class="badge badge-grey"><i></i>Switched off</span>{% endif %}</td>
+      <td class="right"><button class="btn btn-sm" data-open="edit-user" data-set-id="{{ u.pk }}" data-set-email="{{ u.email }}" data-set-role="{{ u.role }}" data-set-active="{% if u.is_active %}1{% else %}0{% endif %}">Edit</button></td></tr>
+  {% endfor %}</tbody></table></div></div>
+
+<div class="modal" id="add-user"><div class="box"><form method="post" action="{% url 'console:team_save' %}">{% csrf_token %}
+  <header><h2>Add a teammate</h2><p>They sign in at this console with the email and password you set here.</p></header>
+  <div class="body">
+    <div class="grid g2" style="gap:12px"><label class="field">First name<input type="text" name="first_name"></label><label class="field">Last name<input type="text" name="last_name"></label></div>
+    <label class="field">Email<input type="email" name="email" required></label>
+    <label class="field">Temporary password<input type="password" name="password" minlength="8" required></label>
+    <label class="field">Role<select name="role">{% for v, n in roles %}<option value="{{ v }}" {% if v == 'staff' %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></label>
+    {% if companies %}<label class="field">Company<select name="company">{% for c in companies %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></label>{% endif %}
+  </div>
+  <footer><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-primary">Add</button></footer></form></div></div>
+
+<div class="modal" id="edit-user"><div class="box"><form method="post" action="{% url 'console:team_save' %}">{% csrf_token %}<input type="hidden" name="id" data-fill="id">
+  <header><h2>Edit <span data-fill="email"></span></h2></header>
+  <div class="body">
+    <label class="field">Role<select name="role" data-fill="role">{% for v, n in roles %}<option value="{{ v }}">{{ n }}</option>{% endfor %}</select></label>
+    <label class="field">Access<select name="active" data-fill="active"><option value="1">Can sign in</option><option value="0">Switched off</option></select></label>
+    <label class="field">New password <span class="muted">(leave empty to keep)</span><input type="password" name="password" minlength="8"></label>
+  </div>
+  <footer><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-primary">Save</button></footer></form></div></div>
+{% endblock %}

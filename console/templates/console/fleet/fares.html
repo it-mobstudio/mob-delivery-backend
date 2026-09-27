@@ -1,0 +1,22 @@
+{% extends "console/base.html" %}
+{% load console %}
+{% block title %}Vehicle types & fares{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Vehicle types &amp; fares</h1><p>What a trip costs: base + km × rate + minutes × rate, never below the minimum. Changes apply to new bookings.</p></div></div>
+<div class="grid g2">
+  {% for t in types %}
+  <form method="post" class="card">{% csrf_token %}<input type="hidden" name="id" value="{{ t.id }}">
+    <div class="card-head"><div class="row">{% if t.icon_image_url %}<img class="thumb" src="{{ t.icon_image_url }}" alt="">{% else %}<span class="thumb" style="display:grid;place-items:center">{% icon 'truck' 18 %}</span>{% endif %}
+      <div class="stack"><b>{{ t.name }}</b><span class="muted small">{{ t.get_category_display }} · {{ t.default_capacity_kg|floatformat:0 }} kg · {{ t.n_vehicles }} vehicle{{ t.n_vehicles|pluralize }}</span></div></div>{{ t.status|badge }}</div>
+    <div class="card-body form-grid">
+      <label class="field">Base fare (₹)<input type="number" step="0.01" min="0" name="base_fare" value="{{ t.base_fare }}" {% if not can_edit %}disabled{% endif %}></label>
+      <label class="field">Per km (₹)<input type="number" step="0.01" min="0" name="per_km_rate" value="{{ t.per_km_rate }}" {% if not can_edit %}disabled{% endif %}></label>
+      <label class="field">Per minute (₹)<input type="number" step="0.01" min="0" name="per_min_rate" value="{{ t.per_min_rate }}" {% if not can_edit %}disabled{% endif %}></label>
+      <label class="field">Minimum fare (₹)<input type="number" step="0.01" min="0" name="min_fare" value="{{ t.min_fare }}" {% if not can_edit %}disabled{% endif %}></label>
+      <label class="field">Status<select name="status" {% if not can_edit %}disabled{% endif %}>{% for v, n in statuses %}<option value="{{ v }}" {% if t.status == v %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></label>
+    </div>
+    {% if can_edit %}<div class="card-foot row-between"><span class="muted small">A 5 km, 15 min trip costs <b>{{ t.example|money }}</b></span><button class="btn btn-primary btn-sm">Save fare card</button></div>{% endif %}
+  </form>
+  {% empty %}<div class="card empty">No vehicle types yet.</div>{% endfor %}
+</div>
+{% endblock %}

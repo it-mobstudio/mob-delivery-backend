@@ -4505,6 +4505,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: A trip
           description: Success.
       x-codeSamples:
@@ -4737,6 +4739,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: At the pickup
           description: Success.
       x-codeSamples:
@@ -4970,6 +4974,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: false
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: Cancelled by the driver
           description: Success.
       x-codeSamples:
@@ -5283,6 +5289,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: Completed - the driver earned 89.30
           description: Success.
       x-codeSamples:
@@ -5779,6 +5787,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: The order photo added
           description: Success.
       x-codeSamples:
@@ -6083,6 +6093,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: Marked delivered, with a photo
                 MarkedNotDeliveredWithANote:
                   value:
@@ -6177,6 +6189,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: Marked not delivered, with a note
           description: Success.
       x-codeSamples:
@@ -6442,6 +6456,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: Back to pending
           description: Success.
       x-codeSamples:
@@ -7384,6 +7400,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: The order photo added
           description: Success.
       x-codeSamples:
@@ -7631,6 +7649,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: On the way to the drop
           description: Success.
       x-codeSamples:
@@ -7821,6 +7841,8 @@ paths:
                         id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                         name: Bike
                       verify_items: true
+                      voice_note_seconds: null
+                      voice_note_url: null
                   summary: A trip is assigned
           description: Success.
       x-codeSamples:
@@ -11102,6 +11124,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: Booked and assigned to a driver
           description: Created.
       x-codeSamples:
@@ -11433,6 +11457,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: A trip with a driver assigned
           description: Success.
       x-codeSamples:
@@ -11659,6 +11685,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: A driver was found
           description: Success.
       x-codeSamples:
@@ -11915,6 +11943,8 @@ paths:
                       id: 725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13
                       name: Bike
                     verify_items: true
+                    voice_note_seconds: null
+                    voice_note_url: null
                   summary: Cancelled by the company
           description: Success.
       x-codeSamples:
@@ -15196,11 +15226,13 @@ components:
       - company
       - driver
       - system
+      - customer
       type: string
       description: |-
         * `company` - Company
         * `driver` - Driver
         * `system` - System
+        * `customer` - Customer
     Driver:
       type: object
       description: |-
@@ -15262,8 +15294,9 @@ components:
           type: string
           readOnly: true
           description: 'Where the driver is in joining: `profile_incomplete`, `documents_required`,
-            `under_review` (waiting for you), `action_required` (something was rejected)
-            or `approved`. Derived from their profile and KYC; read-only.'
+            `vehicle_required` (no own vehicle with a photo yet), `under_review` (waiting
+            for you), `action_required` (something was rejected) or `approved`. Derived
+            from their profile and KYC; read-only.'
         aadhar_status:
           type: string
           readOnly: true
@@ -15633,8 +15666,9 @@ components:
           type: string
           readOnly: true
           description: 'Where the driver is in joining: `profile_incomplete`, `documents_required`,
-            `under_review` (waiting for you), `action_required` (something was rejected)
-            or `approved`. Derived from their profile and KYC; read-only.'
+            `vehicle_required` (no own vehicle with a photo yet), `under_review` (waiting
+            for you), `action_required` (something was rejected) or `approved`. Derived
+            from their profile and KYC; read-only.'
         account_status:
           allOf:
           - $ref: '#/components/schemas/DriverAccountStatusEnum'
@@ -15755,8 +15789,9 @@ components:
           type: string
           readOnly: true
           description: 'Where the driver is in joining: `profile_incomplete`, `documents_required`,
-            `under_review`, `action_required` or `approved`. **Key the app''s first
-            screen on this.**'
+            `vehicle_required`, `under_review`, `action_required` or `approved`. **Key
+            the app''s first screen on this** — the driver can''t take trips until
+            `approved`.'
         aadhar_status:
           type: string
           readOnly: true
@@ -16141,6 +16176,18 @@ components:
           type: string
           readOnly: true
           description: Your note for the driver about the whole order, or empty.
+        voice_note_url:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          description: A voice note for the driver (recorded in the console, or sent
+            at booking), or `null`.
+        voice_note_seconds:
+          type: integer
+          readOnly: true
+          nullable: true
+          description: The voice note's length in seconds, or `null`.
         vehicle_type:
           allOf:
           - $ref: '#/components/schemas/VehicleTypeSummary'
@@ -16321,8 +16368,8 @@ components:
           - $ref: '#/components/schemas/PhotoRequirementEnum'
           readOnly: true
           description: 'Camera photos the driver owes at the pickup before starting:
-            `none`, `order` (one of the whole package - `pickup_photo_url`) or `per_item`
-            (one per item - `items[].pickup_photo_url`).'
+            `none`, `order` (one of the whole package - `pickup_photo_url`), `per_item`
+            (one per item - `items[].pickup_photo_url`) or `both`.'
         pickup_photo_url:
           type: string
           format: uri
@@ -16335,7 +16382,8 @@ components:
           - $ref: '#/components/schemas/PhotoRequirementEnum'
           readOnly: true
           description: 'Camera photos the driver owes at the drop before payment/completion:
-            `none`, `order` (`delivery_photo_url`) or `per_item` (`items[].delivery_photo_url`).'
+            `none`, `order` (`delivery_photo_url`), `per_item` (`items[].delivery_photo_url`)
+            or `both`.'
         delivery_photo_url:
           type: string
           format: uri
@@ -16469,6 +16517,8 @@ components:
       - vehicle
       - vehicle_type
       - verify_items
+      - voice_note_seconds
+      - voice_note_url
     DriverTripList:
       type: object
       description: |-
@@ -17449,11 +17499,13 @@ components:
       - none
       - order
       - per_item
+      - both
       type: string
       description: |-
         * `none` - None
         * `order` - One photo of the whole order
         * `per_item` - One photo of every item
+        * `both` - The whole order and every item
     PointRequest:
       type: object
       properties:
@@ -17619,6 +17671,18 @@ components:
           type: string
           readOnly: true
           description: Your note for the driver about the whole order, or empty.
+        voice_note_url:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          description: A voice note for the driver (recorded in the console, or sent
+            at booking), or `null`.
+        voice_note_seconds:
+          type: integer
+          readOnly: true
+          nullable: true
+          description: The voice note's length in seconds, or `null`.
         vehicle_type:
           allOf:
           - $ref: '#/components/schemas/VehicleTypeSummary'
@@ -17799,8 +17863,8 @@ components:
           - $ref: '#/components/schemas/PhotoRequirementEnum'
           readOnly: true
           description: 'Camera photos the driver owes at the pickup before starting:
-            `none`, `order` (one of the whole package - `pickup_photo_url`) or `per_item`
-            (one per item - `items[].pickup_photo_url`).'
+            `none`, `order` (one of the whole package - `pickup_photo_url`), `per_item`
+            (one per item - `items[].pickup_photo_url`) or `both`.'
         pickup_photo_url:
           type: string
           format: uri
@@ -17813,7 +17877,8 @@ components:
           - $ref: '#/components/schemas/PhotoRequirementEnum'
           readOnly: true
           description: 'Camera photos the driver owes at the drop before payment/completion:
-            `none`, `order` (`delivery_photo_url`) or `per_item` (`items[].delivery_photo_url`).'
+            `none`, `order` (`delivery_photo_url`), `per_item` (`items[].delivery_photo_url`)
+            or `both`.'
         delivery_photo_url:
           type: string
           format: uri
@@ -17937,6 +18002,8 @@ components:
       - vehicle
       - vehicle_type
       - verify_items
+      - voice_note_seconds
+      - voice_note_url
     TripCancelRequest:
       type: object
       properties:
@@ -17994,6 +18061,23 @@ components:
           description: A note for the driver about the whole order - "Call before
             arriving", "Use gate 2". Shown on the order details screen. Optional,
             up to 500 characters.
+        voice_note_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 500
+          - type: string
+            maxLength: 0
+          description: 'A short voice note for the driver (at most 30 s): a link to
+            a `.wav`, `.m4a`, `.mp3` or `.aac` file. Host it yourself, or `POST /uploads`
+            with `purpose=trip_voice_note`. The driver app shows a play button. Optional.'
+        voice_note_seconds:
+          type: integer
+          maximum: 30
+          minimum: 1
+          nullable: true
+          description: The voice note's length in seconds (1-30), so the app can show
+            it before loading. Optional.
         invoice_url:
           oneOf:
           - type: string
@@ -18023,8 +18107,9 @@ components:
           default: none
           description: 'Photos the driver must take **with the phone''s camera** at
             the pickup before the delivery can start: `none` (default), `order` -
-            one photo of the whole package, or `per_item` - one photo of every item
-            (requires `items`). Kept as proof of what left the pickup.'
+            one photo of the whole package, `per_item` - one photo of every item,
+            or `both` - the whole package and every item (`per_item`/`both` require
+            `items`). Kept as proof of what left the pickup.'
         delivery_otp:
           type: boolean
           default: false
@@ -18038,8 +18123,8 @@ components:
           default: none
           description: 'The same at the **drop**: camera photos the driver must take
             once the delivery is under way, before it can be paid for or completed
-            - `none` (default), `order` or `per_item` (requires `items`). Kept as
-            proof of delivery.'
+            - `none` (default), `order`, `per_item` or `both` (the last two require
+            `items`). Kept as proof of delivery.'
         items:
           type: array
           items:
@@ -18469,7 +18554,8 @@ components:
           nullable: true
           description: Which item the photo shows - one of the trip's `items[].id`.
             **Required when the order's `pickup_photo` (or, for delivery photos, `delivery_photo`)
-            is `per_item`**; leave out for `order`.
+            is `per_item`**; leave out for `order`. With `both`, leave it out for
+            the whole-order photo and send it for each item's.
       required:
       - photo
     TripStatusEnum:
@@ -18524,6 +18610,7 @@ components:
       - trip_item_image
       - delivery_proof
       - pickup_proof
+      - trip_voice_note
       type: string
       description: |-
         * `vehicle_type_icon` - Vehicle Type Icon
@@ -18535,6 +18622,7 @@ components:
         * `trip_item_image` - Trip Item Image
         * `delivery_proof` - Delivery Proof Photo
         * `pickup_proof` - Pickup Proof Photo
+        * `trip_voice_note` - Trip Voice Note
     UploadRequest:
       type: object
       properties:
@@ -18560,6 +18648,7 @@ components:
             * `trip_item_image` - Trip Item Image
             * `delivery_proof` - Delivery Proof Photo
             * `pickup_proof` - Pickup Proof Photo
+            * `trip_voice_note` - Trip Voice Note
       required:
       - file
       - purpose
@@ -19826,6 +19915,7 @@ tags:
     | `PERMISSION_DENIED` | 403 | You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse). | Use the right principal for the endpoint - each operation lists who may call it. |
     | `NOT_YOUR_TRIP` | 403 | A driver called a trip endpoint for a trip that isn't assigned to them. | Only act on trips returned by `GET /driver/trips/active` or `GET /driver/trips`. |
     | `INVALID_REFRESH_TOKEN` | 401 | The driver's refresh token has expired or was already used up. | Send the driver through the OTP login again. |
+    | `INVALID_PHONE` | 400 | A customer signing in on the booking web app (/book/) gave a number that isn't a 10-digit Indian mobile number. | Send 10 digits (optionally with +91). |
     | `INVALID_OTP` | 400 | The login OTP is wrong or has expired (OTPs last 5 minutes). | Ask for a new OTP with `POST /driver/auth/otp/request`. |
     | `DRIVER_NOT_FOUND` | 404 | Sign-up is closed on this server and no driver is registered with this phone number. (When sign-up is open, an unknown number simply becomes a new driver.) | Ask the company to register the driver (`POST /drivers`), or check the number (`+919000000001`). |
     | `DRIVER_PHONE_AMBIGUOUS` | 409 | The same phone number belongs to drivers in more than one company, so the login can't tell which one to use. | Contact support - phone numbers must be unique across companies. |
@@ -19836,10 +19926,13 @@ tags:
 
     | Code | HTTP | When it happens | What to do |
     |---|---|---|---|
+    | `BOOKING_CLOSED` | 503 | The customer booking web app has no company to book with (BOOKING_COMPANY_ID / DRIVER_SIGNUP_COMPANY_ID isn't set). | Operator action: set BOOKING_COMPANY_ID to the company whose fleet serves customer bookings. |
     | `VEHICLE_TYPE_NOT_FOUND` | 404 | `vehicle_type_id` doesn't match an active vehicle type of your company. | List your vehicle types with `GET /vehicle-types` and use one of those ids. |
     | `FARE_NOT_CONFIGURED` | 422 | The vehicle type has no fare card, so a price can't be calculated. | Configure the fare fields on the vehicle type (`base_fare`, `per_km_rate`, ...). |
     | `ROUTING_UNAVAILABLE` | 503 | The routing engine couldn't route between the pickup and the drop (out of coverage, or the engine is down). | Check the coordinates are inside the served area; otherwise retry shortly. |
     | `TRIP_NOT_RETRYABLE` | 409 | You tried to (re)assign a trip that isn't in `no_driver_available`. | Only trips with status `no_driver_available` can be assigned again. |
+    | `TRIP_NOT_ASSIGNABLE` | 409 | Someone tried to give an order to a driver by hand after it had reached the pickup (or finished). | Only orders that are requested, have no driver, or are assigned but not yet at the pickup can be (re)assigned. |
+    | `DRIVER_NOT_AVAILABLE` | 409 | The driver chosen for a manual assignment can't take the order right now. | Pick a driver who is online, verified, free, and on a vehicle of the order's type (the operations console lists them). |
     | `TRIP_NOT_CANCELLABLE` | 409 | The trip is past the point where it can be cancelled (in progress, completed, or already cancelled). | Trips can be cancelled up to `arrived_at_pickup`. Fetch the trip to see its current status. |
     | `INVALID_TRIP_STATUS_TRANSITION` | 409 | The driver action isn't valid for the trip's current status (e.g. `start` before `arrive`). | Fetch the trip and follow the lifecycle: arrive -> start -> (pay) -> complete. |
     | `TRIP_NOT_ACTIVE` | 409 | Navigation was requested for a trip that has nothing left to navigate to (completed or cancelled). | Stop asking for navigation once the trip is finished. |

@@ -1,0 +1,135 @@
+{% extends "console/base.html" %}
+{% load console %}
+{% block title %}{{ d.full_name }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'console:drivers' %}">Drivers</a> {% icon 'chevron-right' 13 %} <span>{{ d.full_name }}</span></div>
+<div class="card" style="margin-bottom:16px">
+  <div class="card-body row-between" style="flex-wrap:wrap">
+    <div class="row" style="gap:16px">
+      <span class="avatar avatar-lg">{% if d.profile_photo_url %}<a href="{{ d.profile_photo_url }}" data-lightbox data-caption="{{ d.full_name }}"><img src="{{ d.profile_photo_url }}" alt=""></a>{% else %}{{ d.full_name|initials }}{% endif %}</span>
+      <div class="stack" style="gap:4px">
+        <div class="row"><h1>{{ d.full_name|default:"(no name yet)" }}</h1>
+          {% if d.account_status != 'active' %}{{ d.account_status|badge }}{% elif active_trip %}<span class="badge badge-violet"><i></i>On a trip</span>{% elif d.is_online %}<span class="badge badge-green"><i></i>On duty</span>{% else %}<span class="badge badge-grey"><i></i>Off duty</span>{% endif %}
+          {{ d.onboarding_status|badge }}</div>
+        <div class="muted row" style="gap:14px;flex-wrap:wrap">
+          <a href="tel:{{ d.phone_number }}">{% icon 'phone' 14 %} {{ d.phone_number }}</a>
+          {% if d.email %}<span>{% icon 'mail' 14 %} {{ d.email }}</span>{% endif %}
+          {% if d.city %}<span>{% icon 'map-pin' 14 %} {{ d.city }}</span>{% endif %}
+          <span>{% icon 'calendar' 14 %} Joined {{ d.created_at|date:"j M Y" }}</span>
+          {% if d.last_location_at %}<span>{% icon 'radar' 14 %} Seen {{ d.last_location_at|ago }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% if can_edit %}
+    <div class="row">
+      {% if d.is_online and not active_trip %}<form method="post" action="{% url 'console:driver_status' d.pk %}">{% csrf_token %}<input type="hidden" name="action" value="offline"><button class="btn">{% icon 'power' 15 %} Take off duty</button></form>{% endif %}
+      <button class="btn" data-open="wallet-modal">{% icon 'wallet' 15 %} Payout / bonus / fine</button>
+      {% if d.account_status == 'active' %}
+        <form method="post" action="{% url 'console:driver_status' d.pk %}" data-confirm="Block {{ d.full_name }}? They won't be able to go on duty or take orders.">{% csrf_token %}<input type="hidden" name="action" value="block"><button class="btn btn-danger">{% icon 'ban' 15 %} Block</button></form>
+      {% else %}
+        <form method="post" action="{% url 'console:driver_status' d.pk %}">{% csrf_token %}<input type="hidden" name="action" value="unblock"><button class="btn btn-success">{% icon 'unlock' 15 %} Unblock</button></form>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<section class="grid g4" style="margin-bottom:16px">
+  <div class="card kpi"><div class="label">{% icon 'package-check' 15 %} Delivered</div><div class="value">{{ stats.done }}</div><div class="sub">of {{ stats.total }} orders given</div></div>
+  <div class="card kpi"><div class="label">{% icon 'circle-x' 15 %} Cancelled by driver</div><div class="value">{{ stats.cancelled }}</div><div class="sub">{% if stats.total %}{{ stats.cancelled|pct:stats.total }}% of orders{% else %}—{% endif %}</div></div>
+  <div class="card kpi"><div class="label">{% icon 'hand-coins' 15 %} Earned in total</div><div class="value">{{ stats.earned|default:0|money:0 }}</div><div class="sub">{{ stats.week|default:0|money:0 }} in the last 7 days</div></div>
+  <a class="card kpi" href="?tab=wallet"><div class="label">{% icon 'wallet' 15 %} Wallet balance</div><div class="value">{{ balance|money }}</div><div class="sub">owed to the driver</div></a>
+</section>
+
+<nav class="tabs">
+  <a href="?tab=overview" class="{% if tab == 'overview' %}on{% endif %}">Overview</a>
+  <a href="?tab=kyc" class="{% if tab == 'kyc' %}on{% endif %}">KYC documents</a>
+  <a href="?tab=trips" class="{% if tab == 'trips' %}on{% endif %}">Trips <span class="n">{{ stats.total }}</span></a>
+  <a href="?tab=wallet" class="{% if tab == 'wallet' %}on{% endif %}">Wallet</a>
+  <a href="?tab=vehicles" class="{% if tab == 'vehicles' %}on{% endif %}">Vehicles</a>
+</nav>
+
+{% if tab == 'overview' %}
+<div class="grid g-main">
+  <div class="grid" style="gap:16px">
+    {% if active_trip %}
+      <a class="card card-body row" href="{% url 'console:order' active_trip.pk %}" style="color:inherit;border-color:#d7c9ff;background:#faf8ff">
+        {% icon 'navigation' 20 %}<div class="grow stack"><b>On order {{ active_trip.order_number }}</b><span class="muted small">{{ active_trip.drop_contact_name }} · {{ active_trip.drop_address|truncatechars:70 }}</span></div>{{ active_trip.status|badge }}</a>
+    {% endif %}
+    <div class="card">
+      <div class="card-head"><h2>Recent orders</h2><a class="btn btn-sm" href="?tab=trips">All trips</a></div>
+      <div class="table-wrap"><table class="t">
+        <thead><tr><th>Order</th><th>Drop</th><th>Status</th><th class="right">Earned</th><th>Booked</th></tr></thead>
+        <tbody>{% for t in recent %}
+          <tr class="clickable" data-href="{% url 'console:order' t.pk %}"><td class="strong mono">{{ t.order_number }}</td><td class="small">{{ t.drop_contact_name|default:t.drop_address|truncatechars:40 }}</td><td>{{ t.status|badge }}</td><td class="right mono">{{ t.driver_earning|money }}</td><td class="muted small">{{ t.created_at|ago }}</td></tr>
+        {% empty %}<tr><td colspan="5" class="empty">No orders yet.</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="grid" style="gap:16px">
+    <div class="card"><div class="card-head"><h2>Profile</h2></div><div class="card-body">
+      <dl class="kv">
+        <dt>Date of birth</dt><dd>{{ d.date_of_birth|default:"—" }}</dd>
+        <dt>Address</dt><dd>{{ d.address_line|default:"—" }}{% if d.pincode %}, {{ d.pincode }}{% endif %}</dd>
+        <dt>Emergency contact</dt><dd>{{ d.emergency_contact_name|default:"—" }} · {{ d.emergency_contact_phone }}</dd>
+        <dt>Current vehicle</dt><dd>{% if current_vehicle %}{{ current_vehicle.registration_number }} · {{ current_vehicle.vehicle_type.name }}{% else %}—{% endif %}</dd>
+        <dt>Last location</dt><dd>{% if d.last_known_lat %}<a href="https://www.google.com/maps/search/?api=1&query={{ d.last_known_lat }},{{ d.last_known_lng }}" target="_blank" rel="noopener">{{ d.last_known_lat }}, {{ d.last_known_lng }} ↗</a>{% else %}—{% endif %}</dd>
+      </dl></div></div>
+    <div class="card"><div class="card-head"><h2>Payout details</h2></div><div class="card-body">
+      <dl class="kv">
+        <dt>UPI</dt><dd>{{ d.payout_upi_id|default:"—" }}</dd>
+        <dt>Bank</dt><dd>{% if d.bank_account_number %}{{ d.bank_account_holder }} · ••••{{ d.bank_account_number|slice:"-4:" }} · {{ d.bank_ifsc }}{% else %}—{% endif %}</dd>
+      </dl></div></div>
+  </div>
+</div>
+{% elif tab == 'kyc' %}
+  {% with next_url=request.get_full_path %}
+  <div class="row-between" style="margin-bottom:12px"><span class="muted">Check each scan, then approve or reject with a note the driver will see.</span>
+    {% if can_edit %}<form method="post" action="{% url 'console:driver_kyc' d.pk %}">{% csrf_token %}<input type="hidden" name="doc" value="all"><input type="hidden" name="decision" value="approve"><input type="hidden" name="next" value="{{ next_url }}"><button class="btn btn-success">{% icon 'check-check' 15 %} Approve all</button></form>{% endif %}</div>
+  <div class="grid g3">{% for doc in docs %}{% include "console/partials/doc_card.html" %}{% endfor %}</div>
+  {% endwith %}
+  {% include "console/partials/reject_modal.html" %}
+{% elif tab == 'trips' %}
+  <div class="card"><div class="table-wrap"><table class="t">
+    <thead><tr><th>Order</th><th>Route</th><th>Status</th><th class="right">Fare</th><th class="right">Earned</th><th>Booked</th></tr></thead>
+    <tbody>{% for t in trips_page %}
+      <tr class="clickable" data-href="{% url 'console:order' t.pk %}"><td class="strong mono">{{ t.order_number }}</td>
+        <td class="small"><div class="stack"><span>{{ t.pickup_contact_name }} → {{ t.drop_contact_name }}</span><span class="muted">{{ t.distance_meters|km }} · {{ t.vehicle_type.name }}</span></div></td>
+        <td>{{ t.status|badge }}</td><td class="right mono">{{ t.total_fare|money }}</td><td class="right mono">{{ t.driver_earning|money }}</td><td class="small nowrap">{{ t.created_at|date:"j M, g:i A" }}</td></tr>
+    {% empty %}<tr><td colspan="6" class="empty">No trips yet.</td></tr>{% endfor %}</tbody>
+  </table></div>{% with page_obj=trips_page %}{% include "console/partials/pager.html" %}{% endwith %}</div>
+{% elif tab == 'wallet' %}
+  <div class="card">
+    <div class="card-head"><h2>Ledger <span class="muted small">· balance {{ balance|money }}</span></h2>{% if can_edit %}<button class="btn btn-primary btn-sm" data-open="wallet-modal">{% icon 'plus' 15 %} Record entry</button>{% endif %}</div>
+    <div class="table-wrap"><table class="t">
+      <thead><tr><th>When</th><th>Type</th><th>Description</th><th>Reference</th><th class="right">Amount</th><th class="right">Balance</th></tr></thead>
+      <tbody>{% for w in ledger %}
+        <tr><td class="small nowrap">{{ w.created_at|date:"j M Y, g:i A" }}</td><td>{{ w.kind|badge }}</td><td class="small">{{ w.description|default:"—" }}</td><td class="small mono">{{ w.reference|default:"—" }}</td>
+          <td class="right mono" style="color:{% if w.amount < 0 %}var(--red){% else %}var(--green){% endif %}"><b>{{ w.amount|money }}</b></td><td class="right mono">{{ w.balance_after|money }}</td></tr>
+      {% empty %}<tr><td colspan="6" class="empty">No wallet activity yet.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+{% elif tab == 'vehicles' %}
+  <div class="grid g3">{% for v in vehicles %}
+    <a class="card" href="{% url 'console:vehicle' v.pk %}" style="color:inherit;overflow:hidden">
+      {% if v.photo_url %}<img src="{{ v.photo_url }}" alt="" style="width:100%;height:160px;object-fit:cover;display:block">{% else %}<div style="height:160px;display:grid;place-items:center;background:var(--soft)">{% icon 'truck' 36 %}</div>{% endif %}
+      <div class="card-body row-between"><div class="stack"><b class="mono">{{ v.registration_number }}</b><span class="muted small">{{ v.vehicle_type.name }}</span></div>{{ v.status|badge }}</div></a>
+  {% empty %}<div class="card empty">{% icon 'truck' 28 %}<div>No vehicles.</div></div>{% endfor %}</div>
+{% endif %}
+
+{% if can_edit %}
+<div class="modal" id="wallet-modal"><div class="box">
+  <form method="post" action="{% url 'console:driver_wallet' d.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'console:driver' d.pk %}?tab=wallet">
+    <header><h2>Record a wallet entry</h2><p>{{ d.full_name }} · current balance <b>{{ balance|money }}</b></p></header>
+    <div class="body">
+      <label class="field">Type<select name="kind">{% for value, name in manual_kinds %}<option value="{{ value }}">{{ name }}</option>{% endfor %}</select></label>
+      <label class="field">Amount (₹)<input type="number" name="amount" step="0.01" required placeholder="0.00"></label>
+      <label class="field">Description<input type="text" name="description" maxlength="255" placeholder="e.g. Weekly payout to UPI"></label>
+      <label class="field">Reference<input type="text" name="reference" maxlength="100" placeholder="UTR / transaction id"></label>
+      <div class="muted small">Payouts can't exceed the balance. Adjustments may be negative.</div>
+    </div>
+    <footer><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-primary">Record</button></footer>
+  </form>
+</div></div>
+{% endif %}
+{% endblock %}

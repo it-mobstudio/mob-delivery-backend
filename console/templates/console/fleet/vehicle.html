@@ -1,0 +1,30 @@
+{% extends "console/base.html" %}
+{% load console %}
+{% block title %}{{ v.registration_number }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'console:vehicles' %}">Vehicles</a> {% icon 'chevron-right' 13 %} <span>{{ v.registration_number }}</span></div>
+<div class="page-head">
+  <div><div class="row"><h1 class="mono">{{ v.registration_number }}</h1>{{ v.status|badge }}</div><p>{{ v.vehicle_type.name }} · {{ v.capacity_kg|floatformat:0 }} kg capacity</p></div>
+  {% if can_edit %}<form method="post" class="row">{% csrf_token %}<select name="status" aria-label="Status">{% for val, n in statuses %}<option value="{{ val }}" {% if v.status == val %}selected{% endif %}>{{ n }}</option>{% endfor %}</select><button class="btn btn-primary">Update status</button></form>{% endif %}
+</div>
+<div class="grid g-main">
+  <div class="grid" style="gap:16px">
+    <div class="card"><div class="card-head"><h2>Photos</h2></div><div class="card-body">
+      {% if photos %}<div class="gallery" data-gallery>{% for label, url in photos %}<a class="shot" href="{{ url }}" data-lightbox data-caption="{{ v.registration_number }} · {{ label }}"><img src="{{ url }}" alt="{{ label }}" loading="lazy"><span class="tag">{{ label }}</span></a>{% endfor %}</div>
+      {% else %}<div class="empty">{% icon 'image-off' 28 %}<div>No photos.</div></div>{% endif %}</div></div>
+    <div class="card"><div class="card-head"><h2>Documents</h2></div><div class="table-wrap"><table class="t">
+      <thead><tr><th>Document</th><th>File</th><th>Expiry</th></tr></thead>
+      <tbody>{% for x in docs %}<tr><td>{{ x.doc.get_document_type_display }}</td><td><a href="{{ x.doc.file_url }}" target="_blank" rel="noopener">{% icon 'file-text' 15 %} Open</a></td>
+        <td>{% if x.days is None %}<span class="muted">—</span>{% elif x.days < 0 %}<span class="badge badge-red"><i></i>Expired {{ x.doc.expiry_date|date:"j M Y" }}</span>{% elif x.days <= 30 %}<span class="badge badge-amber"><i></i>{{ x.days }} days left</span>{% else %}<span class="badge badge-green"><i></i>Valid till {{ x.doc.expiry_date|date:"j M Y" }}</span>{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="3" class="empty">No documents uploaded.</td></tr>{% endfor %}</tbody></table></div></div>
+    <div class="card"><div class="card-head"><h2>Recent orders</h2></div><div class="table-wrap"><table class="t"><tbody>
+      {% for t in trips %}<tr class="clickable" data-href="{% url 'console:order' t.pk %}"><td class="strong mono">{{ t.order_number }}</td><td>{{ t.driver.full_name|default:"—" }}</td><td>{{ t.status|badge }}</td><td class="muted small">{{ t.created_at|ago }}</td></tr>
+      {% empty %}<tr><td class="empty">No orders yet.</td></tr>{% endfor %}</tbody></table></div></div>
+  </div>
+  <div class="card"><div class="card-head"><h2>Details</h2></div><div class="card-body"><dl class="kv">
+    <dt>Type</dt><dd>{{ v.vehicle_type.name }}</dd>
+    <dt>Owner</dt><dd>{% if v.owner_driver %}<a href="{% url 'console:driver' v.owner_driver.pk %}">{{ v.owner_driver.full_name }}</a>{% else %}Company{% endif %}</dd>
+    <dt>Driving now</dt><dd>{% if driving %}<a href="{% url 'console:driver' driving.pk %}">{{ driving.full_name }}</a>{% else %}—{% endif %}</dd>
+    <dt>Added</dt><dd>{{ v.created_at|date:"j M Y" }}</dd></dl></div></div>
+</div>
+{% endblock %}

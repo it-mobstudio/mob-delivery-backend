@@ -66,6 +66,38 @@ class MatchingService:
         vehicle = Vehicle.objects.get(id=nearest_driver.current_vehicle_id)
         return nearest_driver, vehicle
 
+    @staticmethod
+    def assignable_drivers(trip):
+        """Every driver who could take `trip` right now, nearest first, as
+        (driver, vehicle, distance_km or None) — for a dispatcher choosing by
+        hand. Same rules as find_nearest_available_driver, but without the
+        radius limit (a person may knowingly send someone further away)."""
+        vehicles = {
+            v.id: v
+            for v in Vehicle.objects.filter(
+                company=trip.company, vehicle_type=trip.vehicle_type, status=VehicleStatus.ACTIVE
+            )
+        }
+        busy = set(
+            Trip.objects.filter(company=trip.company, status__in=ACTIVE_TRIP_STATUSES, driver_id__isnull=False)
+            .exclude(pk=trip.pk)
+            .values_list("driver_id", flat=True)
+        )
+        options = []
+        for driver in Driver.objects.select_related("kyc").filter(
+            company=trip.company, is_online=True, current_vehicle_id__in=list(vehicles)
+        ):
+            if driver.id in busy or not driver.is_eligible_for_assignment:
+                continue
+            distance = None
+            if driver.last_known_lat is not None and driver.last_known_lng is not None:
+                distance = haversine_distance_km(
+                    trip.pickup_lat, trip.pickup_lng, driver.last_known_lat, driver.last_known_lng
+                )
+            options.append((driver, vehicles[driver.current_vehicle_id], distance))
+        options.sort(key=lambda o: (o[2] is None, o[2] or 0))
+        return options
+
     @classmethod
     def try_assign_driver(cls, trip):
         """Attempts to assign the nearest available driver to `trip`.

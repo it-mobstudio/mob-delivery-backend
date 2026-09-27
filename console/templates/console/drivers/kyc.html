@@ -1,0 +1,35 @@
+{% extends "console/base.html" %}
+{% load console %}
+{% block title %}KYC review{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>KYC review</h1><p>Documents drivers have uploaded and are waiting on. Oldest first.</p></div>
+  <span class="chip">{% icon 'shield-check' 14 %} {{ page_obj.paginator.count }} driver{{ page_obj.paginator.count|pluralize }} waiting</span></div>
+{% for d, pending, vehicles in items %}
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <a class="row" href="{% url 'console:driver' d.pk %}" style="color:inherit">
+        <span class="avatar">{% if d.profile_photo_url %}<img src="{{ d.profile_photo_url }}" alt="">{% else %}{{ d.full_name|initials }}{% endif %}</span>
+        <span class="stack"><b>{{ d.full_name|default:"(no name yet)" }}</b><span class="muted small">{{ d.phone_number }} · joined {{ d.created_at|ago }}{% if d.date_of_birth %} · born {{ d.date_of_birth|date:"j M Y" }}{% endif %}</span></span></a>
+      {% if can_edit %}<form method="post" action="{% url 'console:driver_kyc' d.pk %}">{% csrf_token %}<input type="hidden" name="doc" value="all"><input type="hidden" name="decision" value="approve"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-success btn-sm">{% icon 'check-check' 15 %} Approve everything</button></form>{% endif %}
+    </div>
+    <div class="card-body grid g3">
+      {% with kyc=d.kyc next_url=request.get_full_path %}
+        {% for p in pending %}
+          {% with doc=p %}{% include "console/partials/doc_card.html" %}{% endwith %}
+        {% endfor %}
+        {% for veh, urls in vehicles %}
+          <div class="doc-card">
+            <div class="row-between" style="padding:12px 14px"><div class="stack"><b>Vehicle · <span class="mono">{{ veh.registration_number }}</span></b><span class="muted small">{{ veh.vehicle_type.name }} · {{ veh.capacity_kg|floatformat:0 }} kg</span></div>{{ veh.status|badge }}</div>
+            <div class="imgs" data-gallery>{% for url in urls %}<a class="shot" href="{{ url }}" data-lightbox data-caption="{{ d.full_name }} · {{ veh.registration_number }}"><img src="{{ url }}" alt="" loading="lazy"></a>{% empty %}<div class="muted small" style="padding:18px">No photos.</div>{% endfor %}</div>
+            <div class="foot"><a class="btn btn-sm" href="{% url 'console:vehicle' veh.pk %}">Open vehicle</a></div>
+          </div>
+        {% endfor %}
+      {% endwith %}
+    </div>
+  </div>
+{% empty %}
+  <div class="card empty">{% icon 'shield-check' 36 %}<h2 style="margin-top:6px">You're all caught up</h2><div>No documents are waiting for review.</div></div>
+{% endfor %}
+{% include "console/partials/pager.html" %}
+{% include "console/partials/reject_modal.html" %}
+{% endblock %}

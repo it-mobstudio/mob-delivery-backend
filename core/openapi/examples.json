@@ -1036,7 +1036,9 @@
      "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
      "name": "Bike"
     },
-    "verify_items": true
+    "verify_items": true,
+    "voice_note_seconds": null,
+    "voice_note_url": null
    }
   },
   "status": 200
@@ -1141,7 +1143,9 @@
     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
     "name": "Bike"
    },
-   "verify_items": true
+   "verify_items": true,
+   "voice_note_seconds": null,
+   "voice_note_url": null
   },
   "status": 200
  },
@@ -1210,7 +1214,9 @@
     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
     "name": "Bike"
    },
-   "verify_items": false
+   "verify_items": false,
+   "voice_note_seconds": null,
+   "voice_note_url": null
   },
   "status": 200
  },
@@ -1331,7 +1337,9 @@
     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
     "name": "Bike"
    },
-   "verify_items": true
+   "verify_items": true,
+   "voice_note_seconds": null,
+   "voice_note_url": null
   },
   "status": 200
  },
@@ -1455,7 +1463,9 @@
     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
     "name": "Bike"
    },
-   "verify_items": true
+   "verify_items": true,
+   "voice_note_seconds": null,
+   "voice_note_url": null
   },
   "status": 200
  },
@@ -1559,7 +1569,9 @@
     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
     "name": "Bike"
    },
-   "verify_items": true
+   "verify_items": true,
+   "voice_note_seconds": null,
+   "voice_note_url": null
   },
   "status": 200
  },
@@ -1730,7 +1742,9 @@
     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
     "name": "Bike"
    },
-   "verify_items": true
+   "verify_items": true,
+   "voice_note_seconds": null,
+   "voice_note_url": null
   },
   "status": 200
  },
@@ -1844,7 +1858,9 @@
     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
     "name": "Bike"
    },
-   "verify_items": true
+   "verify_items": true,
+   "voice_note_seconds": null,
+   "voice_note_url": null
   },
   "status": 200
  },
@@ -2237,7 +2253,9 @@
     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
     "name": "Bike"
    },
-   "verify_items": true
+   "verify_items": true,
+   "voice_note_seconds": null,
+   "voice_note_url": null
   },
   "status": 200
  },
@@ -2341,7 +2359,9 @@
     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
     "name": "Bike"
    },
-   "verify_items": true
+   "verify_items": true,
+   "voice_note_seconds": null,
+   "voice_note_url": null
   },
   "status": 200
  },
@@ -2460,7 +2480,9 @@
     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
     "name": "Bike"
    },
-   "verify_items": true
+   "verify_items": true,
+   "voice_note_seconds": null,
+   "voice_note_url": null
   },
   "status": 200
  },
@@ -2635,7 +2657,9 @@
     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
     "name": "Bike"
    },
-   "verify_items": true
+   "verify_items": true,
+   "voice_note_seconds": null,
+   "voice_note_url": null
   },
   "status": 201
  },
@@ -2781,7 +2805,9 @@
     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
     "name": "Bike"
    },
-   "verify_items": true
+   "verify_items": true,
+   "voice_note_seconds": null,
+   "voice_note_url": null
   },
   "status": 200
  },

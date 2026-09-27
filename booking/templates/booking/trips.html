@@ -1,0 +1,37 @@
+{% extends "booking/base.html" %}
+{% load static %}
+{% block title %}Your bookings{% endblock %}
+{% block body %}
+<div class="app"><div class="screen">
+  <h1>Your bookings</h1>
+  <div class="stat-grid">
+    <div class="stat"><span class="small muted">Bookings</span><b>{{ page_obj.paginator.count }}</b></div>
+    <div class="stat"><span class="small muted">Spent on deliveries</span><b>₹{{ spent|floatformat:0 }}</b></div>
+  </div>
+  <nav class="chips">
+    <a href="?tab=all" class="{% if filter == 'all' %}on{% endif %}">All</a>
+    <a href="?tab=active" class="{% if filter == 'active' %}on{% endif %}">Active</a>
+    <a href="?tab=completed" class="{% if filter == 'completed' %}on{% endif %}">Delivered</a>
+    <a href="?tab=cancelled" class="{% if filter == 'cancelled' %}on{% endif %}">Cancelled</a>
+  </nav>
+  {% for t in page_obj %}
+    <a class="trip-row" href="{% url 'booking:trip' t.pk %}">
+      <img src="{% static 'vehicles/' %}{% if t.vehicle_type.category == 'two_wheeler' %}bike{% elif t.vehicle_type.category == 'three_wheeler' %}auto{% else %}mini_truck{% endif %}.svg" alt="">
+      <span class="grow" style="min-width:0">
+        <b class="ellipsis" style="display:block">{{ t.drop_address|truncatechars:48 }}</b>
+        <span class="small muted mono">{{ t.order_number }}</span> <span class="small muted">· {{ t.created_at|date:"j M, g:i A" }} · {{ t.vehicle_type.name }}</span><br>
+        {% if t.status == 'completed' %}<span class="badge badge-green">Delivered</span>{% elif t.status == 'cancelled' %}<span class="badge badge-red">Cancelled</span>{% else %}<span class="badge badge-blue">{{ t.get_status_display }}</span>{% endif %}
+      </span>
+      <span style="text-align:right"><b class="mono">₹{{ t.total_fare|floatformat:0 }}</b><br><span class="small {% if t.payment_status == 'paid' %}" style="color:#0e9f6e{% else %}muted{% endif %}">{% if t.payment_status == 'paid' %}Paid{% elif t.status == 'cancelled' %}—{% else %}Pay on delivery{% endif %}</span></span>
+    </a>
+  {% empty %}
+    <div class="card" style="padding:32px 20px;text-align:center"><img src="{% static 'vehicles/mini_truck.svg' %}" alt="" style="width:120px"><h3 style="margin:10px 0 4px">No bookings yet</h3><p class="muted small">Your deliveries will show up here.</p><a class="btn btn-primary" href="{% url 'booking:home' %}" style="margin-top:10px">Book a vehicle</a></div>
+  {% endfor %}
+  {% if page_obj.has_next or page_obj.has_previous %}
+    <div class="row" style="justify-content:space-between;margin-top:8px">
+      {% if page_obj.has_previous %}<a class="btn" style="width:auto" href="?tab={{ filter }}&page={{ page_obj.previous_page_number }}">Newer</a>{% else %}<span></span>{% endif %}
+      {% if page_obj.has_next %}<a class="btn" style="width:auto" href="?tab={{ filter }}&page={{ page_obj.next_page_number }}">Older</a>{% endif %}
+    </div>
+  {% endif %}
+</div></div>
+{% endblock %}

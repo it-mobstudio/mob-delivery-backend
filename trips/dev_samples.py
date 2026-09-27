@@ -29,6 +29,10 @@ CATALOGUE = [
     Product("Dr. Fixit Water proofing", "564QWI108", "pcs", (1, 12), _picture("Dr.Fixit/564QWI108.webp")),
     Product("Sika SBR Polymer Latex SBR 20kg (Pack of 1)", "564QWI151", "pack", (1, 8), _picture("564QWI151.webp")),
     Product("Atomberg Ceiling Sleek Fan Renesa Halo smart Fan", "576QWI101", "pcs", (1, 4), _picture("Atomberg/576QWI101.webp")),
+    Product("Warm Light Ceiling & Surface Light", "CSL-WARM", "pcs", (2, 10),
+            "https://images.weserv.nl/?url=https%3A%2F%2Fcdn.madoverbuildings.com%2Fsubcategory%2Fsubcategory%2FCeiling_and_Surface_Lights.webp&w=130&q=75&output=webp&fit=inside&h=130"),
+    Product("GM LED Bulb", "575QWI163", "pcs", (4, 24),
+            "https://images.weserv.nl/?url=https%3A%2F%2Fcdn.madoverbuildings.com%2Fproducts%2Fimages%2FGM%2F575QWI163-1.webp&w=220&q=75&output=webp&fit=inside&h=220"),
 ]
 
 # An invoice for one of the shop's own orders.

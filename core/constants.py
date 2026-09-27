@@ -71,6 +71,9 @@ VALHALLA_POLYLINE_PRECISION = 6  # Valhalla's default shape encoding precision.
 
 UPLOAD_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 UPLOAD_DOCUMENT_EXTENSIONS = UPLOAD_IMAGE_EXTENSIONS | {"pdf"}
+# Voice notes: formats both Android and iOS play natively.
+UPLOAD_AUDIO_EXTENSIONS = {"wav", "m4a", "mp3", "aac"}
+VOICE_NOTE_MAX_SECONDS = 30
 
 # Where each upload purpose's files land in the (Azure Blob or local)
 # storage tree: {company_id}/{segment}/{uuid}.{ext}
@@ -84,6 +87,7 @@ UPLOAD_PURPOSE_PATH_SEGMENT = {
     "trip_item_image": "trip-items",
     "delivery_proof": "delivery-proofs",
     "pickup_proof": "pickup-proofs",
+    "trip_voice_note": "voice-notes",
 }
 
 UPLOAD_PURPOSE_ALLOWED_EXTENSIONS = {
@@ -96,4 +100,5 @@ UPLOAD_PURPOSE_ALLOWED_EXTENSIONS = {
     "trip_item_image": UPLOAD_IMAGE_EXTENSIONS,
     "delivery_proof": UPLOAD_IMAGE_EXTENSIONS,
     "pickup_proof": UPLOAD_IMAGE_EXTENSIONS,
+    "trip_voice_note": UPLOAD_AUDIO_EXTENSIONS,
 }

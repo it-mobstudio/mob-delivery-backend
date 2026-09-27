@@ -1,0 +1,13 @@
+{% extends "console/base.html" %}
+{% load console %}
+{% block title %}API clients{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>API clients</h1><p>Machine logins companies book orders with. Secrets are shown once, when created with <code>manage.py create_api_client</code>.</p></div></div>
+<div class="card"><div class="table-wrap"><table class="t">
+  <thead><tr><th>Name</th><th>Company</th><th>Client ID</th><th>Created</th><th>Status</th><th></th></tr></thead>
+  <tbody>{% for c in rows %}
+    <tr><td><b>{{ c.name }}</b></td><td>{{ c.company.name }}</td><td class="mono small">{{ c.client_id }}</td><td class="small">{{ c.created_at|date:"j M Y" }}</td><td>{{ c.status|badge }}</td>
+      <td class="right"><form method="post" {% if c.status == 'active' %}data-confirm="Revoke {{ c.name }}? Its systems stop being able to book orders."{% endif %}>{% csrf_token %}<input type="hidden" name="id" value="{{ c.pk }}">
+        {% if c.status == 'active' %}<input type="hidden" name="action" value="revoke"><button class="btn btn-danger btn-sm">Revoke</button>{% else %}<input type="hidden" name="action" value="enable"><button class="btn btn-sm">Re-enable</button>{% endif %}</form></td></tr>
+  {% empty %}<tr><td colspan="6" class="empty">No API clients.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

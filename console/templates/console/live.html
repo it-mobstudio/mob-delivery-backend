@@ -1,0 +1,65 @@
+{% extends "console/base.html" %}
+{% load console %}
+{% block title %}Live map{% endblock %}
+{% block head %}<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"><style>.page{padding:0;max-width:none}</style>{% endblock %}
+{% block content %}
+<div class="live">
+  <div class="list">
+    <div style="padding:16px 16px 10px">
+      <div class="row-between"><h2>Live</h2><span class="muted small" id="updated">loading…</span></div>
+      <div class="grid g3" style="gap:8px;margin-top:12px">
+        <div class="card kpi" style="padding:10px 12px"><div class="label">Online</div><div class="value" style="font-size:20px;margin:2px 0 0" id="n-online">–</div></div>
+        <div class="card kpi" style="padding:10px 12px"><div class="label">On trip</div><div class="value" style="font-size:20px;margin:2px 0 0" id="n-busy">–</div></div>
+        <div class="card kpi" style="padding:10px 12px"><div class="label">Waiting</div><div class="value" style="font-size:20px;margin:2px 0 0;color:var(--red)" id="n-wait">–</div></div>
+      </div>
+      <div class="legend" style="margin-top:12px"><span><i class="dot" style="background:#0e9f6e"></i>Free driver</span><span><i class="dot" style="background:#1463ff"></i>On a trip</span><span><i class="dot" style="background:#d64534"></i>Needs a driver</span></div>
+    </div>
+    <div id="trip-list"></div>
+  </div>
+  <div id="map"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  var map = L.map("map", { zoomControl: true }).setView([20.6, 78.9], 5);
+  L.tileLayer(MOB_MAP.url, { maxZoom: 19, attribution: MOB_MAP.attribution }).addTo(map);
+  var layer = L.layerGroup().addTo(map), fitted = false, markers = {};
+  function dot(color, size) { return L.divIcon({ className: "", html: '<span style="display:block;width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35)"></span>', iconSize: [size, size], iconAnchor: [size / 2, size / 2] }); }
+  var tone = { assigned: "badge-blue", arrived_at_pickup: "badge-amber", in_progress: "badge-violet", requested: "badge-red", no_driver_available: "badge-red" };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function load() {
+    fetch("{% url 'console:live_data' %}", { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (d) {
+      layer.clearLayers(); markers = {};
+      var bounds = [];
+      d.drivers.forEach(function (x) {
+        var m = L.marker([x.lat, x.lng], { icon: dot(x.busy ? "#1463ff" : "#0e9f6e", 16) })
+          .bindPopup("<b>" + esc(x.name) + "</b><br>" + esc(x.phone) + (x.order ? "<br>On " + esc(x.order) : "<br>Free") + '<br><a href="' + x.url + '">Profile →</a>');
+        m.addTo(layer); bounds.push([x.lat, x.lng]);
+      });
+      var html = "";
+      d.trips.forEach(function (t) {
+        var waiting = t.status === "requested" || t.status === "no_driver_available";
+        var p = L.marker(t.pickup, { icon: dot(waiting ? "#d64534" : "#f0b24a", 12) }).bindPopup("<b>" + esc(t.number) + "</b> pickup<br>" + esc(t.pickup_name) + '<br><a href="' + t.url + '">Open order →</a>').addTo(layer);
+        L.polyline([t.pickup, t.drop], { color: waiting ? "#d64534" : "#1463ff", weight: 2, opacity: .5, dashArray: "6 6" }).addTo(layer);
+        markers[t.id] = p; bounds.push(t.pickup, t.drop);
+        html += '<div class="item" data-id="' + t.id + '"><div class="row-between"><b class="mono">' + esc(t.number) + '</b><span class="badge ' + (tone[t.status] || "badge-grey") + '"><i></i>' + esc(t.status_label) + '</span></div>' +
+          '<div class="muted small" style="margin-top:4px">' + esc(t.pickup_name) + " → " + esc(t.drop_name) + '</div><div class="small" style="margin-top:2px">' + (t.driver ? esc(t.driver) : '<span style="color:var(--red)">No driver yet</span>') + " · " + esc(t.vehicle_type) + '</div></div>';
+      });
+      document.getElementById("trip-list").innerHTML = html || '<div class="empty">Nothing on the road right now.</div>';
+      document.getElementById("n-online").textContent = d.drivers.length;
+      document.getElementById("n-busy").textContent = d.drivers.filter(function (x) { return x.busy; }).length;
+      document.getElementById("n-wait").textContent = d.trips.filter(function (t) { return t.status === "requested" || t.status === "no_driver_available"; }).length;
+      document.getElementById("updated").textContent = "updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
+      if (!fitted && bounds.length) { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 }); fitted = true; }
+    });
+  }
+  document.getElementById("trip-list").addEventListener("click", function (e) {
+    var item = e.target.closest(".item"); if (!item) return;
+    var m = markers[item.dataset.id]; if (m) { map.setView(m.getLatLng(), 15); m.openPopup(); }
+  });
+  load(); setInterval(load, 15000);
+})();
+</script>
+{% endblock %}

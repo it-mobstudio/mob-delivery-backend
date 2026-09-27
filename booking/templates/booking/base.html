@@ -1,0 +1,48 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1463ff">
+  <title>{% block title %}Book a vehicle{% endblock %} · MOB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'booking/booking.css' %}">
+  {% block head %}{% endblock %}
+<script>window.MOB_MAP = { url: "{{ map_tiles.url|escapejs }}", attribution: "{{ map_tiles.attribution|escapejs }}" };</script>
+</head>
+<body>
+{% block body %}{% endblock %}
+{% if customer %}
+<nav class="tabbar">
+  <a href="{% url 'booking:home' %}" class="{% if tab == 'book' %}on{% endif %}"><i data-lucide="map-pin"></i>Book</a>
+  <a href="{% url 'booking:trips' %}" class="{% if tab == 'trips' %}on{% endif %}"><i data-lucide="receipt-text"></i>Bookings</a>
+  <a href="{% url 'booking:profile' %}" class="{% if tab == 'profile' %}on{% endif %}"><i data-lucide="user-round"></i>Account</a>
+</nav>
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script>
+  window.MOB = { csrf: "{{ csrf_token }}", vehicleArt: "{% static 'vehicles/' %}" };
+  window.mobIcons = function () { if (window.lucide) lucide.createIcons(); };
+  window.mobToast = function (text) {
+    var t = document.createElement("div"); t.className = "toast"; t.textContent = text; document.body.appendChild(t);
+    setTimeout(function () { t.style.transition = "opacity .3s"; t.style.opacity = 0; }, 3200); setTimeout(function () { t.remove(); }, 3600);
+  };
+  window.mobApi = function (url, body) {
+    return fetch(url, { method: body ? "POST" : "GET", credentials: "same-origin",
+      headers: body ? { "Content-Type": "application/json", "X-CSRFToken": MOB.csrf } : {}, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "Something went wrong. Try again."); return d; }); });
+  };
+  window.mobArt = function (category, name) {
+    var n = (name || "").toLowerCase();
+    if (/truck|lorry|tonne|ft\b|container/.test(n) && n.indexOf("mini") < 0) return MOB.vehicleArt + "truck.svg";
+    if (/mini|ace|tempo|pickup|van|4 ?wheel/.test(n)) return MOB.vehicleArt + "mini_truck.svg";
+    if (/auto|rickshaw|3 ?wheel|loader/.test(n)) return MOB.vehicleArt + "auto.svg";
+    if (/bike|scoot|2 ?wheel|motor/.test(n)) return MOB.vehicleArt + "bike.svg";
+    return MOB.vehicleArt + ({ two_wheeler: "bike.svg", three_wheeler: "auto.svg" }[category] || "mini_truck.svg");
+  };
+  document.addEventListener("DOMContentLoaded", mobIcons);
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

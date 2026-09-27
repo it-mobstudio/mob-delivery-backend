@@ -5030,7 +5030,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "A trip"
                                     }
@@ -5300,7 +5302,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "At the pickup"
                                     }
@@ -5580,7 +5584,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": false
+                                            "verify_items": false,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "Cancelled by the driver"
                                     }
@@ -5938,7 +5944,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "Completed - the driver earned 89.30"
                                     }
@@ -6510,7 +6518,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "The order photo added"
                                     }
@@ -6857,7 +6867,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "Marked delivered, with a photo"
                                     },
@@ -6961,7 +6973,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "Marked not delivered, with a note"
                                     }
@@ -7259,7 +7273,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "Back to pending"
                                     }
@@ -8367,7 +8383,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "The order photo added"
                                     }
@@ -8647,7 +8665,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "On the way to the drop"
                                     }
@@ -8852,7 +8872,9 @@
                                                     "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                     "name": "Bike"
                                                 },
-                                                "verify_items": true
+                                                "verify_items": true,
+                                                "voice_note_seconds": null,
+                                                "voice_note_url": null
                                             }
                                         },
                                         "summary": "A trip is assigned"
@@ -12571,7 +12593,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "Booked and assigned to a driver"
                                     }
@@ -12811,7 +12835,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "A trip with a driver assigned"
                                     }
@@ -13073,7 +13099,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "A driver was found"
                                     }
@@ -13380,7 +13408,9 @@
                                                 "id": "725d6bae-1bdc-4a7a-ad03-8ef8ae0c6f13",
                                                 "name": "Bike"
                                             },
-                                            "verify_items": true
+                                            "verify_items": true,
+                                            "voice_note_seconds": null,
+                                            "voice_note_url": null
                                         },
                                         "summary": "Cancelled by the company"
                                     }
@@ -16985,10 +17015,11 @@
                 "enum": [
                     "company",
                     "driver",
-                    "system"
+                    "system",
+                    "customer"
                 ],
                 "type": "string",
-                "description": "* `company` - Company\n* `driver` - Driver\n* `system` - System"
+                "description": "* `company` - Company\n* `driver` - Driver\n* `system` - System\n* `customer` - Customer"
             },
             "Driver": {
                 "type": "object",
@@ -17048,7 +17079,7 @@
                     "onboarding_status": {
                         "type": "string",
                         "readOnly": true,
-                        "description": "Where the driver is in joining: `profile_incomplete`, `documents_required`, `under_review` (waiting for you), `action_required` (something was rejected) or `approved`. Derived from their profile and KYC; read-only."
+                        "description": "Where the driver is in joining: `profile_incomplete`, `documents_required`, `vehicle_required` (no own vehicle with a photo yet), `under_review` (waiting for you), `action_required` (something was rejected) or `approved`. Derived from their profile and KYC; read-only."
                     },
                     "aadhar_status": {
                         "type": "string",
@@ -17501,7 +17532,7 @@
                     "onboarding_status": {
                         "type": "string",
                         "readOnly": true,
-                        "description": "Where the driver is in joining: `profile_incomplete`, `documents_required`, `under_review` (waiting for you), `action_required` (something was rejected) or `approved`. Derived from their profile and KYC; read-only."
+                        "description": "Where the driver is in joining: `profile_incomplete`, `documents_required`, `vehicle_required` (no own vehicle with a photo yet), `under_review` (waiting for you), `action_required` (something was rejected) or `approved`. Derived from their profile and KYC; read-only."
                     },
                     "account_status": {
                         "allOf": [
@@ -17655,7 +17686,7 @@
                     "onboarding_status": {
                         "type": "string",
                         "readOnly": true,
-                        "description": "Where the driver is in joining: `profile_incomplete`, `documents_required`, `under_review`, `action_required` or `approved`. **Key the app's first screen on this.**"
+                        "description": "Where the driver is in joining: `profile_incomplete`, `documents_required`, `vehicle_required`, `under_review`, `action_required` or `approved`. **Key the app's first screen on this** — the driver can't take trips until `approved`."
                     },
                     "aadhar_status": {
                         "type": "string",
@@ -18125,6 +18156,19 @@
                         "readOnly": true,
                         "description": "Your note for the driver about the whole order, or empty."
                     },
+                    "voice_note_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true,
+                        "readOnly": true,
+                        "description": "A voice note for the driver (recorded in the console, or sent at booking), or `null`."
+                    },
+                    "voice_note_seconds": {
+                        "type": "integer",
+                        "readOnly": true,
+                        "nullable": true,
+                        "description": "The voice note's length in seconds, or `null`."
+                    },
                     "vehicle_type": {
                         "allOf": [
                             {
@@ -18338,7 +18382,7 @@
                             }
                         ],
                         "readOnly": true,
-                        "description": "Camera photos the driver owes at the pickup before starting: `none`, `order` (one of the whole package - `pickup_photo_url`) or `per_item` (one per item - `items[].pickup_photo_url`)."
+                        "description": "Camera photos the driver owes at the pickup before starting: `none`, `order` (one of the whole package - `pickup_photo_url`), `per_item` (one per item - `items[].pickup_photo_url`) or `both`."
                     },
                     "pickup_photo_url": {
                         "type": "string",
@@ -18354,7 +18398,7 @@
                             }
                         ],
                         "readOnly": true,
-                        "description": "Camera photos the driver owes at the drop before payment/completion: `none`, `order` (`delivery_photo_url`) or `per_item` (`items[].delivery_photo_url`)."
+                        "description": "Camera photos the driver owes at the drop before payment/completion: `none`, `order` (`delivery_photo_url`), `per_item` (`items[].delivery_photo_url`) or `both`."
                     },
                     "delivery_photo_url": {
                         "type": "string",
@@ -18501,7 +18545,9 @@
                     "updated_at",
                     "vehicle",
                     "vehicle_type",
-                    "verify_items"
+                    "verify_items",
+                    "voice_note_seconds",
+                    "voice_note_url"
                 ]
             },
             "DriverTripList": {
@@ -19681,10 +19727,11 @@
                 "enum": [
                     "none",
                     "order",
-                    "per_item"
+                    "per_item",
+                    "both"
                 ],
                 "type": "string",
-                "description": "* `none` - None\n* `order` - One photo of the whole order\n* `per_item` - One photo of every item"
+                "description": "* `none` - None\n* `order` - One photo of the whole order\n* `per_item` - One photo of every item\n* `both` - The whole order and every item"
             },
             "PointRequest": {
                 "type": "object",
@@ -19870,6 +19917,19 @@
                         "type": "string",
                         "readOnly": true,
                         "description": "Your note for the driver about the whole order, or empty."
+                    },
+                    "voice_note_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true,
+                        "readOnly": true,
+                        "description": "A voice note for the driver (recorded in the console, or sent at booking), or `null`."
+                    },
+                    "voice_note_seconds": {
+                        "type": "integer",
+                        "readOnly": true,
+                        "nullable": true,
+                        "description": "The voice note's length in seconds, or `null`."
                     },
                     "vehicle_type": {
                         "allOf": [
@@ -20084,7 +20144,7 @@
                             }
                         ],
                         "readOnly": true,
-                        "description": "Camera photos the driver owes at the pickup before starting: `none`, `order` (one of the whole package - `pickup_photo_url`) or `per_item` (one per item - `items[].pickup_photo_url`)."
+                        "description": "Camera photos the driver owes at the pickup before starting: `none`, `order` (one of the whole package - `pickup_photo_url`), `per_item` (one per item - `items[].pickup_photo_url`) or `both`."
                     },
                     "pickup_photo_url": {
                         "type": "string",
@@ -20100,7 +20160,7 @@
                             }
                         ],
                         "readOnly": true,
-                        "description": "Camera photos the driver owes at the drop before payment/completion: `none`, `order` (`delivery_photo_url`) or `per_item` (`items[].delivery_photo_url`)."
+                        "description": "Camera photos the driver owes at the drop before payment/completion: `none`, `order` (`delivery_photo_url`), `per_item` (`items[].delivery_photo_url`) or `both`."
                     },
                     "delivery_photo_url": {
                         "type": "string",
@@ -20238,7 +20298,9 @@
                     "updated_at",
                     "vehicle",
                     "vehicle_type",
-                    "verify_items"
+                    "verify_items",
+                    "voice_note_seconds",
+                    "voice_note_url"
                 ]
             },
             "TripCancelRequest": {
@@ -20307,6 +20369,27 @@
                         "maxLength": 500,
                         "description": "A note for the driver about the whole order - \"Call before arriving\", \"Use gate 2\". Shown on the order details screen. Optional, up to 500 characters."
                     },
+                    "voice_note_url": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "format": "uri",
+                                "maxLength": 500
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ],
+                        "description": "A short voice note for the driver (at most 30 s): a link to a `.wav`, `.m4a`, `.mp3` or `.aac` file. Host it yourself, or `POST /uploads` with `purpose=trip_voice_note`. The driver app shows a play button. Optional."
+                    },
+                    "voice_note_seconds": {
+                        "type": "integer",
+                        "maximum": 30,
+                        "minimum": 1,
+                        "nullable": true,
+                        "description": "The voice note's length in seconds (1-30), so the app can show it before loading. Optional."
+                    },
                     "invoice_url": {
                         "oneOf": [
                             {
@@ -20338,7 +20421,7 @@
                             }
                         ],
                         "default": "none",
-                        "description": "Photos the driver must take **with the phone's camera** at the pickup before the delivery can start: `none` (default), `order` - one photo of the whole package, or `per_item` - one photo of every item (requires `items`). Kept as proof of what left the pickup."
+                        "description": "Photos the driver must take **with the phone's camera** at the pickup before the delivery can start: `none` (default), `order` - one photo of the whole package, `per_item` - one photo of every item, or `both` - the whole package and every item (`per_item`/`both` require `items`). Kept as proof of what left the pickup."
                     },
                     "delivery_otp": {
                         "type": "boolean",
@@ -20352,7 +20435,7 @@
                             }
                         ],
                         "default": "none",
-                        "description": "The same at the **drop**: camera photos the driver must take once the delivery is under way, before it can be paid for or completed - `none` (default), `order` or `per_item` (requires `items`). Kept as proof of delivery."
+                        "description": "The same at the **drop**: camera photos the driver must take once the delivery is under way, before it can be paid for or completed - `none` (default), `order`, `per_item` or `both` (the last two require `items`). Kept as proof of delivery."
                     },
                     "items": {
                         "type": "array",
@@ -20859,7 +20942,7 @@
                         "type": "string",
                         "format": "uuid",
                         "nullable": true,
-                        "description": "Which item the photo shows - one of the trip's `items[].id`. **Required when the order's `pickup_photo` (or, for delivery photos, `delivery_photo`) is `per_item`**; leave out for `order`."
+                        "description": "Which item the photo shows - one of the trip's `items[].id`. **Required when the order's `pickup_photo` (or, for delivery photos, `delivery_photo`) is `per_item`**; leave out for `order`. With `both`, leave it out for the whole-order photo and send it for each item's."
                     }
                 },
                 "required": [
@@ -20917,10 +21000,11 @@
                     "trip_invoice",
                     "trip_item_image",
                     "delivery_proof",
-                    "pickup_proof"
+                    "pickup_proof",
+                    "trip_voice_note"
                 ],
                 "type": "string",
-                "description": "* `vehicle_type_icon` - Vehicle Type Icon\n* `vehicle_photo` - Vehicle Photo\n* `vehicle_document` - Vehicle Document\n* `driver_document` - Driver Document\n* `driver_photo` - Driver Photo\n* `trip_invoice` - Trip Invoice\n* `trip_item_image` - Trip Item Image\n* `delivery_proof` - Delivery Proof Photo\n* `pickup_proof` - Pickup Proof Photo"
+                "description": "* `vehicle_type_icon` - Vehicle Type Icon\n* `vehicle_photo` - Vehicle Photo\n* `vehicle_document` - Vehicle Document\n* `driver_document` - Driver Document\n* `driver_photo` - Driver Photo\n* `trip_invoice` - Trip Invoice\n* `trip_item_image` - Trip Item Image\n* `delivery_proof` - Delivery Proof Photo\n* `pickup_proof` - Pickup Proof Photo\n* `trip_voice_note` - Trip Voice Note"
             },
             "UploadRequest": {
                 "type": "object",
@@ -20936,7 +21020,7 @@
                                 "$ref": "#/components/schemas/UploadPurposeEnum"
                             }
                         ],
-                        "description": "What the file is for. It decides where the file is stored and which types are accepted.\n\n* `vehicle_type_icon` - Vehicle Type Icon\n* `vehicle_photo` - Vehicle Photo\n* `vehicle_document` - Vehicle Document\n* `driver_document` - Driver Document\n* `driver_photo` - Driver Photo\n* `trip_invoice` - Trip Invoice\n* `trip_item_image` - Trip Item Image\n* `delivery_proof` - Delivery Proof Photo\n* `pickup_proof` - Pickup Proof Photo"
+                        "description": "What the file is for. It decides where the file is stored and which types are accepted.\n\n* `vehicle_type_icon` - Vehicle Type Icon\n* `vehicle_photo` - Vehicle Photo\n* `vehicle_document` - Vehicle Document\n* `driver_document` - Driver Document\n* `driver_photo` - Driver Photo\n* `trip_invoice` - Trip Invoice\n* `trip_item_image` - Trip Item Image\n* `delivery_proof` - Delivery Proof Photo\n* `pickup_proof` - Pickup Proof Photo\n* `trip_voice_note` - Trip Voice Note"
                     }
                 },
                 "required": [
@@ -22051,7 +22135,7 @@
         },
         {
             "name": "Errors",
-            "description": "## The error envelope\n\nEvery error - from a validation failure to a business rule - has the same shape:\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"TRIP_NOT_CANCELLABLE\",\n    \"message\": \"A trip in status 'in_progress' cannot be cancelled.\"\n  }\n}\n```\n\n| Field | Meaning |\n|---|---|\n| `success` | Always `false` for an error. (Successful responses don't have this wrapper: the body **is** the resource.) |\n| `error.code` | A **stable, machine-readable** code. **Branch on this.** |\n| `error.message` | A sentence for people. Safe to show a user, but it may be reworded - **never match on it.** |\n| `error.details` | Only for `INVALID`: an object naming every bad field, `{\"field\": [\"problem\", ...]}`. |\n\n## Validation errors: `INVALID`\n\nWhen a request has bad or missing fields you get **HTTP 400** with code `INVALID` and a `details` object listing **every** problem at once, so you can fix them in one go. Nothing is changed.\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"INVALID\",\n    \"message\": \"Request could not be processed.\",\n    \"details\": {\n      \"pickup\": [\"This field is required.\"],\n      \"drop\": {\"contact_phone\": [\"Required for a COD trip - the finalizing OTP is sent to this number.\"]}\n    }\n  }\n}\n```\n\nNested objects appear under their own field name; list items are keyed by position.\n\n## Handling errors well\n\n1. **Look at the HTTP status first** - it tells you the *class* of problem (fix the request, get a new token, retry later).\n2. **Then `error.code`** - it tells you exactly which rule. Show the `message` to people, but decide behaviour from the `code`.\n3. **`5xx` and `429` are retryable** with a pause. `4xx` are not - repeating the same request gives the same error. The exception is `401 TOKEN_NOT_VALID`: get a new token, then retry once.\n4. **`409` means \"the world is not in the state this call needs\"** - fetch the resource and look at its current status before deciding what to do.\n\n## Every error code\n\nThe table below is generated from the same catalogue the endpoint pages use, so it is always complete. Each endpoint page lists the codes that **it** can return.\n\n### General\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `INVALID` | 400 | The request body, query string or form is missing a required field or has a value that isn't acceptable. `details` names every offending field. | Read `error.details` (`{field: [problems]}`), fix each field and resend. Nothing was changed. |\n| `PARSE_ERROR` | 400 | The body could not be parsed - usually malformed JSON, or a `Content-Type` that doesn't match the body. | Send valid JSON with `Content-Type: application/json` (or `multipart/form-data` on the upload endpoints). |\n| `UNSUPPORTED_MEDIA_TYPE` | 415 | The endpoint doesn't accept the `Content-Type` you sent (e.g. JSON sent to a file-upload endpoint). | Use the content type shown on the endpoint's request body (`multipart/form-data` for uploads). |\n| `NOT_FOUND` | 404 | No such resource - or it belongs to another company. The API never confirms that other companies' data exists. | Check the id. If it came from this API it may have been deleted, or the token belongs to a different company. |\n| `METHOD_NOT_ALLOWED` | 405 | The path exists but not for that HTTP method. | Use the method shown in this documentation. |\n\n### Authentication & access\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `NOT_AUTHENTICATED` | 401 | No `Authorization` header was sent. | Send `Authorization: Bearer <access token>`. See the Authentication guide. |\n| `TOKEN_NOT_VALID` | 401 | The bearer token is expired, malformed, or was signed by another environment. | Get a new token (API clients: `POST /auth/client-token`; admins and drivers: use the refresh endpoint). |\n| `AUTHENTICATION_FAILED` | 401 | Wrong credentials (client id/secret, email/password), or the account behind a valid token is inactive. | Check the credentials. For an API client, confirm it is still active in the admin panel. |\n| `PERMISSION_DENIED` | 403 | You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse). | Use the right principal for the endpoint - each operation lists who may call it. |\n| `NOT_YOUR_TRIP` | 403 | A driver called a trip endpoint for a trip that isn't assigned to them. | Only act on trips returned by `GET /driver/trips/active` or `GET /driver/trips`. |\n| `INVALID_REFRESH_TOKEN` | 401 | The driver's refresh token has expired or was already used up. | Send the driver through the OTP login again. |\n| `INVALID_OTP` | 400 | The login OTP is wrong or has expired (OTPs last 5 minutes). | Ask for a new OTP with `POST /driver/auth/otp/request`. |\n| `DRIVER_NOT_FOUND` | 404 | Sign-up is closed on this server and no driver is registered with this phone number. (When sign-up is open, an unknown number simply becomes a new driver.) | Ask the company to register the driver (`POST /drivers`), or check the number (`+919000000001`). |\n| `DRIVER_PHONE_AMBIGUOUS` | 409 | The same phone number belongs to drivers in more than one company, so the login can't tell which one to use. | Contact support - phone numbers must be unique across companies. |\n| `ACCOUNT_DISABLED` | 403 | The company has disabled this driver. | Nothing to retry - the company has to re-enable the driver. |\n| `ACCOUNT_LOCKED` | 403 | The driver's account is locked because their driving licence has expired. | The driver has to submit a valid licence, then the company re-verifies it. |\n\n### Trips\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `VEHICLE_TYPE_NOT_FOUND` | 404 | `vehicle_type_id` doesn't match an active vehicle type of your company. | List your vehicle types with `GET /vehicle-types` and use one of those ids. |\n| `FARE_NOT_CONFIGURED` | 422 | The vehicle type has no fare card, so a price can't be calculated. | Configure the fare fields on the vehicle type (`base_fare`, `per_km_rate`, ...). |\n| `ROUTING_UNAVAILABLE` | 503 | The routing engine couldn't route between the pickup and the drop (out of coverage, or the engine is down). | Check the coordinates are inside the served area; otherwise retry shortly. |\n| `TRIP_NOT_RETRYABLE` | 409 | You tried to (re)assign a trip that isn't in `no_driver_available`. | Only trips with status `no_driver_available` can be assigned again. |\n| `TRIP_NOT_CANCELLABLE` | 409 | The trip is past the point where it can be cancelled (in progress, completed, or already cancelled). | Trips can be cancelled up to `arrived_at_pickup`. Fetch the trip to see its current status. |\n| `INVALID_TRIP_STATUS_TRANSITION` | 409 | The driver action isn't valid for the trip's current status (e.g. `start` before `arrive`). | Fetch the trip and follow the lifecycle: arrive -> start -> (pay) -> complete. |\n| `TRIP_NOT_ACTIVE` | 409 | Navigation was requested for a trip that has nothing left to navigate to (completed or cancelled). | Stop asking for navigation once the trip is finished. |\n| `DRIVER_HAS_ACTIVE_TRIP` | 409 | The driver can't do this (go off duty, change vehicle, delete the account, be disabled) while a trip is active. | Complete or cancel the active trip first. |\n| `INVALID_DELIVERY_OTP` | 400 | The delivery OTP the driver entered is wrong or has expired (valid for 5 minutes). | Re-enter it, or resend it with `POST /driver/trips/{id}/delivery-otp/resend`. |\n| `OTP_ALREADY_REQUESTED` | 429 | A delivery OTP was sent for this trip less than 30 seconds ago. | Wait for the cool-down (30 s) and try again. |\n\n### Payments\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `NOT_COD_TRIP` | 409 | A payment step was used on a prepaid trip. Prepaid trips take no payment at the drop. | Skip payment for `payment_mode = prepaid` and complete the trip directly. |\n| `TRIP_NOT_IN_PROGRESS` | 409 | The payment code is only available once the delivery has started (`in_progress`). | Call `start` first. |\n| `ALREADY_PAID` | 409 | The trip's fare has already been paid (the customer scanned an earlier code, or it was collected already). | Nothing to collect - go on to the delivery OTP and `complete`. |\n| `PAYMENT_NOT_RECEIVED` | 409 | The driver asked the server to confirm the payment, and the payment provider has no payment for this trip's code yet (or it was for less than the fare). | Not a fault: ask the customer to scan and pay, then check again in a moment. |\n| `PAYMENT_NOT_COLLECTED` | 409 | `complete` was called on a COD trip before its payment was confirmed. | Show the payment code and wait for the payment before completing. |\n| `PAYMENT_PROVIDER_ERROR` | 502 | The payment provider (Razorpay) refused a request or sent an answer that couldn't be read. The message says why. | Retry once; if it persists, contact the platform operator with the message. |\n| `PAYMENT_PROVIDER_UNAVAILABLE` | 503 | The payment provider couldn't be reached or is failing. | Retry in a moment. Nothing was charged and the trip is unchanged. |\n| `PAYMENT_PROVIDER_NOT_CONFIGURED` | 503 | This server has no (valid) payment-provider keys - or the keys are valid but Razorpay's QR Codes product isn't activated on the account (Razorpay answers \"The requested URL was not found\" for that). | Operator action: set the Razorpay keys, and if they are set, ask Razorpay support to activate QR Codes on the account (see the Payments guide). |\n\n### Items & invoices\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `ITEMS_NOT_VERIFIED` | 409 | The order asked for its items to be verified (`verify_items: true`) and some are still unanswered. Payment and completion are blocked until every item is marked delivered / not delivered. | Have the driver answer each item (`POST /driver/trips/{id}/items/{item_id}/verify`), then retry. |\n| `ITEM_NOT_FOUND` | 404 | `item_id` isn't an item of this trip. | Use the ids in the trip's `items` array. |\n| `VERIFICATION_NOT_REQUESTED` | 409 | The driver tried to verify items on an order created without `verify_items`. | Only orders created with `verify_items: true` have a verification step. |\n| `PICKUP_PHOTOS_REQUIRED` | 409 | The order was booked with `pickup_photo` (`order` or `per_item`) and the driver hasn't taken all of those photos yet, so the delivery can't start. | Have the driver take them (`POST /driver/trips/{id}/pickup-photo`), then retry. |\n| `DELIVERY_PHOTOS_REQUIRED` | 409 | The order was booked with `delivery_photo` (`order` or `per_item`) and the driver hasn't taken all of those photos at the drop yet, so it can't be paid for or completed. | Have the driver take them (`POST /driver/trips/{id}/delivery-photo`), then retry. |\n| `DELIVERY_PHOTO_NOT_REQUESTED` | 409 | The driver sent a delivery photo for an order booked with `delivery_photo: none`. | Only orders booked with `delivery_photo: order` or `per_item` take delivery photos. |\n| `PICKUP_PHOTO_NOT_REQUESTED` | 409 | The driver sent a pickup photo for an order booked with `pickup_photo: none`. | Only orders booked with `pickup_photo: order` or `per_item` take pickup photos. |\n\n### Driver duty & vehicles\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `DRIVER_NOT_ELIGIBLE` | 403 | The driver can't go on duty: KYC isn't fully verified or the account isn't active. | Finish onboarding and wait for the company's approval (see `onboarding_status` on `GET /driver/me`). |\n| `VEHICLE_CATEGORY_NOT_ALLOWED` | 403 | The driver's verified licence doesn't cover this vehicle's category. | Choose a vehicle from `GET /driver/vehicles` (it lists only what the driver may take). |\n| `VEHICLE_IN_USE` | 409 | Another driver is on duty with this vehicle. | Pick another vehicle. |\n| `VEHICLE_NOT_ACTIVE` | 409 | The vehicle has been disabled by the company. | Pick another vehicle. |\n| `VEHICLE_LIMIT_REACHED` | 409 | The driver already has the maximum number of vehicles they can register (10). | Remove one (`DELETE /driver/my-vehicles/{id}`) before adding another. |\n| `PHOTO_LIMIT_REACHED` | 409 | The vehicle already has the maximum number of pictures (6). | Remove one (`DELETE /driver/my-vehicles/{id}/photos/{photo_id}`) before adding another. |\n| `VEHICLE_ON_DUTY` | 409 | The driver tried to remove the vehicle they are on duty with. | Go off duty (`POST /driver/duty/end`) first. |\n\n### Driver onboarding\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `PROFILE_LOCKED` | 409 | Name and date of birth can't change once the driver's ID has been verified. | Ask the company's support to correct it. |\n| `KYC_ALREADY_VERIFIED` | 409 | The driver tried to re-submit a document the company already verified. | Nothing to do; contact support if it must change. |\n\n### Uploads & webhooks\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `INVALID_UPLOAD` | 400 | The file isn't an acceptable image/PDF (wrong type, too large, or corrupt). | Send a JPEG/PNG/WebP (or a PDF where documents allow it) within the size limit. |\n| `INVALID_SIGNATURE` | 400 | The webhook's `X-Razorpay-Signature` doesn't match the body - it wasn't sent by Razorpay (or the secret is wrong). | Only Razorpay should call this endpoint. Check `RAZORPAY_WEBHOOK_SECRET` matches the secret in the Razorpay dashboard. |\n| `INVALID_PAYLOAD` | 400 | The webhook body isn't a JSON object. | Razorpay always sends JSON; this only happens with hand-made requests. |\n| `WEBHOOK_NOT_CONFIGURED` | 503 | The server has no webhook secret, so it can't tell real Razorpay calls from fake ones and refuses all of them. | Operator action: set `RAZORPAY_WEBHOOK_SECRET`. |\n\n### Wallet & payouts\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `INVALID_AMOUNT` | 400 | A wallet entry's amount is zero, or isn't positive for a payout, bonus or penalty (the server applies the sign for those kinds). | Send a positive amount for `payout`, `bonus` and `penalty`. Only `adjustment` may be negative, and none may be zero. |\n| `INVALID_KIND` | 400 | A trip-earning entry was posted by hand. Earnings are credited automatically when a trip completes. (The request schema doesn't allow `trip_earning`, so an ordinary client gets `INVALID` first.) | Post only `payout`, `bonus`, `penalty` or `adjustment`. |\n| `INSUFFICIENT_BALANCE` | 409 | The payout is more than what the company currently owes the driver. | Read `GET /drivers/{id}/wallet` and pay out at most the `balance`. |\n| `WALLET_BALANCE_PENDING` | 409 | The driver tried to delete their account while the company still owes them money. | The company pays the balance out first, then the driver can delete the account. |\n\n### Fleet\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `VEHICLE_HAS_ACTIVE_TRIP` | 409 | The vehicle can't be disabled while a trip is using it. | Wait until the trip is finished, then disable it. |\n| `VEHICLE_TYPE_IN_USE` | 409 | The vehicle type can't be deleted while vehicles still use it. | Re-assign or remove those vehicles first (or mark the type inactive instead of deleting). |",
+            "description": "## The error envelope\n\nEvery error - from a validation failure to a business rule - has the same shape:\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"TRIP_NOT_CANCELLABLE\",\n    \"message\": \"A trip in status 'in_progress' cannot be cancelled.\"\n  }\n}\n```\n\n| Field | Meaning |\n|---|---|\n| `success` | Always `false` for an error. (Successful responses don't have this wrapper: the body **is** the resource.) |\n| `error.code` | A **stable, machine-readable** code. **Branch on this.** |\n| `error.message` | A sentence for people. Safe to show a user, but it may be reworded - **never match on it.** |\n| `error.details` | Only for `INVALID`: an object naming every bad field, `{\"field\": [\"problem\", ...]}`. |\n\n## Validation errors: `INVALID`\n\nWhen a request has bad or missing fields you get **HTTP 400** with code `INVALID` and a `details` object listing **every** problem at once, so you can fix them in one go. Nothing is changed.\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"INVALID\",\n    \"message\": \"Request could not be processed.\",\n    \"details\": {\n      \"pickup\": [\"This field is required.\"],\n      \"drop\": {\"contact_phone\": [\"Required for a COD trip - the finalizing OTP is sent to this number.\"]}\n    }\n  }\n}\n```\n\nNested objects appear under their own field name; list items are keyed by position.\n\n## Handling errors well\n\n1. **Look at the HTTP status first** - it tells you the *class* of problem (fix the request, get a new token, retry later).\n2. **Then `error.code`** - it tells you exactly which rule. Show the `message` to people, but decide behaviour from the `code`.\n3. **`5xx` and `429` are retryable** with a pause. `4xx` are not - repeating the same request gives the same error. The exception is `401 TOKEN_NOT_VALID`: get a new token, then retry once.\n4. **`409` means \"the world is not in the state this call needs\"** - fetch the resource and look at its current status before deciding what to do.\n\n## Every error code\n\nThe table below is generated from the same catalogue the endpoint pages use, so it is always complete. Each endpoint page lists the codes that **it** can return.\n\n### General\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `INVALID` | 400 | The request body, query string or form is missing a required field or has a value that isn't acceptable. `details` names every offending field. | Read `error.details` (`{field: [problems]}`), fix each field and resend. Nothing was changed. |\n| `PARSE_ERROR` | 400 | The body could not be parsed - usually malformed JSON, or a `Content-Type` that doesn't match the body. | Send valid JSON with `Content-Type: application/json` (or `multipart/form-data` on the upload endpoints). |\n| `UNSUPPORTED_MEDIA_TYPE` | 415 | The endpoint doesn't accept the `Content-Type` you sent (e.g. JSON sent to a file-upload endpoint). | Use the content type shown on the endpoint's request body (`multipart/form-data` for uploads). |\n| `NOT_FOUND` | 404 | No such resource - or it belongs to another company. The API never confirms that other companies' data exists. | Check the id. If it came from this API it may have been deleted, or the token belongs to a different company. |\n| `METHOD_NOT_ALLOWED` | 405 | The path exists but not for that HTTP method. | Use the method shown in this documentation. |\n\n### Authentication & access\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `NOT_AUTHENTICATED` | 401 | No `Authorization` header was sent. | Send `Authorization: Bearer <access token>`. See the Authentication guide. |\n| `TOKEN_NOT_VALID` | 401 | The bearer token is expired, malformed, or was signed by another environment. | Get a new token (API clients: `POST /auth/client-token`; admins and drivers: use the refresh endpoint). |\n| `AUTHENTICATION_FAILED` | 401 | Wrong credentials (client id/secret, email/password), or the account behind a valid token is inactive. | Check the credentials. For an API client, confirm it is still active in the admin panel. |\n| `PERMISSION_DENIED` | 403 | You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse). | Use the right principal for the endpoint - each operation lists who may call it. |\n| `NOT_YOUR_TRIP` | 403 | A driver called a trip endpoint for a trip that isn't assigned to them. | Only act on trips returned by `GET /driver/trips/active` or `GET /driver/trips`. |\n| `INVALID_REFRESH_TOKEN` | 401 | The driver's refresh token has expired or was already used up. | Send the driver through the OTP login again. |\n| `INVALID_PHONE` | 400 | A customer signing in on the booking web app (/book/) gave a number that isn't a 10-digit Indian mobile number. | Send 10 digits (optionally with +91). |\n| `INVALID_OTP` | 400 | The login OTP is wrong or has expired (OTPs last 5 minutes). | Ask for a new OTP with `POST /driver/auth/otp/request`. |\n| `DRIVER_NOT_FOUND` | 404 | Sign-up is closed on this server and no driver is registered with this phone number. (When sign-up is open, an unknown number simply becomes a new driver.) | Ask the company to register the driver (`POST /drivers`), or check the number (`+919000000001`). |\n| `DRIVER_PHONE_AMBIGUOUS` | 409 | The same phone number belongs to drivers in more than one company, so the login can't tell which one to use. | Contact support - phone numbers must be unique across companies. |\n| `ACCOUNT_DISABLED` | 403 | The company has disabled this driver. | Nothing to retry - the company has to re-enable the driver. |\n| `ACCOUNT_LOCKED` | 403 | The driver's account is locked because their driving licence has expired. | The driver has to submit a valid licence, then the company re-verifies it. |\n\n### Trips\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `BOOKING_CLOSED` | 503 | The customer booking web app has no company to book with (BOOKING_COMPANY_ID / DRIVER_SIGNUP_COMPANY_ID isn't set). | Operator action: set BOOKING_COMPANY_ID to the company whose fleet serves customer bookings. |\n| `VEHICLE_TYPE_NOT_FOUND` | 404 | `vehicle_type_id` doesn't match an active vehicle type of your company. | List your vehicle types with `GET /vehicle-types` and use one of those ids. |\n| `FARE_NOT_CONFIGURED` | 422 | The vehicle type has no fare card, so a price can't be calculated. | Configure the fare fields on the vehicle type (`base_fare`, `per_km_rate`, ...). |\n| `ROUTING_UNAVAILABLE` | 503 | The routing engine couldn't route between the pickup and the drop (out of coverage, or the engine is down). | Check the coordinates are inside the served area; otherwise retry shortly. |\n| `TRIP_NOT_RETRYABLE` | 409 | You tried to (re)assign a trip that isn't in `no_driver_available`. | Only trips with status `no_driver_available` can be assigned again. |\n| `TRIP_NOT_ASSIGNABLE` | 409 | Someone tried to give an order to a driver by hand after it had reached the pickup (or finished). | Only orders that are requested, have no driver, or are assigned but not yet at the pickup can be (re)assigned. |\n| `DRIVER_NOT_AVAILABLE` | 409 | The driver chosen for a manual assignment can't take the order right now. | Pick a driver who is online, verified, free, and on a vehicle of the order's type (the operations console lists them). |\n| `TRIP_NOT_CANCELLABLE` | 409 | The trip is past the point where it can be cancelled (in progress, completed, or already cancelled). | Trips can be cancelled up to `arrived_at_pickup`. Fetch the trip to see its current status. |\n| `INVALID_TRIP_STATUS_TRANSITION` | 409 | The driver action isn't valid for the trip's current status (e.g. `start` before `arrive`). | Fetch the trip and follow the lifecycle: arrive -> start -> (pay) -> complete. |\n| `TRIP_NOT_ACTIVE` | 409 | Navigation was requested for a trip that has nothing left to navigate to (completed or cancelled). | Stop asking for navigation once the trip is finished. |\n| `DRIVER_HAS_ACTIVE_TRIP` | 409 | The driver can't do this (go off duty, change vehicle, delete the account, be disabled) while a trip is active. | Complete or cancel the active trip first. |\n| `INVALID_DELIVERY_OTP` | 400 | The delivery OTP the driver entered is wrong or has expired (valid for 5 minutes). | Re-enter it, or resend it with `POST /driver/trips/{id}/delivery-otp/resend`. |\n| `OTP_ALREADY_REQUESTED` | 429 | A delivery OTP was sent for this trip less than 30 seconds ago. | Wait for the cool-down (30 s) and try again. |\n\n### Payments\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `NOT_COD_TRIP` | 409 | A payment step was used on a prepaid trip. Prepaid trips take no payment at the drop. | Skip payment for `payment_mode = prepaid` and complete the trip directly. |\n| `TRIP_NOT_IN_PROGRESS` | 409 | The payment code is only available once the delivery has started (`in_progress`). | Call `start` first. |\n| `ALREADY_PAID` | 409 | The trip's fare has already been paid (the customer scanned an earlier code, or it was collected already). | Nothing to collect - go on to the delivery OTP and `complete`. |\n| `PAYMENT_NOT_RECEIVED` | 409 | The driver asked the server to confirm the payment, and the payment provider has no payment for this trip's code yet (or it was for less than the fare). | Not a fault: ask the customer to scan and pay, then check again in a moment. |\n| `PAYMENT_NOT_COLLECTED` | 409 | `complete` was called on a COD trip before its payment was confirmed. | Show the payment code and wait for the payment before completing. |\n| `PAYMENT_PROVIDER_ERROR` | 502 | The payment provider (Razorpay) refused a request or sent an answer that couldn't be read. The message says why. | Retry once; if it persists, contact the platform operator with the message. |\n| `PAYMENT_PROVIDER_UNAVAILABLE` | 503 | The payment provider couldn't be reached or is failing. | Retry in a moment. Nothing was charged and the trip is unchanged. |\n| `PAYMENT_PROVIDER_NOT_CONFIGURED` | 503 | This server has no (valid) payment-provider keys - or the keys are valid but Razorpay's QR Codes product isn't activated on the account (Razorpay answers \"The requested URL was not found\" for that). | Operator action: set the Razorpay keys, and if they are set, ask Razorpay support to activate QR Codes on the account (see the Payments guide). |\n\n### Items & invoices\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `ITEMS_NOT_VERIFIED` | 409 | The order asked for its items to be verified (`verify_items: true`) and some are still unanswered. Payment and completion are blocked until every item is marked delivered / not delivered. | Have the driver answer each item (`POST /driver/trips/{id}/items/{item_id}/verify`), then retry. |\n| `ITEM_NOT_FOUND` | 404 | `item_id` isn't an item of this trip. | Use the ids in the trip's `items` array. |\n| `VERIFICATION_NOT_REQUESTED` | 409 | The driver tried to verify items on an order created without `verify_items`. | Only orders created with `verify_items: true` have a verification step. |\n| `PICKUP_PHOTOS_REQUIRED` | 409 | The order was booked with `pickup_photo` (`order` or `per_item`) and the driver hasn't taken all of those photos yet, so the delivery can't start. | Have the driver take them (`POST /driver/trips/{id}/pickup-photo`), then retry. |\n| `DELIVERY_PHOTOS_REQUIRED` | 409 | The order was booked with `delivery_photo` (`order` or `per_item`) and the driver hasn't taken all of those photos at the drop yet, so it can't be paid for or completed. | Have the driver take them (`POST /driver/trips/{id}/delivery-photo`), then retry. |\n| `DELIVERY_PHOTO_NOT_REQUESTED` | 409 | The driver sent a delivery photo for an order booked with `delivery_photo: none`. | Only orders booked with `delivery_photo: order` or `per_item` take delivery photos. |\n| `PICKUP_PHOTO_NOT_REQUESTED` | 409 | The driver sent a pickup photo for an order booked with `pickup_photo: none`. | Only orders booked with `pickup_photo: order` or `per_item` take pickup photos. |\n\n### Driver duty & vehicles\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `DRIVER_NOT_ELIGIBLE` | 403 | The driver can't go on duty: KYC isn't fully verified or the account isn't active. | Finish onboarding and wait for the company's approval (see `onboarding_status` on `GET /driver/me`). |\n| `VEHICLE_CATEGORY_NOT_ALLOWED` | 403 | The driver's verified licence doesn't cover this vehicle's category. | Choose a vehicle from `GET /driver/vehicles` (it lists only what the driver may take). |\n| `VEHICLE_IN_USE` | 409 | Another driver is on duty with this vehicle. | Pick another vehicle. |\n| `VEHICLE_NOT_ACTIVE` | 409 | The vehicle has been disabled by the company. | Pick another vehicle. |\n| `VEHICLE_LIMIT_REACHED` | 409 | The driver already has the maximum number of vehicles they can register (10). | Remove one (`DELETE /driver/my-vehicles/{id}`) before adding another. |\n| `PHOTO_LIMIT_REACHED` | 409 | The vehicle already has the maximum number of pictures (6). | Remove one (`DELETE /driver/my-vehicles/{id}/photos/{photo_id}`) before adding another. |\n| `VEHICLE_ON_DUTY` | 409 | The driver tried to remove the vehicle they are on duty with. | Go off duty (`POST /driver/duty/end`) first. |\n\n### Driver onboarding\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `PROFILE_LOCKED` | 409 | Name and date of birth can't change once the driver's ID has been verified. | Ask the company's support to correct it. |\n| `KYC_ALREADY_VERIFIED` | 409 | The driver tried to re-submit a document the company already verified. | Nothing to do; contact support if it must change. |\n\n### Uploads & webhooks\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `INVALID_UPLOAD` | 400 | The file isn't an acceptable image/PDF (wrong type, too large, or corrupt). | Send a JPEG/PNG/WebP (or a PDF where documents allow it) within the size limit. |\n| `INVALID_SIGNATURE` | 400 | The webhook's `X-Razorpay-Signature` doesn't match the body - it wasn't sent by Razorpay (or the secret is wrong). | Only Razorpay should call this endpoint. Check `RAZORPAY_WEBHOOK_SECRET` matches the secret in the Razorpay dashboard. |\n| `INVALID_PAYLOAD` | 400 | The webhook body isn't a JSON object. | Razorpay always sends JSON; this only happens with hand-made requests. |\n| `WEBHOOK_NOT_CONFIGURED` | 503 | The server has no webhook secret, so it can't tell real Razorpay calls from fake ones and refuses all of them. | Operator action: set `RAZORPAY_WEBHOOK_SECRET`. |\n\n### Wallet & payouts\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `INVALID_AMOUNT` | 400 | A wallet entry's amount is zero, or isn't positive for a payout, bonus or penalty (the server applies the sign for those kinds). | Send a positive amount for `payout`, `bonus` and `penalty`. Only `adjustment` may be negative, and none may be zero. |\n| `INVALID_KIND` | 400 | A trip-earning entry was posted by hand. Earnings are credited automatically when a trip completes. (The request schema doesn't allow `trip_earning`, so an ordinary client gets `INVALID` first.) | Post only `payout`, `bonus`, `penalty` or `adjustment`. |\n| `INSUFFICIENT_BALANCE` | 409 | The payout is more than what the company currently owes the driver. | Read `GET /drivers/{id}/wallet` and pay out at most the `balance`. |\n| `WALLET_BALANCE_PENDING` | 409 | The driver tried to delete their account while the company still owes them money. | The company pays the balance out first, then the driver can delete the account. |\n\n### Fleet\n\n| Code | HTTP | When it happens | What to do |\n|---|---|---|---|\n| `VEHICLE_HAS_ACTIVE_TRIP` | 409 | The vehicle can't be disabled while a trip is using it. | Wait until the trip is finished, then disable it. |\n| `VEHICLE_TYPE_IN_USE` | 409 | The vehicle type can't be deleted while vehicles still use it. | Re-assign or remove those vehicles first (or mark the type inactive instead of deleting). |",
             "x-traitTag": true
         },
         {

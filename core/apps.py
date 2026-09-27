@@ -10,3 +10,4 @@ class CoreConfig(AppConfig):
         from .openapi import register
 
         register()
+

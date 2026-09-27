@@ -1,0 +1,251 @@
+/* MOB operations admin — a calm, modern skin over Django's admin. Built on the
+   admin's own CSS variables so its dark mode keeps working. */
+:root, html[data-theme="light"] {
+  --primary: #176bff;
+  --secondary: #0b1b2e;
+  --accent: #ffffff;
+  --primary-fg: #fff;
+  --body-fg: #1f2d3d;
+  --body-bg: #ffffff;
+  --body-quiet-color: #66788a;
+  --body-medium-color: #3c4b5c;
+  --body-loud-color: #0b1b2e;
+  --header-color: #cfd8e3;
+  --header-branding-color: #fff;
+  --header-bg: #0b1b2e;
+  --header-link-color: #fff;
+  --breadcrumbs-fg: #66788a;
+  --breadcrumbs-link-fg: #176bff;
+  --breadcrumbs-bg: #f4f7fb;
+  --link-fg: #176bff;
+  --link-hover-color: #0b4fcc;
+  --link-selected-fg: #0b4fcc;
+  --hairline-color: #eaeef3;
+  --border-color: #dfe5ec;
+  --darkened-bg: #f4f7fb;
+  --selected-bg: #eaf2ff;
+  --selected-row: #f0f6ff;
+  --button-bg: #176bff;
+  --button-hover-bg: #0b58e0;
+  --default-button-bg: #0b1b2e;
+  --default-button-hover-bg: #1f344d;
+  --close-button-bg: #66788a;
+  --object-tools-bg: #0b1b2e;
+  --object-tools-hover-bg: #1f344d;
+  --mob-card: #ffffff;
+  --mob-soft: #f4f7fb;
+  --mob-shadow: 0 1px 2px rgba(15, 41, 66, .05), 0 8px 24px rgba(15, 41, 66, .06);
+  --mob-attn-bg: #fff7e8;
+  --mob-attn-fg: #7a4a00;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+  --primary: #4d8dff;
+    --secondary: #0b1b2e;
+    --accent: #ffffff;
+    --primary-fg: #fff;
+    --body-fg: #d9e1ea;
+    --body-bg: #0f141d;
+    --body-quiet-color: #8d9aaa;
+    --body-medium-color: #b6c2cf;
+    --body-loud-color: #f2f5f9;
+    --header-color: #cfd8e3;
+    --header-branding-color: #fff;
+    --header-bg: #0b1320;
+    --header-link-color: #fff;
+    --breadcrumbs-fg: #8d9aaa;
+    --breadcrumbs-link-fg: #7aa8ff;
+    --breadcrumbs-bg: #141a25;
+    --link-fg: #7aa8ff;
+    --link-hover-color: #a9c6ff;
+    --link-selected-fg: #a9c6ff;
+    --hairline-color: #232b38;
+    --border-color: #2c3544;
+    --darkened-bg: #141a25;
+    --selected-bg: #1c2a44;
+    --selected-row: #17223a;
+    --button-bg: #2f6fe6;
+    --button-hover-bg: #4d8dff;
+    --default-button-bg: #2f6fe6;
+    --default-button-hover-bg: #4d8dff;
+    --close-button-bg: #4a5566;
+    --object-tools-bg: #2c3544;
+    --object-tools-hover-bg: #3b4659;
+    --mob-card: #161c27;
+    --mob-soft: #1b2230;
+    --mob-shadow: none;
+    --mob-attn-bg: #3a2e14;
+    --mob-attn-fg: #ffd98a;
+    color-scheme: dark;
+  }
+}
+html[data-theme="dark"] {
+  --primary: #4d8dff;
+  --secondary: #0b1b2e;
+  --accent: #ffffff;
+  --primary-fg: #fff;
+  --body-fg: #d9e1ea;
+  --body-bg: #0f141d;
+  --body-quiet-color: #8d9aaa;
+  --body-medium-color: #b6c2cf;
+  --body-loud-color: #f2f5f9;
+  --header-color: #cfd8e3;
+  --header-branding-color: #fff;
+  --header-bg: #0b1320;
+  --header-link-color: #fff;
+  --breadcrumbs-fg: #8d9aaa;
+  --breadcrumbs-link-fg: #7aa8ff;
+  --breadcrumbs-bg: #141a25;
+  --link-fg: #7aa8ff;
+  --link-hover-color: #a9c6ff;
+  --link-selected-fg: #a9c6ff;
+  --hairline-color: #232b38;
+  --border-color: #2c3544;
+  --darkened-bg: #141a25;
+  --selected-bg: #1c2a44;
+  --selected-row: #17223a;
+  --button-bg: #2f6fe6;
+  --button-hover-bg: #4d8dff;
+  --default-button-bg: #2f6fe6;
+  --default-button-hover-bg: #4d8dff;
+  --close-button-bg: #4a5566;
+  --object-tools-bg: #2c3544;
+  --object-tools-hover-bg: #3b4659;
+  --mob-card: #161c27;
+  --mob-soft: #1b2230;
+  --mob-shadow: none;
+  --mob-attn-bg: #3a2e14;
+  --mob-attn-fg: #ffd98a;
+  color-scheme: dark;
+}
+
+body, input, textarea, select, button, .button { font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif !important; }
+body { font-size: 14px; letter-spacing: -.005em; }
+#header { padding: 12px 28px; box-shadow: 0 1px 0 rgba(255,255,255,.06); }
+.mob-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+.mob-brand__mark { width: 28px; height: 28px; border-radius: 8px; background: #176bff; color: #fff; display: inline-grid; place-items: center; font-weight: 700; font-size: 15px; }
+div.breadcrumbs { padding: 10px 28px; font-size: 13px; border-bottom: 1px solid var(--hairline-color); }
+#content { padding: 24px 28px; }
+#content h1 { font-weight: 700; letter-spacing: -.02em; }
+.module, #changelist .changelist-form-container, .inline-group .module { border-radius: 12px; }
+.module h2, .module caption, .inline-group h2 { background: var(--mob-soft); color: var(--body-loud-color); font-weight: 600; font-size: 13px; letter-spacing: 0; text-transform: none; padding: 10px 14px; border-radius: 12px 12px 0 0; }
+#changelist .actions { border-radius: 10px; }
+#result_list thead th { background: var(--mob-soft); font-weight: 600; text-transform: none; font-size: 12px; color: var(--body-quiet-color); }
+#result_list td, #result_list th { vertical-align: middle; padding: 10px 10px; }
+#result_list tbody tr:hover td, #result_list tbody tr:hover th { background: var(--selected-row); }
+input[type=text], input[type=search], input[type=email], input[type=number], input[type=password], input[type=url], textarea, select, .vTextField { border-radius: 8px !important; padding: 7px 10px !important; }
+.button, input[type=submit], input[type=button], .submit-row input, a.button { border-radius: 8px !important; font-weight: 600; }
+#changelist-search input[type=submit] { padding: 7px 14px; }
+#nav-sidebar .module th a, #nav-sidebar .module caption { font-weight: 500; }
+#changelist-filter { border-radius: 12px; }
+#changelist-filter h2 { border-radius: 12px 12px 0 0; }
+.paginator { font-size: 13px; }
+fieldset.module { box-shadow: var(--mob-shadow); background: var(--mob-card); }
+
+/* Badges, previews, links */
+.mob-badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; line-height: 1.4; }
+.mob-badge--green { background: #e3f7ec; color: #0e7a4e; }
+.mob-badge--red { background: #fde8e6; color: #b3372a; }
+.mob-badge--amber { background: #fff3db; color: #9a5b00; }
+.mob-badge--blue { background: #e6efff; color: #0b4fcc; }
+.mob-badge--violet { background: #efe9ff; color: #5b3fc4; }
+.mob-badge--grey { background: #eef1f5; color: #52606d; }
+.mob-muted { color: var(--body-quiet-color); }
+.mob-thumb { object-fit: cover; border-radius: 10px; border: 1px solid var(--hairline-color); background: var(--mob-soft); display: block; transition: transform .15s ease; }
+a:hover > .mob-thumb { transform: scale(1.03); }
+.mob-doc { display: inline-block; padding: 6px 10px; border-radius: 8px; background: var(--mob-soft); font-weight: 600; font-size: 12px; }
+.mob-gallery { display: flex; flex-wrap: wrap; gap: 14px; }
+.mob-gallery figure { margin: 0; }
+.mob-gallery figcaption { font-size: 12px; color: var(--body-quiet-color); margin-top: 6px; max-width: 150px; }
+.mob-stack { display: flex; flex-direction: column; gap: 2px; }
+.mob-sub { font-size: 12px; color: var(--body-quiet-color); }
+.mob-route { display: grid; grid-template-columns: 10px 1fr; gap: 2px 8px; align-items: start; max-width: 360px; }
+.mob-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; }
+.mob-dot--pickup { background: #16a36a; } .mob-dot--drop { background: #d94d3d; }
+.mob-timeline { list-style: none; margin: 0; padding: 0; }
+.mob-timeline li { display: flex; gap: 10px; padding: 4px 0; }
+.mob-timeline b { min-width: 150px; font-weight: 500; color: var(--body-quiet-color); }
+
+/* Dashboard */
+.mob-dash { display: flex; flex-direction: column; gap: 22px; }
+.mob-dash__bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.mob-seg { display: inline-flex; background: var(--mob-soft); border-radius: 10px; padding: 3px; gap: 2px; }
+.mob-seg a { padding: 6px 12px; border-radius: 8px; font-weight: 500; font-size: 13px; color: var(--body-medium-color); }
+.mob-seg a.is-on { background: var(--mob-card); color: var(--body-loud-color); box-shadow: var(--mob-shadow); }
+.mob-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+.mob-card { background: var(--mob-card); border: 1px solid var(--hairline-color); border-radius: 14px; box-shadow: var(--mob-shadow); padding: 16px 18px; }
+a.mob-card { display: block; color: inherit; transition: border-color .15s ease, transform .15s ease; }
+a.mob-card:hover { border-color: #b7cdf8; transform: translateY(-1px); text-decoration: none; }
+.mob-kpi__label { font-size: 12.5px; color: var(--body-quiet-color); font-weight: 500; }
+.mob-kpi__value { font-size: 26px; font-weight: 700; letter-spacing: -.02em; color: var(--body-loud-color); margin: 6px 0 2px; }
+.mob-kpi__value.is-red { color: #b3372a; }
+.mob-kpi__hint { font-size: 12px; color: var(--body-quiet-color); }
+.mob-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+.mob-grid--even { grid-template-columns: 1fr 1fr; }
+@media (max-width: 1100px) { .mob-grid, .mob-grid--even { grid-template-columns: 1fr; } }
+.mob-card h3 { margin: 0 0 14px; font-size: 14.5px; font-weight: 600; color: var(--body-loud-color); display: flex; justify-content: space-between; align-items: baseline; }
+.mob-card h3 small { font-weight: 500; color: var(--body-quiet-color); font-size: 12px; }
+.mob-chart { display: flex; align-items: flex-end; gap: 4px; height: 180px; padding-top: 8px; border-bottom: 1px solid var(--hairline-color); }
+.mob-chart__col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; position: relative; min-width: 4px; }
+.mob-chart__col span { display: block; width: 100%; }
+.mob-chart__col .c-done { background: #16a36a; border-radius: 0 0 3px 3px; }
+.mob-chart__col .c-other { background: #8fb4ff; }
+.mob-chart__col .c-cancel { background: #f0a39a; border-radius: 3px 3px 0 0; }
+.mob-chart__col:hover::after { content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #0b1b2e; color: #fff; font-size: 11px; padding: 4px 7px; border-radius: 6px; white-space: nowrap; margin-bottom: 6px; z-index: 2; }
+.mob-chart__axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--body-quiet-color); margin-top: 6px; }
+.mob-legend { display: flex; gap: 14px; font-size: 12px; color: var(--body-quiet-color); margin-top: 10px; }
+.mob-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.mob-rows { display: flex; flex-direction: column; gap: 10px; }
+.mob-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; font-size: 13px; }
+.mob-meter { grid-column: 1 / -1; height: 6px; background: var(--mob-soft); border-radius: 6px; overflow: hidden; }
+.mob-meter span { display: block; height: 100%; background: #176bff; border-radius: 6px; }
+.mob-attn a { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--mob-attn-bg); color: var(--mob-attn-fg); font-weight: 500; margin-bottom: 8px; }
+.mob-attn a b { background: #fff; color: #9a5b00; border-radius: 999px; padding: 1px 9px; font-size: 12px; }
+.mob-empty { color: var(--body-quiet-color); font-size: 13px; padding: 8px 0; }
+.mob-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.mob-table td, .mob-table th { padding: 9px 6px; border-bottom: 1px solid var(--hairline-color); text-align: left; background: none; }
+.mob-table th { font-weight: 600; color: var(--body-quiet-color); font-size: 12px; }
+.mob-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+.mob-photos a { display: block; font-size: 11.5px; color: var(--body-quiet-color); }
+.mob-photos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 1px solid var(--hairline-color); display: block; margin-bottom: 5px; }
+.mob-apps { columns: 3 220px; column-gap: 14px; }
+.mob-apps .mob-card { break-inside: avoid; margin-bottom: 14px; padding: 12px 16px; }
+.mob-apps h4 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--body-quiet-color); }
+.mob-apps a { display: block; padding: 4px 0; font-weight: 500; }
+
+/* Django's index page is 600px wide; the dashboard uses the whole screen. */
+.dashboard #content { width: auto !important; max-width: 1400px; margin-right: 0; }
+.dashboard #content-main { float: none; width: 100%; }
+
+/* Quieter links: underline on hover only. */
+a:link, a:visited { text-decoration: none; }
+a:hover, a:focus-visible { text-decoration: underline; }
+#user-tools a { border-bottom: none; text-decoration: none; }
+#user-tools { font-size: 12.5px; text-transform: none; letter-spacing: 0; }
+.mob-seg a:hover, a.mob-card:hover, .mob-photos a:hover, .mob-attn a:hover { text-decoration: none; }
+
+/* List pages */
+#result_list .column-route, #result_list td.field-route { min-width: 280px; }
+#result_list td.field-order, #result_list td.field-person { min-width: 150px; }
+.mob-route > span { line-height: 1.35; }
+#changelist-filter h2 { background: var(--mob-soft); color: var(--body-loud-color); }
+#changelist-filter h3 { font-size: 12.5px; font-weight: 600; color: var(--body-medium-color); }
+#changelist-filter li a { font-size: 13px; }
+#nav-sidebar .module caption, #nav-sidebar .module h2 { background: transparent; color: var(--body-quiet-color); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; padding: 14px 12px 6px; }
+#nav-sidebar .module th a { color: var(--body-medium-color); }
+#nav-sidebar .current-model { background: var(--selected-bg); }
+
+/* Detail pages: soft section headers instead of heavy dark bars. */
+fieldset.module h2, .module h2, fieldset.module > h2, .inline-group .module h2 { background: var(--mob-soft) !important; color: var(--body-loud-color) !important; font-weight: 600; font-size: 13.5px; border-bottom: 1px solid var(--hairline-color); }
+fieldset.module { border: 1px solid var(--hairline-color); border-radius: 12px; overflow: hidden; }
+.form-row { padding: 12px 14px; }
+.readonly { font-size: 14px; }
+/* Links: no underline until hovered (beats Django's more specific rules). */
+/* Django 6 underlines every link through a high-specificity :not() rule. */
+#container a { text-decoration: none !important; }
+#container a:hover, #container a:focus-visible { text-decoration: underline !important; }
+#container .mob-seg a:hover, #container a.mob-card:hover, #container .mob-photos a:hover, #container .mob-attn a:hover { text-decoration: none !important; }
+/* Sidebar group names */
+#nav-sidebar caption a, #nav-sidebar caption { color: var(--body-quiet-color) !important; background: transparent !important; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+#nav-sidebar .module { margin-bottom: 6px; }

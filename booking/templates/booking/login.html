@@ -1,0 +1,104 @@
+{% extends "booking/base.html" %}
+{% load static %}
+{% block title %}Sign in{% endblock %}
+{% block body %}
+<div class="auth">
+  <div class="box">
+    <div class="brand"><span class="brand-mark">M</span>MOB</div>
+    <div class="vehicles-strip">
+      <img src="{% static 'vehicles/bike.svg' %}" alt=""><img src="{% static 'vehicles/auto.svg' %}" alt=""><img src="{% static 'vehicles/mini_truck.svg' %}" alt=""><img src="{% static 'vehicles/truck.svg' %}" alt="">
+    </div>
+
+    <form id="step-phone">
+      <h1>Move anything, anywhere</h1>
+      <p class="muted" style="margin:6px 0 20px">Book a bike, auto, mini truck or truck in seconds. Sign in with your phone.</p>
+      <label class="field">Mobile number
+        <div class="phone"><span>+91</span><input id="phone" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="98765 43210" required></div>
+      </label>
+      <p class="error" id="phone-error"></p>
+      <button class="btn btn-primary" id="send">Get OTP</button>
+      <p class="small muted" style="text-align:center;margin:14px 0 0">By continuing you agree to receive an SMS with a one-time code.</p>
+    </form>
+
+    <form id="step-otp" hidden>
+      <button type="button" class="btn btn-ghost" id="back" style="width:auto;padding:0;margin-bottom:6px"><i data-lucide="arrow-left"></i> Change number</button>
+      <h1>Enter the code</h1>
+      <p class="muted" style="margin:6px 0 20px">Sent to <b id="sent-to"></b></p>
+      <div class="otp">{% for i in "1234" %}<input inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Digit {{ i }}">{% endfor %}</div>
+      <p class="hint" id="debug" hidden></p>
+      <p class="error" id="otp-error" style="text-align:center"></p>
+      <button class="btn btn-primary" id="verify">Verify &amp; continue</button>
+      <button type="button" class="btn btn-ghost" id="resend" disabled>Resend code</button>
+    </form>
+
+    <form id="step-name" hidden>
+      <h1>What should we call you?</h1>
+      <p class="muted" style="margin:6px 0 20px">Drivers see this name when they pick up your goods.</p>
+      <label class="field">Your name<input id="name" autocomplete="name" required></label>
+      <p class="error"></p>
+      <button class="btn btn-primary">Start booking</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var phoneForm = document.getElementById("step-phone"), otpForm = document.getElementById("step-otp"), nameForm = document.getElementById("step-name");
+  var digits = otpForm.querySelectorAll(".otp input"), phone = "", timer;
+  var next = "{{ next|escapejs }}" || "{% url 'booking:home' %}";
+  function busy(btn, on, label) { btn.disabled = on; btn.innerHTML = on ? '<span class="spin"></span>' : label; }
+  function send(e) {
+    if (e) e.preventDefault();
+    var btn = document.getElementById("send"), raw = document.getElementById("phone").value.replace(/\D/g, "");
+    document.getElementById("phone-error").textContent = "";
+    if (raw.length !== 10) { document.getElementById("phone-error").textContent = "Enter your 10-digit mobile number."; return; }
+    busy(btn, true);
+    mobApi("{% url 'booking:api_otp_request' %}", { phone: raw }).then(function (d) {
+      phone = d.phone; document.getElementById("sent-to").textContent = d.phone;
+      var dbg = document.getElementById("debug");
+      if (d.debug_otp) { dbg.hidden = false; dbg.textContent = "Test mode: your code is " + d.debug_otp; } else { dbg.hidden = true; }
+      phoneForm.hidden = true; otpForm.hidden = false; digits[0].focus(); countdown(); mobIcons();
+    }).catch(function (err) { document.getElementById("phone-error").textContent = err.message; })
+      .finally(function () { busy(btn, false, "Get OTP"); });
+  }
+  function countdown() {
+    var r = document.getElementById("resend"), s = 30; r.disabled = true; clearInterval(timer);
+    timer = setInterval(function () { s--; r.textContent = s > 0 ? "Resend code in " + s + "s" : "Resend code"; if (s <= 0) { clearInterval(timer); r.disabled = false; } }, 1000);
+  }
+  function code() { return Array.prototype.map.call(digits, function (d) { return d.value; }).join(""); }
+  function verify(e) {
+    if (e) e.preventDefault();
+    var btn = document.getElementById("verify"), err = document.getElementById("otp-error");
+    if (code().length !== 4) { err.textContent = "Enter all 4 digits."; return; }
+    busy(btn, true); err.textContent = "";
+    mobApi("{% url 'booking:api_otp_verify' %}", { phone: phone, otp: code() }).then(function (d) {
+      if (d.new) { otpForm.hidden = true; nameForm.hidden = false; document.getElementById("name").focus(); }
+      else window.location = next;
+    }).catch(function (x) { err.textContent = x.message; digits.forEach(function (d) { d.value = ""; }); digits[0].focus(); })
+      .finally(function () { busy(btn, false, "Verify &amp; continue"); });
+  }
+  digits.forEach(function (input, i) {
+    input.addEventListener("input", function () {
+      input.value = input.value.replace(/\D/g, "").slice(-1);
+      if (input.value && i < digits.length - 1) digits[i + 1].focus();
+      if (code().length === 4) verify();
+    });
+    input.addEventListener("keydown", function (e) { if (e.key === "Backspace" && !input.value && i > 0) digits[i - 1].focus(); });
+    input.addEventListener("paste", function (e) {
+      var t = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 4); if (!t) return;
+      e.preventDefault(); t.split("").forEach(function (c, j) { digits[j].value = c; }); if (t.length === 4) verify();
+    });
+  });
+  phoneForm.addEventListener("submit", send);
+  otpForm.addEventListener("submit", verify);
+  document.getElementById("resend").addEventListener("click", function () { phoneForm.hidden = false; otpForm.hidden = true; send(); });
+  document.getElementById("back").addEventListener("click", function () { otpForm.hidden = true; phoneForm.hidden = false; });
+  nameForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var body = new FormData(); body.append("full_name", document.getElementById("name").value); body.append("csrfmiddlewaretoken", MOB.csrf);
+    fetch("{% url 'booking:profile' %}", { method: "POST", body: body, credentials: "same-origin" }).then(function () { window.location = next; });
+  });
+})();
+</script>
+{% endblock %}

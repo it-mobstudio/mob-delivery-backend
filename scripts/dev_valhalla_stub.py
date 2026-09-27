@@ -63,10 +63,13 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.rstrip("/") != "/route":
             return self._send(404, {"error": "only POST /route is stubbed"})
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
-        origin, dest = body["locations"][0], body["locations"][1]
-        a, b = (origin["lat"], origin["lon"]), (dest["lat"], dest["lon"])
-        km = haversine_km(a, b) * 1.3
-        self._send(200, {"trip": {"summary": {"length": km, "time": km / 25 * 3600}, "legs": [{"shape": encode_polyline(curved_path(a, b))}]}})
+        points = [(loc["lat"], loc["lon"]) for loc in body["locations"]]
+        legs, total = [], 0.0
+        for a, b in zip(points, points[1:]):  # one leg per pair of stops, like Valhalla
+            km = haversine_km(a, b) * 1.3
+            total += km
+            legs.append({"shape": encode_polyline(curved_path(a, b)), "summary": {"length": km, "time": km / 25 * 3600}})
+        self._send(200, {"trip": {"summary": {"length": total, "time": total / 25 * 3600}, "legs": legs}})
 
     def do_GET(self):  # /status, so a health check (or curl) has something to hit
         self._send(200, {"stub": True})

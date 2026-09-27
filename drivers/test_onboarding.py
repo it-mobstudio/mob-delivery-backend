@@ -59,6 +59,18 @@ class SignupMixin(DriverTestMixin):
             format="multipart",
         )
 
+    def add_vehicle(self, client, photos=1, plate="KA05MN7788"):
+        """The driver's own vehicle, with a photo — the last thing they give."""
+        from drivers.models import Driver, VehicleType
+
+        company = Driver.objects.get(phone_number=PHONE).company
+        vt = VehicleType.objects.filter(company=company).first() or VehicleType.objects.create(
+            company=company, name="Bike", category="two_wheeler", default_capacity_kg=20)
+        data = {"vehicle_type_id": str(vt.id), "registration_number": plate}
+        if photos:
+            data["photos"] = [image_file(f"v{i}.jpg") for i in range(photos)]
+        return client.post("/api/v1/driver/my-vehicles", data, format="multipart")
+
     def submit_dl(self, client, expiry=None, **extra):
         expiry = expiry or (date.today() + timedelta(days=400))
         return client.post(
@@ -392,7 +404,12 @@ class OnboardingStatusTests(SignupMixin, TestCase):
         self.assertEqual(self.status(), "documents_required")  # still no licence
 
         self.submit_dl(self.client_)
-        self.assertEqual(self.status(), "under_review")  # police cert is optional to upload
+        self.assertEqual(self.status(), "vehicle_required")  # police cert is optional to upload
+
+        self.add_vehicle(self.client_, photos=0, plate="KA05MN0001")
+        self.assertEqual(self.status(), "vehicle_required", "a vehicle needs a photo to be reviewed")
+        self.add_vehicle(self.client_)
+        self.assertEqual(self.status(), "under_review")
 
         DriverKycService.verify_aadhar(self.driver, VerificationStatus.VERIFIED, admin_id=None)
         DriverKycService.verify_police(self.driver, VerificationStatus.VERIFIED, admin_id=None)
@@ -413,6 +430,7 @@ class OnboardingStatusTests(SignupMixin, TestCase):
         self.fill_profile(self.client_)
         self.submit_aadhar(self.client_)
         self.submit_dl(self.client_)
+        self.add_vehicle(self.client_)
         DriverKycService.verify_dl(self.driver, VerificationStatus.REJECTED, admin_id=None, note="Expiry unreadable")
         self.assertEqual(self.status(), "action_required")
 
@@ -447,6 +465,7 @@ class OnboardingStatusTests(SignupMixin, TestCase):
         self.fill_profile(self.client_)
         self.submit_aadhar(self.client_)
         self.submit_dl(self.client_)
+        self.add_vehicle(self.client_)
 
         admin = self.admin_client()
         kyc = admin.get(f"/api/v1/drivers/{self.driver.id}/kyc").json()
@@ -535,6 +554,7 @@ class ApproveDriverCommandTests(SignupMixin, TestCase):
         self.fill_profile(self.client_)
         self.submit_aadhar(self.client_)
         self.submit_dl(self.client_)
+        self.add_vehicle(self.client_)
 
     def run_command(self, *args):
         from io import StringIO

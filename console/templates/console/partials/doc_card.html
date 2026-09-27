@@ -1,0 +1,28 @@
+{% load console %}
+<div class="doc-card">
+  <div class="row-between" style="padding:12px 14px">
+    <div class="stack"><b>{{ doc.title }}</b>{% if doc.when %}<span class="muted small">Decided {{ doc.when|ago }}</span>{% endif %}</div>
+    {{ doc.status|badge }}
+  </div>
+  <div class="imgs" data-gallery>
+    {% for label, url, pdf in doc.imgs %}
+      {% if pdf %}<a class="shot doc" href="{{ url }}" target="_blank" rel="noopener">{% icon 'file-text' 28 %}<span class="small">{{ label }} (PDF)</span></a>
+      {% else %}<a class="shot" href="{{ url }}" data-lightbox data-caption="{{ d.full_name }} · {{ doc.title }} · {{ label }}"><img src="{{ url }}" alt="{{ label }}" loading="lazy"><span class="tag">{{ label }}</span></a>{% endif %}
+    {% empty %}<div class="muted small" style="padding:18px">Not uploaded yet.</div>{% endfor %}
+  </div>
+  {% if doc.facts %}<dl class="kv" style="padding:12px 14px 0">{% for k, v in doc.facts %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endfor %}</dl>{% endif %}
+  {% if doc.note %}<div class="note" style="margin:12px 14px 0">{% icon 'message-square-warning' 16 %}<div><b>Rejected:</b> {{ doc.note }}</div></div>{% endif %}
+  {% if can_edit and doc.imgs %}
+  <div class="foot">
+    <form method="post" action="{% url 'console:driver_kyc' d.pk %}" class="row" style="flex-wrap:wrap">{% csrf_token %}
+      <input type="hidden" name="doc" value="{{ doc.key }}"><input type="hidden" name="decision" value="approve"><input type="hidden" name="next" value="{{ next_url }}">
+      {% if doc.key == 'dl' %}
+        <label class="small row" style="gap:6px">Expires <input type="date" name="dl_expiry" value="{{ kyc.dl_expiry_date|date:'Y-m-d' }}" required></label>
+        {% for value, name in categories %}<label class="small row" style="gap:4px"><input type="checkbox" name="dl_categories" value="{{ value }}" {% if value in kyc.dl_allowed_categories or not kyc.dl_allowed_categories %}checked{% endif %}>{{ name }}</label>{% endfor %}
+      {% endif %}
+      <button class="btn btn-success btn-sm">{% icon 'check' 15 %} Approve</button>
+    </form>
+    <button class="btn btn-danger btn-sm" data-open="reject-modal" data-set-doc="{{ doc.key }}" data-set-title="{{ doc.title }}" data-set-driver="{{ d.pk }}" data-set-next="{{ next_url }}">{% icon 'x' 15 %} Reject</button>
+  </div>
+  {% endif %}
+</div>

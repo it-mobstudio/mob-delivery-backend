@@ -6,7 +6,12 @@ from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage
 from PIL import Image
 
-from .constants import UPLOAD_IMAGE_EXTENSIONS, UPLOAD_PURPOSE_ALLOWED_EXTENSIONS, UPLOAD_PURPOSE_PATH_SEGMENT
+from .constants import (
+    UPLOAD_AUDIO_EXTENSIONS,
+    UPLOAD_IMAGE_EXTENSIONS,
+    UPLOAD_PURPOSE_ALLOWED_EXTENSIONS,
+    UPLOAD_PURPOSE_PATH_SEGMENT,
+)
 
 
 class UploadService:
@@ -34,7 +39,18 @@ class UploadService:
                 f"Unsupported file type '.{ext}' for purpose '{purpose}'. Allowed: {sorted(allowed)}."
             )
 
-        if ext == "pdf":
+        if ext in UPLOAD_AUDIO_EXTENSIONS:
+            head = file.read(12)
+            file.seek(0)
+            looks_right = {
+                "wav": head[:4] == b"RIFF" and head[8:12] == b"WAVE",
+                "m4a": head[4:8] == b"ftyp",
+                "mp3": head[:3] == b"ID3" or head[:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"),
+                "aac": head[:2] in (b"\xff\xf1", b"\xff\xf9"),
+            }[ext]
+            if not looks_right:
+                raise ValidationError("File is not a valid audio recording.")
+        elif ext == "pdf":
             head = file.read(5)
             file.seek(0)
             if head != b"%PDF-":

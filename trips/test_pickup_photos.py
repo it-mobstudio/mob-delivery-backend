@@ -275,3 +275,58 @@ class OrderNumberTests(OrderNoteTests):
         self.assertTrue(first["order_number"].startswith(prefix), first["order_number"])
         n1, n2 = (int(t["order_number"][len(prefix):]) for t in (first, second))
         self.assertEqual(n2, n1 + 1)
+
+
+@LOCMEM_CACHES
+class BothPhotoModeTests(DriverTestMixin, TestCase):
+    """`both`: one photo of the whole order *and* one of every item."""
+
+    def setUp(self):
+        super().setUp()
+        self.driver = self.make_driver()
+        self.vehicle = self.make_vehicle()
+        self.client = self.driver_client(self.driver)
+        self.trip = self.make_trip(self.driver, self.vehicle, status=TripStatus.ARRIVED_AT_PICKUP,
+                                   pickup_photo=PickupPhotoMode.BOTH, payment_mode=PaymentMode.PREPAID,
+                                   payment_status=PaymentStatus.PAID)
+        self.item = TripItem.objects.create(company=self.company, trip=self.trip, name="Tap")
+
+    def upload(self, item=None):
+        data = {"photo": image_file("p.jpg")}
+        if item:
+            data["item_id"] = str(item.id)
+        return self.client.post(f"{DRIVER_TRIPS}/{self.trip.id}/pickup-photo", data, format="multipart")
+
+    def start(self):
+        return self.client.post(f"{DRIVER_TRIPS}/{self.trip.id}/start")
+
+    def test_it_needs_the_order_photo_and_every_item_photo(self):
+        self.assertIsNotNone(self.upload().json()["pickup_photo_url"])  # no item_id: the whole order
+        self.assertEqual(self.start().status_code, 409)
+        self.assertIsNotNone(self.upload(self.item).json()["items"][0]["pickup_photo_url"])
+        self.assertEqual(self.start().status_code, 200)
+
+    def test_items_alone_are_not_enough(self):
+        self.upload(self.item)
+        self.assertEqual(self.start().json()["error"]["code"], "PICKUP_PHOTOS_REQUIRED")
+
+
+@LOCMEM_CACHES
+class VoiceNoteTests(OrderNoteTests):
+    def test_a_booking_can_carry_a_voice_note(self):
+        body = self.book(voice_note_url="https://files.example.com/note.m4a", voice_note_seconds=12).json()
+        self.assertEqual((body["voice_note_url"], body["voice_note_seconds"]), ("https://files.example.com/note.m4a", 12))
+        self.assertEqual(self.book(voice_note_seconds=45, voice_note_url="https://x.example.com/n.mp3").status_code, 400)
+
+    def test_voice_notes_must_be_real_audio(self):
+        from django.core.exceptions import ValidationError
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from core.uploads import UploadService
+
+        wav = b"RIFF\x24\x00\x00\x00WAVEfmt " + b"\x00" * 32
+        UploadService.validate(SimpleUploadedFile("n.wav", wav), "trip_voice_note")
+        with self.assertRaises(ValidationError):
+            UploadService.validate(SimpleUploadedFile("n.wav", b"not audio at all"), "trip_voice_note")
+        with self.assertRaises(ValidationError):
+            UploadService.validate(SimpleUploadedFile("n.exe", wav), "trip_voice_note")

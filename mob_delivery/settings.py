@@ -22,7 +22,7 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    "core.admin_apps.MobAdminConfig",  # Django admin + the operations dashboard
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -35,6 +35,8 @@ INSTALLED_APPS = [
     "accounts",
     "drivers",
     "trips",
+    "console",
+    "booking",
 ]
 
 MIDDLEWARE = [
@@ -67,13 +69,17 @@ ROOT_URLCONF = "mob_delivery.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        # core/templates first, so the admin's look (admin/base_site.html)
+        # and dashboard override Django's own templates.
+        "DIRS": [BASE_DIR / "core" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "console.context.console",
+                "core.context.maps",
             ],
         },
     },
@@ -122,6 +128,8 @@ USE_TZ = True
 
 
 STATIC_URL = "static/"
+# `manage.py collectstatic` gathers the admin's CSS/JS here for the web server to serve.
+STATIC_ROOT = env("STATIC_ROOT", default=str(BASE_DIR / "staticfiles"))
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
@@ -201,6 +209,13 @@ DRIVER_OTP_DEBUG_RESPONSE = env.bool("DRIVER_OTP_DEBUG_RESPONSE", default=DEBUG)
 # only active company, if there's exactly one, is used so local dev needs no
 # setup. See DriverService.signup_company.
 DRIVER_SIGNUP_COMPANY_ID = env("DRIVER_SIGNUP_COMPANY_ID", default="")
+# Whose fleet serves the customer booking web app (/book/). Empty: the driver
+# sign-up company, or — in DEBUG — the only company that has vehicle types.
+BOOKING_COMPANY_ID = env("BOOKING_COMPANY_ID", default="")
+# Web map tiles (console + booking). Esri's street map needs no key; set your
+# own provider (e.g. with a key) through these for production volumes.
+MAP_TILE_URL = env("MAP_TILE_URL", default="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}")
+MAP_TILE_ATTRIBUTION = env("MAP_TILE_ATTRIBUTION", default="Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap contributors")
 
 # The share of a completed trip's fare that goes to the driver's wallet
 # (trips.services.TripService.driver_complete → drivers.wallet). The rest is the

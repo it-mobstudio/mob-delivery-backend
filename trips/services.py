@@ -13,6 +13,8 @@ from core.choices import (
     PaymentMode,
     PaymentStatus,
     PickupPhotoMode,
+    StopKind,
+    StopStatus,
     TripStatus,
     UploadPurpose,
     VehicleTypeStatus,
@@ -24,7 +26,7 @@ from drivers.sms import get_sms_provider
 from drivers.wallet import WalletService
 
 from .matching import MatchingService
-from .models import Trip, TripItem, TripNumber
+from .models import Trip, TripItem, TripNumber, TripStop
 from .notifications import trip_notifier
 from .payments import PaymentQr, get_payment_provider, to_paise
 from .pricing import PricingService
@@ -109,6 +111,9 @@ class TripService:
         delivery_photo=PickupPhotoMode.NONE,
         notes="",
         delivery_otp=False,
+        voice_note_url="",
+        voice_note_seconds=None,
+        stops=None,
     ):
         """Creates a Trip priced against a freshly-computed route, then
         makes one synchronous attempt to assign the nearest available
@@ -131,8 +136,12 @@ class TripService:
         """
         cls._require_vehicle_type(vehicle_type, company.id)
 
-        route = RoutingService.get_route(
-            pickup["lat"], pickup["lng"], drop["lat"], drop["lng"],
+        # `stops`: extra pickups/drops visited, in order, between the main
+        # pickup and the final drop. The route (and so the fare) goes through
+        # all of them.
+        stops = list(stops or [])
+        route = RoutingService.get_route_via(
+            [(pickup["lat"], pickup["lng"]), *[(s["lat"], s["lng"]) for s in stops], (drop["lat"], drop["lng"])],
             costing=RoutingService.costing_for_category(vehicle_type.category),
         )
         fare = PricingService.calculate_fare(
@@ -144,6 +153,8 @@ class TripService:
             vehicle_type=vehicle_type,
             reference_id=reference_id,
             notes=notes,
+            voice_note_url=voice_note_url,
+            voice_note_seconds=voice_note_seconds if voice_note_url else None,
             delivery_otp=delivery_otp,
             payment_mode=payment_mode,
             payment_status=PaymentStatus.PAID if payment_mode == PaymentMode.PREPAID else PaymentStatus.PENDING,
@@ -178,6 +189,7 @@ class TripService:
             timezone.localdate(trip.created_at), TripNumber.objects.create().pk
         )
         trip.save(update_fields=["order_number"])
+        cls._create_stops(trip, pickup, stops, drop)
         TripItem.objects.bulk_create(
             [
                 TripItem(company=company, trip=trip, position=position, **item)
@@ -200,6 +212,31 @@ class TripService:
         MatchingService.try_assign_driver(trip)
         trip_notifier.notify("trip.assigned" if trip.status == TripStatus.ASSIGNED else "trip.no_driver_available", trip)
         return trip
+
+    @staticmethod
+    def assign_to_driver(trip, driver_id):
+        """A dispatcher gives the trip to a driver of their choosing (or moves
+        it to another one before pickup). The driver must be one
+        MatchingService.assignable_drivers would offer."""
+        if trip.status not in (TripStatus.REQUESTED, TripStatus.NO_DRIVER_AVAILABLE, TripStatus.ASSIGNED):
+            raise DomainError(
+                "TRIP_NOT_ASSIGNABLE",
+                "Only an order that hasn't reached the pickup yet can be given to a driver.",
+                status_code=409,
+            )
+        for driver, vehicle, _ in MatchingService.assignable_drivers(trip):
+            if str(driver.id) == str(driver_id):
+                trip.driver, trip.vehicle = driver, vehicle
+                trip.status = TripStatus.ASSIGNED
+                trip.assigned_at = timezone.now()
+                trip.save(update_fields=["driver", "vehicle", "status", "assigned_at", "updated_at"])
+                trip_notifier.notify("trip.assigned", trip)
+                return trip
+        raise DomainError(
+            "DRIVER_NOT_AVAILABLE",
+            "That driver can't take this order now (offline, on another trip, or on the wrong vehicle type).",
+            status_code=409,
+        )
 
     @staticmethod
     def cancel_trip(trip, reason, cancelled_by):
@@ -414,9 +451,85 @@ class TripService:
         trip_notifier.notify(event_type, trip)
         return trip
 
+    @staticmethod
+    def _create_stops(trip, pickup, stops, drop):
+        """The trip's stops in visiting order; drops are numbered OD…_01,
+        OD…_02 when there's more than one."""
+        every = [{**pickup, "kind": StopKind.PICKUP}, *stops, {**drop, "kind": StopKind.DROP}]
+        drops = sum(1 for s in every if s["kind"] == StopKind.DROP)
+        n_drop, rows = 0, []
+        for position, s in enumerate(every):
+            reference = ""
+            if s["kind"] == StopKind.DROP:
+                n_drop += 1
+                reference = f"{trip.order_number}_{n_drop:02d}" if drops > 1 else trip.order_number
+            rows.append(TripStop(
+                company=trip.company, trip=trip, position=position, kind=s["kind"], address=s["address"],
+                lat=s["lat"], lng=s["lng"], contact_name=s.get("contact_name", ""), contact_phone=s.get("contact_phone", ""),
+                notes=s.get("notes", ""), reference=reference,
+            ))
+        TripStop.objects.bulk_create(rows)
+
+    @staticmethod
+    def _mark_stop(trip, position, status):
+        now = timezone.now()
+        stop = trip.stops.filter(position=position).first()
+        if stop is None:
+            return
+        if status in (StopStatus.ARRIVED, StopStatus.DONE) and not stop.arrived_at:
+            stop.arrived_at = now
+        if status == StopStatus.DONE:
+            stop.done_at = now
+        stop.status = status
+        stop.save(update_fields=["status", "arrived_at", "done_at", "updated_at"])
+
+    @staticmethod
+    def _in_between(trip):
+        stops = list(trip.stops.all())
+        return stops[1:-1] if len(stops) > 2 else []
+
+    @classmethod
+    def arrive_at_stop(cls, trip, driver, stop_id):
+        stop = cls._stop_for_driver(trip, driver, stop_id)
+        if stop.status == StopStatus.PENDING:
+            stop.status, stop.arrived_at = StopStatus.ARRIVED, timezone.now()
+            stop.save(update_fields=["status", "arrived_at", "updated_at"])
+            trip_notifier.notify("trip.stop_arrived", trip)
+        return stop
+
+    @classmethod
+    def finish_stop(cls, trip, driver, stop_id, photo=None):
+        """The driver has picked up / delivered at an in-between stop,
+        optionally with a camera photo as proof."""
+        stop = cls._stop_for_driver(trip, driver, stop_id)
+        if photo is not None:
+            stop.photo_url = DriverKycService.store_file(
+                photo, driver, UploadPurpose.PICKUP_PROOF if stop.kind == StopKind.PICKUP else UploadPurpose.DELIVERY_PROOF)
+        now = timezone.now()
+        stop.arrived_at = stop.arrived_at or now
+        stop.done_at, stop.status = now, StopStatus.DONE
+        stop.save(update_fields=["status", "arrived_at", "done_at", "photo_url", "updated_at"])
+        trip_notifier.notify("trip.stop_done", trip)
+        return stop
+
+    @classmethod
+    def _stop_for_driver(cls, trip, driver, stop_id):
+        if trip.driver_id != driver.id:
+            raise DomainError("NOT_YOUR_TRIP", "This trip is not assigned to you.", status_code=403)
+        if trip.status != TripStatus.IN_PROGRESS:
+            raise DomainError("TRIP_NOT_IN_PROGRESS", "In-between stops are visited once the delivery has started.", status_code=409)
+        middle = TripService._in_between(trip)
+        stop = next((s for s in middle if str(s.pk) == str(stop_id)), None)
+        if stop is None:
+            raise DomainError("STOP_NOT_FOUND", "That stop isn't one of this trip's in-between stops.", status_code=404)
+        earlier = [s for s in middle if s.position < stop.position and s.status != StopStatus.DONE]
+        if earlier:
+            raise DomainError("STOP_OUT_OF_ORDER", f"Finish stop {earlier[0].position + 1} first.", status_code=409)
+        return stop
+
     @classmethod
     def driver_arrive(cls, trip, driver):
-        return cls._transition(
+        trip = cls._transition(
             trip,
             from_status=TripStatus.ASSIGNED,
             to_status=TripStatus.ARRIVED_AT_PICKUP,
@@ -424,12 +537,14 @@ class TripService:
             event_type="trip.arrived_at_pickup",
             driver=driver,
         )
+        cls._mark_stop(trip, 0, StopStatus.ARRIVED)
+        return trip
 
     @classmethod
     def driver_start(cls, trip, driver):
         if trip.driver_id == driver.id and trip.status == TripStatus.ARRIVED_AT_PICKUP:
             cls._require_pickup_photos(trip)
-        return cls._transition(
+        trip = cls._transition(
             trip,
             from_status=TripStatus.ARRIVED_AT_PICKUP,
             to_status=TripStatus.IN_PROGRESS,
@@ -437,6 +552,8 @@ class TripService:
             event_type="trip.started",
             driver=driver,
         )
+        cls._mark_stop(trip, 0, StopStatus.DONE)
+        return trip
 
     @classmethod
     def driver_complete(cls, trip, driver, otp=None):
@@ -449,6 +566,12 @@ class TripService:
         wallet in the same transaction, so a completed trip and its earning
         can't get out of step.
         """
+        pending = [s for s in cls._in_between(trip) if s.status != StopStatus.DONE]
+        if pending and trip.driver_id == driver.id:
+            raise DomainError(
+                "STOPS_PENDING", f"Finish stop {pending[0].position + 1} ({pending[0].get_kind_display().lower()}) first.",
+                status_code=409,
+            )
         cls._require_items_verified(trip)
         cls._require_photos(trip, "delivery")
         if trip.payment_mode == PaymentMode.COD and trip.payment_status != PaymentStatus.PAID:
@@ -474,6 +597,9 @@ class TripService:
                 driver=driver,
             )
             WalletService.credit_trip_earning(trip)
+            last = trip.stops.order_by("-position").first()
+            if last is not None:
+                cls._mark_stop(trip, last.position, StopStatus.DONE)
         return trip
 
     # -- delivery verification --------------------------------------------------
@@ -535,8 +661,10 @@ class TripService:
         (or every item)."""
         mode_field, url_field, _ = cls.PHOTO_STAGES[stage]
         mode = getattr(trip, mode_field)
-        missing = (mode == PickupPhotoMode.ORDER and not getattr(trip, url_field)) or (
-            mode == PickupPhotoMode.PER_ITEM and trip.items.filter(**{url_field: ""}).exists()
+        wants_order = mode in (PickupPhotoMode.ORDER, PickupPhotoMode.BOTH)
+        wants_items = mode in (PickupPhotoMode.PER_ITEM, PickupPhotoMode.BOTH)
+        missing = (wants_order and not getattr(trip, url_field)) or (
+            wants_items and trip.items.filter(**{url_field: ""}).exists()
         )
         if missing:
             if stage == "pickup":
@@ -578,7 +706,8 @@ class TripService:
                 status_code=409,
             )
         purpose = UploadPurpose.PICKUP_PROOF if stage == "pickup" else UploadPurpose.DELIVERY_PROOF
-        if mode == PickupPhotoMode.PER_ITEM:
+        # `both` takes the order photo without an item_id and item photos with one.
+        if mode == PickupPhotoMode.PER_ITEM or (mode == PickupPhotoMode.BOTH and item_id is not None):
             if item_id is None:
                 raise DomainError("ITEM_NOT_FOUND", "Say which item this photo shows (item_id).", status_code=404)
             try:

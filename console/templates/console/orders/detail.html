@@ -1,0 +1,238 @@
+{% extends "console/base.html" %}
+{% load console static %}
+{% block title %}{{ trip.order_number }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'console:orders' %}">Orders</a> {% icon 'chevron-right' 13 %} <span>{{ trip.order_number }}</span></div>
+<div class="page-head">
+  <div>
+    <div class="row" style="gap:12px"><h1 class="mono">{{ trip.order_number|default:trip.pk }}</h1>{{ trip.status|badge }}
+      {% if issues %}<span class="badge badge-red"><i></i>{{ issues }} item issue{{ issues|pluralize }}</span>{% endif %}</div>
+    <p>Booked {{ trip.created_at|date:"j M Y, g:i A" }} ({{ trip.created_at|ago }}){% if trip.reference_id %} · Ref <b>{{ trip.reference_id }}</b>{% endif %} · {{ trip.company.name }}</p>
+  </div>
+  <div class="row">
+    {% if trip.invoice_url %}<a class="btn" href="{{ trip.invoice_url }}" target="_blank" rel="noopener">{% icon 'file-text' 16 %} Invoice</a>{% endif %}
+    {% if can_edit %}
+      {% if trip.status == 'no_driver_available' or trip.status == 'requested' %}
+        <form method="post" action="{% url 'console:order_retry' trip.pk %}">{% csrf_token %}<button class="btn">{% icon 'refresh-cw' 16 %} Retry auto-dispatch</button></form>
+      {% endif %}
+      {% if trip.status == 'requested' or trip.status == 'no_driver_available' or trip.status == 'assigned' %}
+        <button class="btn btn-primary" data-open="assign-modal">{% icon 'user-plus' 16 %} {% if trip.driver %}Reassign{% else %}Assign driver{% endif %}</button>
+      {% endif %}
+      {% if can_cancel %}<button class="btn btn-danger" data-open="cancel-modal">{% icon 'circle-x' 16 %} Cancel order</button>{% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid g-main">
+  <div class="grid" style="gap:16px">
+    <div class="card">
+      <div class="card-head"><h2>Route</h2>
+        <div class="legend"><span><i class="dot" style="background:#0e9f6e"></i>Pickup</span><span><i class="dot" style="background:#d64534"></i>Drop</span>{% if trip.driver %}<span><i class="dot" style="background:#1463ff"></i>Driver</span>{% endif %}
+          <span class="chip">{% icon 'route' 13 %} {{ trip.distance_meters|km }} · {{ trip.duration_seconds|minutes }}</span></div></div>
+      <div class="card-body"><div id="order-map" class="map"></div>
+        <div class="grid g2" style="margin-top:14px">
+          <div class="route"><span class="pin p"></span><div class="stack"><span class="who">{{ trip.pickup_contact_name|default:"Pickup" }}</span><span class="where">{{ trip.pickup_address }}</span>
+            {% if trip.pickup_contact_phone %}<a class="small" href="tel:{{ trip.pickup_contact_phone }}">{% icon 'phone' 13 %} {{ trip.pickup_contact_phone }}</a>{% endif %}</div></div>
+          <div class="route"><span class="pin d"></span><div class="stack"><span class="who">{{ trip.drop_contact_name|default:"Drop" }}</span><span class="where">{{ trip.drop_address }}</span>
+            {% if trip.drop_contact_phone %}<a class="small" href="tel:{{ trip.drop_contact_phone }}">{% icon 'phone' 13 %} {{ trip.drop_contact_phone }}</a>{% endif %}</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Proof photos</h2><span class="muted small">Camera only · stamped with location &amp; time</span></div>
+      <div class="card-body">
+        {% if photos %}
+          <div class="gallery" data-gallery>
+            {% for p in photos %}
+              <a class="shot" href="{{ p.url }}" data-lightbox data-caption="<b>{{ trip.order_number }}</b> · {{ p.caption }}">
+                <img src="{{ p.url }}" loading="lazy" alt="{{ p.caption }}"><span class="tag">{{ p.kind }}</span>
+                <span class="cap">{{ p.caption }}</span></a>
+            {% endfor %}
+          </div>
+        {% else %}<div class="empty">{% icon 'image-off' 28 %}<div>No photos taken for this order yet.</div></div>{% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Items <span class="muted small">({{ items|length }})</span></h2>
+        {% if trip.verify_items %}<span class="chip">{% icon 'list-checks' 13 %} Checked one by one at the drop</span>{% endif %}</div>
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr><th>Item</th><th class="right">Qty</th><th>Status</th><th>Driver's note</th><th>Photos</th></tr></thead>
+          <tbody>
+          {% for i in items %}
+            <tr>
+              <td><div class="row">{% if i.image_url %}<img class="thumb" src="{{ i.image_url }}" alt="" loading="lazy">{% else %}<span class="thumb" style="display:grid;place-items:center">{% icon 'package' 18 %}</span>{% endif %}
+                <div class="stack"><b>{{ i.name }}</b><span class="muted small">{% if i.sku %}SKU {{ i.sku }}{% endif %}{% if i.notes %} · {{ i.notes }}{% endif %}</span></div></div></td>
+              <td class="right mono">{{ i.quantity }} {{ i.unit }}</td>
+              <td>{{ i.status|badge }}{% if i.verified_at %}<div class="muted small">{{ i.verified_at|date:"g:i A" }}</div>{% endif %}</td>
+              <td class="small" style="max-width:220px">{{ i.driver_note|default:"—" }}</td>
+              <td><div class="row" style="gap:6px" data-gallery>
+                {% if i.pickup_photo_url %}<a href="{{ i.pickup_photo_url }}" data-lightbox data-caption="{{ i.name }} · pickup"><img class="thumb" src="{{ i.pickup_photo_url }}" alt="pickup"></a>{% endif %}
+                {% if i.delivery_photo_url %}<a href="{{ i.delivery_photo_url }}" data-lightbox data-caption="{{ i.name }} · delivery"><img class="thumb" src="{{ i.delivery_photo_url }}" alt="delivery"></a>{% endif %}
+                {% if i.proof_image_url %}<a href="{{ i.proof_image_url }}" data-lightbox data-caption="{{ i.name }} · checked"><img class="thumb" src="{{ i.proof_image_url }}" alt="checked"></a>{% endif %}
+                {% if not i.pickup_photo_url and not i.delivery_photo_url and not i.proof_image_url %}<span class="muted">—</span>{% endif %}
+              </div></td>
+            </tr>
+          {% empty %}<tr><td colspan="5" class="empty">No item list on this order.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" style="gap:16px">
+    <div class="card">
+      <div class="card-head"><h2>Progress</h2></div>
+      <div class="card-body">
+        <ul class="steps">
+          {% for name, when, icon_name in steps %}
+            <li class="{% if when %}{% if name == 'Cancelled' %}bad{% else %}done{% endif %}{% endif %}">
+              <span class="node">{% if when %}{% if name == 'Cancelled' %}{% icon 'x' 12 %}{% else %}{% icon 'check' 12 %}{% endif %}{% endif %}</span>
+              <b>{{ name }}</b><span>{% if when %}{{ when|date:"j M, g:i A" }}{% else %}Pending{% endif %}</span>
+            </li>
+          {% endfor %}
+        </ul>
+        {% if trip.cancellation_reason %}<div class="note" style="margin-top:14px">{% icon 'info' 16 %}<div><b>Cancelled by {{ trip.cancelled_by }}</b><br>{{ trip.cancellation_reason }}</div></div>{% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Driver</h2>{% if trip.driver %}<a class="btn btn-sm" href="{% url 'console:driver' trip.driver.pk %}">Profile</a>{% endif %}</div>
+      <div class="card-body">
+        {% if trip.driver %}
+          <div class="row"><span class="avatar avatar-lg" style="width:48px;height:48px;font-size:16px">{% if trip.driver.profile_photo_url %}<img src="{{ trip.driver.profile_photo_url }}" alt="">{% else %}{{ trip.driver.full_name|initials }}{% endif %}</span>
+            <div class="stack"><b>{{ trip.driver.full_name }}</b><a href="tel:{{ trip.driver.phone_number }}" class="small">{{ trip.driver.phone_number }}</a>
+              <span class="muted small">{{ trip.vehicle.registration_number|default:"" }} · {{ trip.vehicle_type.name }}</span></div></div>
+        {% else %}<div class="muted">No driver yet.</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Payment</h2>{{ trip.payment_status|badge }}</div>
+      <div class="card-body">
+        <div class="stat-line"><span class="muted">Base fare</span><b>{{ trip.base_fare|money }}</b></div>
+        <div class="stat-line"><span class="muted">Distance</span><b>{{ trip.distance_fare|money }}</b></div>
+        <div class="stat-line"><span class="muted">Time</span><b>{{ trip.time_fare|money }}</b></div>
+        {% if trip.surge_multiplier and trip.surge_multiplier != 1 %}<div class="stat-line"><span class="muted">Surge</span><b>× {{ trip.surge_multiplier }}</b></div>{% endif %}
+        <div class="stat-line total"><span>Order fare</span><b>{{ trip.total_fare|money }}</b></div>
+        {% if trip.bonus_fare %}<div class="stat-line"><span class="muted">Unloading bonus (driver)</span><b style="color:var(--green)">+{{ trip.bonus_fare|money }}</b></div>{% endif %}
+        {% if trip.driver_earning %}<div class="stat-line"><span class="muted">Driver earned</span><b>{{ trip.driver_earning|money }}</b></div>{% endif %}
+        <div class="divider"></div>
+        <dl class="kv">
+          <dt>Mode</dt><dd>{{ trip.payment_mode|label }}</dd>
+          {% if trip.cod_collected_at %}<dt>Collected</dt><dd>{{ trip.cod_collected_at|date:"j M, g:i A" }}</dd>{% endif %}
+          {% if trip.payment_reference %}<dt>Reference</dt><dd class="mono">{{ trip.payment_reference }}</dd>{% endif %}
+          {% if trip.invoice_number %}<dt>Invoice</dt><dd>{{ trip.invoice_number }}</dd>{% endif %}
+        </dl>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Delivery rules</h2></div>
+      <div class="card-body">
+        <dl class="kv">
+          <dt>Pickup photo</dt><dd>{{ trip.pickup_photo|label }}</dd>
+          <dt>Delivery photo</dt><dd>{{ trip.delivery_photo|label }}</dd>
+          <dt>Item check</dt><dd>{% if trip.verify_items %}Every item{% else %}No{% endif %}</dd>
+          <dt>Delivery OTP</dt><dd>{% if trip.delivery_otp or trip.payment_mode == 'cod' %}Required{% else %}No{% endif %}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card" id="voice-card">
+      <div class="card-head"><h2>Voice note for the driver</h2><span class="muted small">max 30 s</span></div>
+      <div class="card-body stack" style="gap:10px">
+        {% if trip.voice_note_url %}
+          <audio controls preload="none" src="{{ trip.voice_note_url }}" style="width:100%"></audio>
+          <div class="row-between"><span class="muted small">{{ trip.voice_note_seconds|default:"?" }} s · the driver sees a play button</span>
+            {% if can_edit %}<form method="post" action="{% url 'console:order_voice' trip.pk %}" data-confirm="Remove this voice note?">{% csrf_token %}<input type="hidden" name="remove" value="1"><button class="btn btn-sm btn-ghost">{% icon 'trash-2' 14 %} Remove</button></form>{% endif %}</div>
+        {% elif not can_edit %}<span class="muted">No voice note.</span>{% endif %}
+        {% if can_edit %}
+          <div class="row" id="rec-controls">
+            <button type="button" class="btn" id="rec-start">{% icon 'mic' 15 %} {% if trip.voice_note_url %}Re-record{% else %}Record{% endif %}</button>
+            <button type="button" class="btn btn-danger" id="rec-stop" hidden>{% icon 'square' 14 %} Stop</button>
+            <span class="mono small muted" id="rec-time"></span>
+          </div>
+          <audio id="rec-preview" controls hidden style="width:100%"></audio>
+          <form method="post" action="{% url 'console:order_voice' trip.pk %}" enctype="multipart/form-data" id="rec-form" hidden>{% csrf_token %}
+            <input type="hidden" name="seconds" id="rec-seconds">
+            <input type="file" name="audio" id="rec-file" hidden>
+            <div class="row"><button class="btn btn-primary btn-sm">{% icon 'send' 14 %} Send to driver</button><button type="button" class="btn btn-sm btn-ghost" id="rec-discard">Discard</button></div>
+          </form>
+          <span class="muted small" id="rec-help">Speak directions or instructions — e.g. which gate to use. Stops by itself at 30 s.</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Note for the driver</h2></div>
+      <div class="card-body">
+        {% if can_edit %}
+          <form method="post" action="{% url 'console:order_notes' trip.pk %}" class="stack" style="gap:8px">{% csrf_token %}
+            <textarea name="notes" rows="3" placeholder="e.g. Call before arriving, use gate 2">{{ trip.notes }}</textarea>
+            <div class="row" style="justify-content:flex-end"><button class="btn btn-sm">Save note</button></div>
+          </form>
+        {% else %}<div>{{ trip.notes|default:"—" }}</div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if can_edit %}
+<div class="modal" id="cancel-modal"><div class="box">
+  <form method="post" action="{% url 'console:order_cancel' trip.pk %}">{% csrf_token %}
+    <header><h2>Cancel {{ trip.order_number }}?</h2><p>The driver is told at once and the order can't be restarted.</p></header>
+    <div class="body">
+      <label class="field">Reason<select name="reason" required>{% for r in reasons %}<option>{{ r }}</option>{% endfor %}</select></label>
+      <label class="field">Details (for "Other")<input type="text" name="other" maxlength="200" placeholder="What happened?"></label>
+    </div>
+    <footer><button type="button" class="btn" data-close>Keep order</button><button class="btn btn-danger-solid">Cancel order</button></footer>
+  </form>
+</div></div>
+
+<div class="modal" id="assign-modal"><div class="box wide">
+  <form method="post" action="{% url 'console:order_assign' trip.pk %}">{% csrf_token %}
+    <header><h2>{% if trip.driver %}Reassign{% else %}Assign{% endif %} {{ trip.order_number }}</h2><p>Online, verified drivers on a {{ trip.vehicle_type.name }}, nearest to the pickup first.</p></header>
+    <div class="body" style="max-height:380px;overflow-y:auto">
+      {% for d, v, dist in assignable %}
+        <label class="row card" style="padding:10px 12px;cursor:pointer;box-shadow:none">
+          <input type="radio" name="driver" value="{{ d.pk }}" required>
+          <span class="avatar" style="width:32px;height:32px;font-size:11px">{{ d.full_name|initials }}</span>
+          <span class="grow stack"><b>{{ d.full_name }}</b><span class="muted small">{{ d.phone_number }} · {{ v.registration_number }}</span></span>
+          <span class="chip">{% if dist is not None %}{{ dist }} km away{% else %}location unknown{% endif %}</span>
+        </label>
+      {% empty %}
+        <div class="empty">{% icon 'user-x' 28 %}<div>No driver can take it right now — nobody suitable is online and free.</div></div>
+      {% endfor %}
+    </div>
+    <footer><button type="button" class="btn" data-close>Close</button>{% if assignable %}<button class="btn btn-primary">Assign</button>{% endif %}</footer>
+  </form>
+</div></div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if can_edit %}<script src="{% static 'console/recorder.js' %}"></script>{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  var d = {{ map_json|safe }};
+  var map = L.map("order-map", { zoomControl: true, scrollWheelZoom: false });
+  L.tileLayer(MOB_MAP.url, { maxZoom: 19, attribution: MOB_MAP.attribution }).addTo(map);
+  function pin(color) { return L.divIcon({ className: "", html: '<span style="display:block;width:16px;height:16px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)"></span>', iconSize: [16, 16], iconAnchor: [8, 8] }); }
+  var pts = [d.pickup, d.drop];
+  if (d.route.length) L.polyline(d.route, { color: "#1463ff", weight: 5, opacity: .85 }).addTo(map);
+  L.marker(d.pickup, { icon: pin("#0e9f6e") }).addTo(map).bindTooltip("Pickup");
+  L.marker(d.drop, { icon: pin("#d64534") }).addTo(map).bindTooltip("Drop");
+  if (d.driver) { L.marker(d.driver, { icon: pin("#1463ff") }).addTo(map).bindTooltip("Driver now"); pts.push(d.driver); }
+  map.fitBounds(L.latLngBounds(d.route.length ? d.route.concat(pts) : pts), { padding: [30, 30] });
+  // Row actions on the list link here with #assign / #cancel: open that dialog.
+  var want = { "#assign": "assign-modal", "#cancel": "cancel-modal" }[location.hash];
+  var btn = want && document.querySelector('[data-open="' + want + '"]');
+  if (btn) setTimeout(function () { btn.click(); }, 150);
+})();
+</script>
+{% endblock %}

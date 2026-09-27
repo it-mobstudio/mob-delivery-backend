@@ -1,0 +1,13 @@
+{% extends "console/base.html" %}
+{% load console %}
+{% block title %}Companies{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Companies</h1><p>Every business on the platform. Suspending one stops its API and its drivers.</p></div></div>
+<div class="card"><div class="table-wrap"><table class="t">
+  <thead><tr><th>Company</th><th class="right">Drivers</th><th class="right">Online</th><th class="right">Orders</th><th class="right">Delivered</th><th>Since</th><th>Status</th></tr></thead>
+  <tbody>{% for c in rows %}
+    <tr><td><b>{{ c.name }}</b></td><td class="right mono">{{ c.n_drivers|default:0 }}</td><td class="right mono">{{ c.n_online|default:0 }}</td><td class="right mono">{{ c.n_orders|default:0 }}</td><td class="right mono">{{ c.n_done|default:0 }}</td>
+      <td class="small">{{ c.created_at|date:"j M Y" }}</td>
+      <td><form method="post" class="row">{% csrf_token %}<input type="hidden" name="id" value="{{ c.id }}"><select name="status" data-autosubmit aria-label="Status">{% for v, n in statuses %}<option value="{{ v }}" {% if c.status == v %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></form></td></tr>
+  {% endfor %}</tbody></table></div></div>
+{% endblock %}

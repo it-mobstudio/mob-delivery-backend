@@ -11,7 +11,12 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from core.openapi.views import RedocView
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    # The operations console is the admin people use; Django's own admin
+    # stays underneath it for raw data.
+    path("admin/db/", admin.site.urls),
+    path("admin/", include("console.urls")),
+    # The customer booking web app.
+    path("book/", include("booking.urls")),
     path("api/v1/auth/", include("accounts.urls")),
     path("api/v1/", include("core.urls")),
     path("api/v1/", include("drivers.urls")),
