@@ -19927,6 +19927,9 @@ tags:
     | Code | HTTP | When it happens | What to do |
     |---|---|---|---|
     | `BOOKING_CLOSED` | 503 | The customer booking web app has no company to book with (BOOKING_COMPANY_ID / DRIVER_SIGNUP_COMPANY_ID isn't set). | Operator action: set BOOKING_COMPANY_ID to the company whose fleet serves customer bookings. |
+    | `PLACE_NOT_FOUND` | 404 | The booking web app (/book/) asked for the details of a Google place that doesn't exist, or Google search isn't set up. | Search again and pick one of the suggestions; operators set GOOGLE_MAPS_API_KEY. |
+    | `INVALID_PLACE` | 400 | A customer tried to save an address on the booking web app without an address or map position. | Pick the place on the map, then save. |
+    | `TOO_MANY_PLACES` | 400 | A customer already has 20 saved addresses on the booking web app. | Remove a saved address before adding another. |
     | `VEHICLE_TYPE_NOT_FOUND` | 404 | `vehicle_type_id` doesn't match an active vehicle type of your company. | List your vehicle types with `GET /vehicle-types` and use one of those ids. |
     | `FARE_NOT_CONFIGURED` | 422 | The vehicle type has no fare card, so a price can't be calculated. | Configure the fare fields on the vehicle type (`base_fare`, `per_km_rate`, ...). |
     | `ROUTING_UNAVAILABLE` | 503 | The routing engine couldn't route between the pickup and the drop (out of coverage, or the engine is down). | Check the coordinates are inside the served area; otherwise retry shortly. |

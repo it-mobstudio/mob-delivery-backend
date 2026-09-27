@@ -212,6 +212,11 @@ DRIVER_SIGNUP_COMPANY_ID = env("DRIVER_SIGNUP_COMPANY_ID", default="")
 # Whose fleet serves the customer booking web app (/book/). Empty: the driver
 # sign-up company, or — in DEBUG — the only company that has vehicle types.
 BOOKING_COMPANY_ID = env("BOOKING_COMPANY_ID", default="")
+# Google Maps Platform key for the customer booking app (/book/): the map
+# (Maps JavaScript API) and address search (Places Autocomplete + Details,
+# Geocoding — all called from our server, so the key only needs those APIs).
+# Empty: OpenStreetMap search (Photon) and the tile map below are used instead.
+GOOGLE_MAPS_API_KEY = env("GOOGLE_MAPS_API_KEY", default="")
 # Web map tiles (console + booking). Esri's street map needs no key; set your
 # own provider (e.g. with a key) through these for production volumes.
 MAP_TILE_URL = env("MAP_TILE_URL", default="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}")

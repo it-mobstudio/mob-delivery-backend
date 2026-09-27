@@ -320,7 +320,7 @@ class DriverNavigationTests(TripApiTestCase):
 class BookTestTripCommandTests(DriverTestMixin, TestCase):
     def test_orders_look_real_and_say_what_the_app_will_ask_for(self):
         self.go_on_duty()
-        output, _ = self.run_command("--mode", "prepaid")
+        output, _ = self.run_command("--mode", "prepaid", "--pickup-photo", "both")
         from trips import dev_samples
         from trips.models import Trip
 
@@ -370,7 +370,7 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
         from trips.models import Trip
 
         self.go_on_duty()
-        output, get_route = self.run_command()
+        output, get_route = self.run_command("--mode", "cod")
 
         trip = Trip.objects.get()
         self.assertEqual(trip.driver_id, self.driver.id)
@@ -393,47 +393,97 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
         trip = Trip.objects.get()
         self.assertTrue(trip.verify_items)
         self.assertEqual(trip.items.count(), 3)
-        self.assertEqual(
-            [i.image_url for i in trip.items.all()], [p.image_url for p in dev_samples.CATALOGUE[:3]], "each product has its own picture"
-        )
+        by_sku = {p.sku: p for p in dev_samples.CATALOGUE}
+        items = list(trip.items.all())
+        self.assertEqual(len({i.sku for i in items}), 3, "three different products")
+        self.assertEqual([i.image_url for i in items], [by_sku[i.sku].image_url for i in items], "each product has its own picture")
         self.assertEqual((trip.invoice_number, trip.invoice_url), (dev_samples.INVOICE_NUMBER, dev_samples.INVOICE_URL))
         self.assertTrue(trip.invoice_url.startswith("https://") and trip.invoice_url.endswith(".pdf"))
         self.assertIn("verify each one", output)
         self.assertIn(f"invoice {dev_samples.INVOICE_NUMBER}", output)
 
-    def test_the_default_booking_is_the_whole_flow_with_verification_on(self):
+    def test_the_default_booking_is_a_random_full_flow_order(self):
         from trips import dev_samples
         from trips.models import Trip
 
         self.go_on_duty()
-        output, _ = self.run_command()
+        output, _ = self.run_command("--mode", "cod")
 
         trip = Trip.objects.get()
         self.assertTrue(trip.verify_items, "verification is on by default")
-        self.assertEqual(trip.payment_mode, PaymentMode.COD)
-        # The shop's four products, with their names and pictures, in order.
         items = list(trip.items.all())
-        self.assertEqual([i.name for i in items], [p.name for p in dev_samples.CATALOGUE])
-        self.assertEqual([i.image_url for i in items], [p.image_url for p in dev_samples.CATALOGUE])
-        self.assertEqual([i.sku for i in items], ["560QWI101", "564QWI108", "564QWI151", "576QWI101"])
-        for item, product in zip(items, dev_samples.CATALOGUE):
+        by_sku = {p.sku: p for p in dev_samples.CATALOGUE}
+        self.assertTrue(1 <= len(items) <= len(dev_samples.CATALOGUE))
+        self.assertEqual(len({i.sku for i in items}), len(items), "no product twice")
+        for item in items:
+            product = by_sku[item.sku]
+            self.assertEqual((item.name, item.image_url), (product.name, product.image_url))
             self.assertTrue(product.quantity[0] <= item.quantity <= product.quantity[1], (item.name, item.quantity))
         self.assertEqual((trip.invoice_number, trip.invoice_url), (dev_samples.INVOICE_NUMBER, dev_samples.INVOICE_URL))
-        # It says what was booked and what to try, in order.
+        self.assertIn(trip.notes, dev_samples.NOTES)
         for item in items:
             self.assertIn(item.name, output)
         self.assertIn("verify each one at the drop", output)
         self.assertIn("Try, in the app:", output)
-        self.assertIn("item checklist", output)
         self.assertIn("the item checklist", output, "walks you through the item check at the drop")
         self.assertIn(f"/admin/orders/{trip.id}/", output)
+
+    def test_orders_vary_but_a_seed_repeats_one(self):
+        from trips.models import Trip
+
+        def order(*args):
+            Trip.objects.all().delete()
+            self.driver.refresh_from_db()
+            _, get_route = self.run_command(*args)
+            trip = Trip.objects.get()
+            return (tuple((i.sku, i.quantity) for i in trip.items.all()), trip.payment_mode, trip.notes,
+                    tuple(round(float(x), 5) for x in get_route.call_args.args[2:4]))
+
+        self.go_on_duty()
+        self.assertEqual(order("--seed", "7"), order("--seed", "7"))
+        self.assertGreater(len({order() for _ in range(5)}), 1, "unseeded orders differ")
+
+    def test_count_books_several_and_customer_puts_it_in_their_web_app(self):
+        from booking.models import Customer
+        from trips.models import Trip
+
+        self.go_on_duty()
+        output, _ = self.run_command("--count", "2", "--customer", "9876500011", "--mode", "cod")
+        trips = list(Trip.objects.order_by("created_at"))
+        self.assertEqual(len(trips), 2)
+        customer = Customer.objects.get(phone_number="+919876500011")
+        self.assertEqual({t.customer_id for t in trips}, {customer.id})
+        self.assertEqual(trips[0].drop_contact_phone, "+919876500011", "the customer receives it, so the OTP reaches them")
+        self.assertEqual(trips[0].driver_id, self.driver.id)
+        self.assertIn("order 2 of 2", output)
+        self.assertIn(f"/book/trips/{trips[0].id}/", output)
+
+    def test_without_a_phone_any_driver_on_duty_is_used(self):
+        from trips.models import Trip
+
+        other = self.make_driver(phone_number="+919000000005")
+        self.go_on_duty(other, vehicle=self.make_vehicle())
+        output, _ = self.run_command()
+        self.assertEqual(Trip.objects.get().driver_id, other.id)
+        self.assertIn(other.full_name, output)
+
+    def test_without_a_phone_a_busy_default_driver_is_skipped(self):
+        from trips.models import Trip
+
+        self.go_on_duty()
+        self.run_command()  # the default driver now has a trip
+        other = self.make_driver(phone_number="+919000000006")
+        self.go_on_duty(other, vehicle=self.make_vehicle())
+        output, _ = self.run_command()
+        self.assertEqual(Trip.objects.latest("created_at").driver_id, other.id)
+        self.assertIn("is on another trip", output)
 
     def test_quantities_are_random_within_sensible_bounds(self):
         from trips import dev_samples
 
         seen = {p.name: set() for p in dev_samples.CATALOGUE}
         for _ in range(60):
-            for item in dev_samples.sample_items(4):
+            for item in dev_samples.random_items(len(dev_samples.CATALOGUE)):
                 seen[item["name"]].add(item["quantity"])
         for product in dev_samples.CATALOGUE:
             low, high = product.quantity
@@ -443,9 +493,11 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
     def test_more_items_than_products_repeats_them_with_a_number(self):
         from trips import dev_samples
 
-        names = [i["name"] for i in dev_samples.sample_items(6)]
-        self.assertEqual(names[4:], ["Ultra tech Cement #2", "Dr. Fixit Water proofing #2"])
-        self.assertEqual(len(set(names)), 6)
+        size = len(dev_samples.CATALOGUE)
+        names = [i["name"] for i in dev_samples.random_items(size + 2)]
+        self.assertEqual(len(set(names)), size + 2)
+        self.assertEqual({n for n in names[:size]}, {p.name for p in dev_samples.CATALOGUE}, "every product once first")
+        self.assertTrue(all(n.endswith(" #2") for n in names[size:]), names[size:])
 
     def test_another_invoice_link_can_be_supplied(self):
         from trips.models import Trip
@@ -474,7 +526,8 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
         self.driver.refresh_from_db()
         self.run_command("--no-verify-items")
         unchecked = Trip.objects.get()
-        self.assertEqual((unchecked.items.count(), unchecked.verify_items), (4, False), "items, but nothing to verify")
+        self.assertGreaterEqual(unchecked.items.count(), 1)
+        self.assertFalse(unchecked.verify_items, "items, but nothing to verify")
 
         Trip.objects.all().delete()
         self.driver.refresh_from_db()
@@ -498,7 +551,7 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
 
         self.go_on_duty()
         with override_settings(PAYMENT_PROVIDER="razorpay", RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET=""):
-            output, _ = self.run_command()
+            output, _ = self.run_command("--mode", "cod")
         self.assertIn("Payment isn't set up", output)
         self.assertIn("dev_razorpay_stub.py", output)
         self.assertIn("PAYMENT_PROVIDER=upi_static", output)
@@ -509,14 +562,14 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
         self.driver.refresh_from_db()
         stub = dict(PAYMENT_PROVIDER="razorpay", RAZORPAY_KEY_ID="rzp_test_stub", RAZORPAY_KEY_SECRET="s", RAZORPAY_API_BASE="http://127.0.0.1:8003/v1")
         with override_settings(**stub):
-            output, _ = self.run_command()
+            output, _ = self.run_command("--mode", "cod")
         self.assertIn("Razorpay stand-in", output)
         self.assertIn("/simulate/", output)
         self.assertNotIn("Payment isn't set up", output)
 
         Trip.objects.all().delete()
         self.driver.refresh_from_db()
-        output, _ = self.run_command()  # the test settings use the static provider
+        output, _ = self.run_command("--mode", "cod")  # the test settings use the static provider
         self.assertIn("upi_static", output)
 
     def test_a_prepaid_order_gets_no_payment_steps(self):
@@ -526,15 +579,21 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
         self.assertNotIn("Payment:", output)
         self.assertNotIn("Payment isn't set up", output)
 
-    def test_drop_defaults_to_about_four_km_away_and_distance_km_is_honoured(self):
+    def test_drop_defaults_to_two_to_eight_km_away_and_distance_km_is_honoured(self):
         from core.geo import haversine_distance_km
+        from trips.models import Trip
 
         self.go_on_duty()
-        for km in (None, 7.5):
+        for km in (None, None, 7.5):
+            Trip.objects.all().delete()
+            self.driver.refresh_from_db()
             _, get_route = self.run_command(*(["--distance-km", str(km)] if km else []))
             args = get_route.call_args.args
             actual = haversine_distance_km(args[0], args[1], args[2], args[3])
-            self.assertAlmostEqual(actual, km or 4.0, delta=0.05)
+            if km:
+                self.assertAlmostEqual(actual, km, delta=0.05)
+            else:
+                self.assertTrue(1.95 <= actual <= 8.05, actual)
 
     def test_explicit_addresses_and_coordinates_win(self):
         from trips.models import Trip

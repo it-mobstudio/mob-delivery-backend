@@ -2,7 +2,7 @@ import argparse
 import random
 import time
 from decimal import Decimal
-from math import cos, radians
+from math import cos, radians, sin
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
@@ -10,8 +10,12 @@ from django.core.management.base import BaseCommand, CommandError
 from core.choices import PaymentMode, TripStatus
 from core.exceptions import DomainError
 from drivers.models import Driver, Vehicle
+from trips.models import ACTIVE_TRIP_STATUSES, Trip
 from trips import dev_samples
 from trips.services import TripService
+
+
+DEFAULT_DRIVER = "+919000000000"
 
 
 def _point(lat, lng, address, contact_name, contact_phone):
@@ -26,38 +30,51 @@ def _point(lat, lng, address, contact_name, contact_phone):
 
 class Command(BaseCommand):
     help = (
-        "Books a test trip exactly as the company's system would (POST /trips) and "
+        "Books a RANDOM test order exactly as the company's system would (POST /trips) and "
         "reports who got it — for walking through the driver app's whole delivery flow "
         "without building a booking client first.\n\n"
-        "By default the order is the FULL flow: the shop's four sample products (real names "
-        "and pictures, random quantities) that the driver must VERIFY one by one at the drop "
-        "(delivered / problem + reason, camera photo optional), a real invoice PDF (download / "
-        "WhatsApp / share), cash on delivery (payment QR then the customer's OTP). Use "
-        "--items N (0 for none), --no-verify-items, --no-invoice, --invoice-url URL or "
-        "--mode prepaid to change it. The driver also photographs the whole order at the pickup "
-        "(--pickup-photo per_item for one photo per item, none to skip).\n\n"
+        "Every run is different: a random pick of the shop's products (real names and pictures, "
+        "random quantities) that the driver must VERIFY at the drop, a random drop 2-8 km away "
+        "in any direction, a random shop, customer, note and payment mode (mostly cash on "
+        "delivery: payment QR then the customer's OTP), plus a real invoice PDF. Fix any part "
+        "with --items N (0 for none), --mode cod|prepaid, --distance-km, --note, --no-invoice, "
+        "--pickup-photo / --delivery-photo; --seed N repeats a run exactly; --count N books "
+        "several.\n\n"
+        "--customer 98XXXXXXXX also puts the order in that customer's web app (/book/): their "
+        "bookings, live tracking and the delivery OTP.\n\n"
         "The pickup is placed at the driver's own last reported location (so they're the "
-        "nearest driver and get it) with the drop ~4 km away. The driver must already be ON "
-        "DUTY: open the app and tap 'Start duty' first."
+        "nearest driver and get it). The driver must be ON DUTY: open the app and tap 'Start "
+        "duty' first. Without --phone, any on-duty driver is used if +919000000000 isn't."
     )
 
     def add_arguments(self, parser):
-        parser.add_argument("--phone", default="+919000000000", help="Driver to place the trip next to (default: %(default)s).")
-        parser.add_argument("--mode", choices=["cod", "prepaid"], default="cod", help="cod shows the payment QR + delivery OTP steps (default).")
+        parser.add_argument("--phone", default=None,
+                            help="Driver to place the trip next to (default: +919000000000, else any driver on duty).")
+        parser.add_argument("--mode", choices=["cod", "prepaid"], default=None,
+                            help="cod shows the payment QR + delivery OTP steps (default: random, mostly cod).")
         parser.add_argument("--pickup-address", help="Free text shown in the app.")
         parser.add_argument("--pickup-lat", type=float, help="Default: the driver's last reported latitude.")
         parser.add_argument("--pickup-lng", type=float)
         parser.add_argument("--drop-address", help="Free text shown in the app.")
         parser.add_argument("--drop-lat", type=float, help="Default: --distance-km north-east of the pickup.")
         parser.add_argument("--drop-lng", type=float)
-        parser.add_argument("--distance-km", type=float, default=4.0, help="Pickup→drop distance when --drop-lat/lng are omitted (default: %(default)s).")
+        parser.add_argument("--distance-km", type=float, default=None,
+                            help="Pickup→drop distance when --drop-lat/lng are omitted (default: random 2-8 km, random direction).")
         parser.add_argument("--customer-name", default=None, help="Default: a realistic random name.")
         parser.add_argument("--customer-phone", default="+919888800002", help="The delivery OTP is texted here on a COD trip.")
         parser.add_argument(
-            "--items", type=int, default=len(dev_samples.CATALOGUE), metavar="N",
-            help="How many of the sample products to put on the order, each with a random quantity "
-                 "(default: %(default)s, the whole catalogue; 0 for none; past 4 they repeat).",
+            "--customer", default=None, metavar="PHONE",
+            help="A customer of the booking web app (/book/) to book it for: it shows in their bookings with live "
+                 "tracking and the delivery OTP, and they're the receiver. Created if new.",
         )
+        parser.add_argument(
+            "--items", type=int, default=None, metavar="N",
+            help=f"How many different products to put on the order, each with a random quantity "
+                 f"(default: random 1-{len(dev_samples.CATALOGUE)}; 0 for none; past {len(dev_samples.CATALOGUE)} they repeat).",
+        )
+        parser.add_argument("--count", type=int, default=1, metavar="N", help="Book N random orders (default: 1). "
+                            "A driver holds one trip at a time, so the rest go to other drivers on duty or wait.")
+        parser.add_argument("--seed", type=int, default=None, help="Make the random choices repeatable.")
         parser.add_argument(
             "--verify-items", action=argparse.BooleanOptionalAction, default=None,
             help="Make the driver verify every item at the drop (default: on whenever there are items).",
@@ -85,8 +102,8 @@ class Command(BaseCommand):
             help="Prepaid trips: the customer's delivery OTP is still needed to complete (default: on; COD always needs it).",
         )
         parser.add_argument(
-            "--note", default="Call before arriving. Use the side gate for unloading.",
-            help="A note for the driver on the order (default: a sample; pass '' for none).",
+            "--note", default=None,
+            help="A note for the driver on the order (default: a random sample note; pass '' for none).",
         )
         parser.add_argument(
             "--delivery-photo", choices=["none", "order", "per_item", "both"], default=None,
@@ -98,47 +115,63 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        if options["count"] < 1:
+            raise CommandError("--count must be at least 1.")
+        if options["items"] is not None and options["items"] < 0:
+            raise CommandError("--items can't be negative.")
+        rng = random.Random(options["seed"])
+        for n in range(options["count"]):
+            if options["count"] > 1:
+                self.stdout.write(self.style.MIGRATE_HEADING(f"— order {n + 1} of {options['count']} —"))
+            self._book_one(options, rng)
+
+    def _book_one(self, options, rng):
         driver = self._driver(options["phone"])
         vehicle = self._vehicle(driver)
 
         pickup_lat, pickup_lng = self._pickup(driver, options)
-        drop_lat, drop_lng = self._drop(pickup_lat, pickup_lng, options)
+        drop_lat, drop_lng = self._drop(pickup_lat, pickup_lng, options, rng)
+        customer = self._customer(options["customer"], driver.company) if options["customer"] else None
 
         # Real-looking people and street addresses (from OpenStreetMap for these
-        # exact coordinates). The phone numbers stay the fixed test ones, so an
-        # OTP text can never reach a stranger.
+        # exact coordinates). The phone numbers stay the fixed test ones (or the
+        # web customer's own), so an OTP text can never reach a stranger.
         pickup = _point(
             pickup_lat,
             pickup_lng,
-            options["pickup_address"] or dev_samples.realistic_address(pickup_lat, pickup_lng, "shop"),
-            random.choice(dev_samples.SHOPS),
+            options["pickup_address"] or dev_samples.realistic_address(pickup_lat, pickup_lng, "shop", rng),
+            rng.choice(dev_samples.SHOPS),
             "+919888800001",
         )
         drop = _point(
             drop_lat,
             drop_lng,
-            options["drop_address"] or dev_samples.realistic_address(drop_lat, drop_lng, "home"),
-            options["customer_name"] or random.choice(dev_samples.CUSTOMERS),
-            options["customer_phone"],
+            options["drop_address"] or dev_samples.realistic_address(drop_lat, drop_lng, "home", rng),
+            options["customer_name"] or (customer.full_name if customer and customer.full_name else rng.choice(dev_samples.CUSTOMERS)),
+            customer.phone_number if customer else options["customer_phone"],
         )
 
-        reference = f"SO-{int(time.time()) % 10_000_000:07d}"
+        reference = f"SO-{int(time.time() * 1000) % 10_000_000:07d}"
         item_count = options["items"]
-        if item_count < 0:
-            raise CommandError("--items can't be negative.")
+        items = dev_samples.random_items(item_count, rng) if item_count != 0 else None
+        item_count = len(items or [])
         verify_items = item_count > 0 if options["verify_items"] is None else options["verify_items"]
         if verify_items and item_count == 0:
             raise CommandError("--verify-items needs at least one item: pass --items N (N ≥ 1).")
-        items = dev_samples.sample_items(item_count) if item_count else None
-        default_photos = "both" if item_count else "order"
-        pickup_photo = options["pickup_photo"] or default_photos
-        delivery_photo = options["delivery_photo"] or default_photos
+        if item_count:
+            pickup_photo = options["pickup_photo"] or rng.choice(["order", "per_item", "both"])
+            delivery_photo = options["delivery_photo"] or rng.choice(["order", "per_item", "both"])
+        else:
+            pickup_photo = options["pickup_photo"] or "order"
+            delivery_photo = options["delivery_photo"] or "order"
         if delivery_photo in ("per_item", "both") and item_count == 0:
             raise CommandError("--delivery-photo per_item needs at least one item: pass --items N (N ≥ 1).")
         if pickup_photo in ("per_item", "both") and item_count == 0:
             raise CommandError("--pickup-photo per_item needs at least one item: pass --items N (N ≥ 1).")
         invoice_number = dev_samples.INVOICE_NUMBER if options["invoice"] else ""
         invoice_url = (options["invoice_url"] or dev_samples.INVOICE_URL) if options["invoice"] else ""
+        mode = options["mode"] or rng.choices(["cod", "prepaid"], weights=[3, 1])[0]
+        note = options["note"] if options["note"] is not None else rng.choice(dev_samples.NOTES)
 
         try:
             trip = TripService.create_trip(
@@ -146,7 +179,7 @@ class Command(BaseCommand):
                 vehicle_type=vehicle.vehicle_type,
                 pickup=pickup,
                 drop=drop,
-                payment_mode=PaymentMode.COD if options["mode"] == "cod" else PaymentMode.PREPAID,
+                payment_mode=PaymentMode.COD if mode == "cod" else PaymentMode.PREPAID,
                 reference_id=reference,
                 invoice_url=invoice_url,
                 invoice_number=invoice_number,
@@ -155,7 +188,7 @@ class Command(BaseCommand):
                 bonus_fare=options["bonus"],
                 pickup_photo=pickup_photo,
                 delivery_photo=delivery_photo,
-                notes=options["note"],
+                notes=note,
                 delivery_otp=options["delivery_otp"],
             )
         except DomainError as exc:
@@ -167,13 +200,28 @@ class Command(BaseCommand):
                 )
             raise CommandError(f"{exc.code}: {exc.detail}")
 
+        if customer:
+            trip.customer = customer
+            trip.save(update_fields=["customer", "updated_at"])
         if options["voice_note"]:
             self._attach_voice_note(trip)
         self._report(trip, driver, options)
+        if customer:
+            self.stdout.write(f"  Customer web app: /book/trips/{trip.id}/  (sign in as {customer.phone_number})")
 
     # -- inputs ------------------------------------------------------------------
 
     def _driver(self, phone):
+        if phone is None:
+            default = Driver.objects.select_related("company").filter(phone_number=DEFAULT_DRIVER).first()
+            busy = default is not None and Trip.objects.filter(driver=default, status__in=ACTIVE_TRIP_STATUSES).exists()
+            if default is None or not default.is_online or busy:
+                other = self._any_driver_on_duty()
+                if other is not None:
+                    why = "is on another trip" if busy else "isn't on duty"
+                    self.stdout.write(f"{DEFAULT_DRIVER} {why}: using {other.full_name} ({other.phone_number}) — on duty and free.")
+                    return other
+            phone = DEFAULT_DRIVER
         try:
             driver = Driver.objects.select_related("company").get(phone_number=phone)
         except Driver.DoesNotExist:
@@ -184,6 +232,25 @@ class Command(BaseCommand):
                 "Open the driver app, tap 'Start duty' (allow location, pick a vehicle), then run this again."
             )
         return driver
+
+    @staticmethod
+    def _any_driver_on_duty():
+        busy = Trip.objects.filter(status__in=ACTIVE_TRIP_STATUSES, driver_id__isnull=False).values("driver_id")
+        return (Driver.objects.select_related("company")
+                .filter(is_online=True, current_vehicle_id__isnull=False, last_known_lat__isnull=False)
+                .exclude(id__in=busy).order_by("?").first())
+
+    @staticmethod
+    def _customer(phone, company):
+        from booking.models import Customer
+        from booking.services import normalise_phone
+
+        try:
+            phone = normalise_phone(phone)
+        except DomainError as exc:
+            raise CommandError(f"--customer: {exc.detail}")
+        customer, _ = Customer.objects.get_or_create(company=company, phone_number=phone)
+        return customer
 
     def _vehicle(self, driver):
         vehicle = Vehicle.objects.select_related("vehicle_type").filter(pk=driver.current_vehicle_id).first()
@@ -201,13 +268,15 @@ class Command(BaseCommand):
             )
         return float(driver.last_known_lat), float(driver.last_known_lng)
 
-    def _drop(self, pickup_lat, pickup_lng, options):
+    def _drop(self, pickup_lat, pickup_lng, options, rng):
         if options["drop_lat"] is not None and options["drop_lng"] is not None:
             return options["drop_lat"], options["drop_lng"]
-        # Due north-east: distance/√2 in each direction, converting km to degrees
-        # (a degree of longitude shrinks with latitude).
-        each = options["distance_km"] / (2**0.5)
-        return pickup_lat + each / 111.0, pickup_lng + each / (111.0 * cos(radians(pickup_lat)))
+        # A random bearing, converting km to degrees (a degree of longitude
+        # shrinks with latitude).
+        km = options["distance_km"] if options["distance_km"] is not None else rng.uniform(2, 8)
+        bearing = radians(rng.uniform(0, 360))
+        return (pickup_lat + km * cos(bearing) / 111.0,
+                pickup_lng + km * sin(bearing) / (111.0 * cos(radians(pickup_lat))))
 
     def _attach_voice_note(self, trip):
         """A real recording (trips/dev_assets/voice_note.m4a), stored the way a

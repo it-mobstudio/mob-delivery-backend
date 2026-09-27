@@ -2,36 +2,95 @@
 {% load static %}
 {% block title %}Your bookings{% endblock %}
 {% block body %}
-<div class="app"><div class="screen">
-  <h1>Your bookings</h1>
-  <div class="stat-grid">
-    <div class="stat"><span class="small muted">Bookings</span><b>{{ page_obj.paginator.count }}</b></div>
-    <div class="stat"><span class="small muted">Spent on deliveries</span><b>₹{{ spent|floatformat:0 }}</b></div>
-  </div>
-  <nav class="chips">
-    <a href="?tab=all" class="{% if filter == 'all' %}on{% endif %}">All</a>
-    <a href="?tab=active" class="{% if filter == 'active' %}on{% endif %}">Active</a>
-    <a href="?tab=completed" class="{% if filter == 'completed' %}on{% endif %}">Delivered</a>
-    <a href="?tab=cancelled" class="{% if filter == 'cancelled' %}on{% endif %}">Cancelled</a>
-  </nav>
-  {% for t in page_obj %}
-    <a class="trip-row" href="{% url 'booking:trip' t.pk %}">
-      <img src="{% static 'vehicles/' %}{% if t.vehicle_type.category == 'two_wheeler' %}bike{% elif t.vehicle_type.category == 'three_wheeler' %}auto{% else %}mini_truck{% endif %}.svg" alt="">
-      <span class="grow" style="min-width:0">
-        <b class="ellipsis" style="display:block">{{ t.drop_address|truncatechars:48 }}</b>
-        <span class="small muted mono">{{ t.order_number }}</span> <span class="small muted">· {{ t.created_at|date:"j M, g:i A" }} · {{ t.vehicle_type.name }}</span><br>
-        {% if t.status == 'completed' %}<span class="badge badge-green">Delivered</span>{% elif t.status == 'cancelled' %}<span class="badge badge-red">Cancelled</span>{% else %}<span class="badge badge-blue">{{ t.get_status_display }}</span>{% endif %}
-      </span>
-      <span style="text-align:right"><b class="mono">₹{{ t.total_fare|floatformat:0 }}</b><br><span class="small {% if t.payment_status == 'paid' %}" style="color:#0e9f6e{% else %}muted{% endif %}">{% if t.payment_status == 'paid' %}Paid{% elif t.status == 'cancelled' %}—{% else %}Pay on delivery{% endif %}</span></span>
-    </a>
-  {% empty %}
-    <div class="card" style="padding:32px 20px;text-align:center"><img src="{% static 'vehicles/mini_truck.svg' %}" alt="" style="width:120px"><h3 style="margin:10px 0 4px">No bookings yet</h3><p class="muted small">Your deliveries will show up here.</p><a class="btn btn-primary" href="{% url 'booking:home' %}" style="margin-top:10px">Book a vehicle</a></div>
-  {% endfor %}
-  {% if page_obj.has_next or page_obj.has_previous %}
-    <div class="row" style="justify-content:space-between;margin-top:8px">
-      {% if page_obj.has_previous %}<a class="btn" style="width:auto" href="?tab={{ filter }}&page={{ page_obj.previous_page_number }}">Newer</a>{% else %}<span></span>{% endif %}
-      {% if page_obj.has_next %}<a class="btn" style="width:auto" href="?tab={{ filter }}&page={{ page_obj.next_page_number }}">Older</a>{% endif %}
+<div class="page">
+  <header class="hero" style="padding-bottom:18px">
+    <div class="wrap">
+      <img class="logo" src="{% static 'booking/img/logo.svg' %}" alt="MOB" style="height:22px;margin-bottom:16px;opacity:.95">
+      <h1>Your bookings</h1>
+      <div class="stat-row">
+        <div class="stat"><b data-count="{{ counts.all }}">0</b><span>Bookings</span></div>
+        <div class="stat"><b data-count="{{ counts.active }}">0</b><span>Active now</span></div>
+        <div class="stat"><b data-count="{{ spent|floatformat:0 }}" data-prefix="₹">₹0</b><span>Spent</span></div>
+      </div>
+      <nav class="seg" id="tabs">
+        <a href="?tab=all" data-tab="all">All</a>
+        <a href="?tab=active" data-tab="active">Active{% if counts.active %}<small>{{ counts.active }}</small>{% endif %}</a>
+        <a href="?tab=completed" data-tab="completed">Delivered</a>
+        <a href="?tab=cancelled" data-tab="cancelled">Cancelled</a>
+      </nav>
     </div>
-  {% endif %}
-</div></div>
+  </header>
+  <main class="wrap">
+    <div id="list"></div>
+    <div id="more" style="height:1px"></div>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var M = window.MOB, $ = M.$;
+  var URL_ = "{% url 'booking:api_trips' %}", tab = "{{ filter|escapejs }}", next = 1, loading = false, seq = 0;
+  var EMPTY = { all: ["No bookings yet", "Send anything across the city in minutes."], active: ["Nothing on the move", "Your live bookings show up here."],
+    completed: ["No deliveries yet", "Completed bookings show up here."], cancelled: ["No cancellations", "Nothing cancelled so far."] };
+
+  function card(t, i) {
+    var when = new Date(t.created).toLocaleString([], { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+    var pill = t.status === "completed" ? '<span class="pill green"><i data-lucide="check" style="width:13px;height:13px"></i>Delivered</span>'
+      : t.status === "cancelled" ? '<span class="pill red">Cancelled</span>'
+      : '<span class="pill ' + (t.status === "requested" || t.status === "no_driver_available" ? "amber" : "brand") + '"><span class="live-dot"></span>' + M.esc(M.statusLabel(t.status, t.status_label)) + "</span>";
+    var action = t.active ? '<a class="btn btn-sm btn-primary" href="' + t.url + '"><i data-lucide="navigation" style="width:16px;height:16px"></i>Track</a>'
+      : '<a class="btn btn-sm" href="' + t.again + '"><i data-lucide="rotate-ccw" style="width:16px;height:16px"></i>Book again</a>';
+    return '<div class="card bk" style="animation:fadeUp .45s var(--ease) both;animation-delay:' + (i % 10) * 40 + 'ms">' +
+      '<a href="' + t.url + '" style="display:block"><div class="top"><span class="pic" style="background:' + M.tint(t.image) + '"><img src="' + t.image + '" alt=""' + (t.active ? ' class="drive"' : "") + "></span>" +
+      '<span class="grow" style="min-width:0"><b class="ellipsis" style="display:block">' + M.esc(t.vehicle) + " · " + M.esc(t.drop.split(",")[0]) + "</b>" +
+      '<span class="small muted">' + when + ' · <span class="mono">' + M.esc(t.number) + "</span></span></span>" +
+      '<span style="text-align:right;flex:none"><b style="font-size:16px">' + M.money(t.fare) + "</b>" + (t.paid ? '<span class="tiny b" style="display:block;color:var(--green)">Paid</span>' : "") + "</span></div>" +
+      '<div class="stops"><div><span class="dot p" style="width:8px;height:8px"></span><span class="ellipsis">' + M.esc(t.pickup) + "</span></div>" +
+      '<div><span class="dot d" style="width:8px;height:8px"></span><span class="ellipsis">' + M.esc(t.drop) + "</span></div></div></a>" +
+      '<div class="foot">' + pill + action + "</div></div>";
+  }
+
+  function skeletons(n) { var h = ""; for (var i = 0; i < n; i++) h += '<div class="skel bk-skel"></div>'; return h; }
+
+  function load(reset) {
+    if (loading && !reset) return;
+    if (reset) { next = 1; $("list").innerHTML = skeletons(3); }
+    if (!next) return;
+    loading = true;
+    var mine = ++seq;
+    if (!reset) $("list").insertAdjacentHTML("beforeend", '<div id="sk">' + skeletons(2) + "</div>");
+    M.api(URL_ + "?tab=" + tab + "&page=" + next).then(function (d) {
+      if (mine !== seq) return;
+      var sk = $("sk"); if (sk) sk.remove();
+      if (reset) $("list").innerHTML = "";
+      if (!d.trips.length && reset) {
+        var e = EMPTY[tab] || EMPTY.all;
+        $("list").innerHTML = '<div class="card empty fade-up"><img src="' + M.static + 'img/package.png" alt="" class="float"><h3>' + e[0] + '</h3><p class="small muted" style="margin:4px 0 16px">' + e[1] +
+          '</p><a class="btn btn-primary" href="' + M.urls.home + '" style="max-width:260px;margin:0 auto">Book a vehicle</a></div>';
+      }
+      $("list").insertAdjacentHTML("beforeend", d.trips.map(card).join(""));
+      next = d.next; M.icons();
+    }).catch(function (e) {
+      if (mine !== seq) return;
+      $("list").innerHTML = '<div class="card card-pad"><p class="muted">' + M.esc(e.message) + '</p><button class="btn btn-sm" id="retry" style="margin-top:10px">Try again</button></div>';
+      $("retry").onclick = function () { load(true); };
+    }).finally(function () { if (mine === seq) loading = false; });
+  }
+
+  function setTab(t, push) {
+    tab = t;
+    document.querySelectorAll("#tabs a").forEach(function (a) { a.classList.toggle("on", a.dataset.tab === t); });
+    if (push) history.replaceState(null, "", "?tab=" + t);
+    loading = false; load(true);
+  }
+  document.querySelectorAll("#tabs a").forEach(function (a) {
+    a.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); if (a.dataset.tab !== tab) setTab(a.dataset.tab, true); });
+  });
+  new IntersectionObserver(function (es) { if (es[0].isIntersecting && next && !loading) load(false); }, { rootMargin: "400px" }).observe($("more"));
+
+  M.countUp(document.querySelectorAll("[data-count]"));
+  setTab(tab, false);
+})();
+</script>
 {% endblock %}

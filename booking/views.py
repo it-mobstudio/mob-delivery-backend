@@ -6,15 +6,16 @@ from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_GET, require_POST
+from django.core.cache import cache
+from django.templatetags.static import static
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from core.choices import TripStatus
 from core.exceptions import DomainError
-from core.polyline import decode as decode_polyline
-from trips.models import Trip
+from trips.services import TripService
 
 from .models import Customer
-from .services import CUSTOMER_CANCELLABLE, BookingService
+from .services import CUSTOMER_CANCELLABLE, GOODS_TYPES, BookingService, decode_route, vehicle_art
 
 SESSION_KEY = "booking_customer"
 ACTIVE = [TripStatus.REQUESTED, TripStatus.NO_DRIVER_AVAILABLE, TripStatus.ASSIGNED,
@@ -98,29 +99,49 @@ def logout(request):
 
 @customer_required()
 def home(request):
-    active = request.customer.trips.filter(status__in=ACTIVE).order_by("-created_at").first()
-    return render(request, "booking/home.html", {"customer": request.customer, "active": active, "tab": "book"})
+    c = request.customer
+    active = c.trips.select_related("vehicle_type").filter(status__in=ACTIVE).order_by("-created_at")[:3]
+    boot = {
+        "catalogue": BookingService.catalogue(),
+        "saved": [p.as_json() for p in c.saved_places.all()],
+        "recent": BookingService.recent_places(c),
+        "goods": GOODS_TYPES,
+        "active": [_trip_card(t) for t in active],
+        "me": {"name": c.full_name, "phone": c.phone_number},
+        "again": None,
+    }
+    again = request.GET.get("again")
+    if again:
+        t = c.trips.filter(pk=again).first() if _is_uuid(again) else None
+        if t:
+            boot["again"] = {
+                "pickup": {"title": t.pickup_address.split(", ")[0], "address": t.pickup_address,
+                           "lat": float(t.pickup_lat), "lng": float(t.pickup_lng)},
+                "drop": {"title": t.drop_address.split(", ")[0], "address": t.drop_address,
+                         "lat": float(t.drop_lat), "lng": float(t.drop_lng)},
+                "receiver_name": t.drop_contact_name if t.drop_contact_phone != c.phone_number else "",
+                "receiver_phone": t.drop_contact_phone[3:] if t.drop_contact_phone != c.phone_number else "",
+                "vehicle_type_id": str(t.vehicle_type_id),
+            }
+    return render(request, "booking/home.html", {"customer": c, "tab": "book", "boot": boot})
 
 
 @customer_required()
 def trips(request):
-    rows = request.customer.trips.select_related("vehicle_type", "driver").order_by("-created_at")
+    """The Bookings tab: totals here, the list itself comes from api_trips."""
+    c = request.customer
     tab = request.GET.get("tab", "all")
-    if tab == "active":
-        rows = rows.filter(status__in=ACTIVE)
-    elif tab in ("completed", "cancelled"):
-        rows = rows.filter(status=tab)
-    spent = sum(t.total_fare or 0 for t in request.customer.trips.filter(status=TripStatus.COMPLETED))
-    page = Paginator(rows, 15).get_page(request.GET.get("page"))
-    return render(request, "booking/trips.html", {"customer": request.customer, "page_obj": page, "filter": tab,
-                                                  "spent": spent, "tab": "trips"})
+    spent = sum(t.total_fare or 0 for t in c.trips.filter(status=TripStatus.COMPLETED).only("total_fare"))
+    counts = {"active": c.trips.filter(status__in=ACTIVE).count(), "all": c.trips.count()}
+    return render(request, "booking/trips.html", {"customer": c, "filter": tab if tab in ("all", "active", "completed", "cancelled") else "all",
+                                                  "spent": spent, "tab": "trips", "counts": counts})
 
 
 @customer_required()
 def trip(request, pk):
     t = get_object_or_404(request.customer.trips.select_related("vehicle_type", "driver", "vehicle"), pk=pk)
     return render(request, "booking/trip.html", {"customer": request.customer, "t": t, "tab": "trips",
-                                                 "state_json": json.dumps(_trip_state(t))})
+                                                 "state": _trip_state(t)})
 
 
 @customer_required()
@@ -131,11 +152,61 @@ def profile(request):
         c.email = (request.POST.get("email") or "").strip()[:254]
         c.save(update_fields=["full_name", "email", "updated_at"])
         return redirect(request.POST.get("next") or "booking:profile")
-    stats = {"trips": c.trips.count(), "done": c.trips.filter(status=TripStatus.COMPLETED).count()}
-    return render(request, "booking/profile.html", {"customer": c, "stats": stats, "tab": "profile"})
+    done = c.trips.filter(status=TripStatus.COMPLETED)
+    stats = {"trips": c.trips.count(), "done": done.count(),
+             "km": round(sum(t.distance_meters or 0 for t in done.only("distance_meters")) / 1000)}
+    return render(request, "booking/profile.html", {
+        "customer": c, "stats": stats, "tab": "profile",
+        "saved": [p.as_json() for p in c.saved_places.all()],
+    })
 
 
-# -- JSON used by the map screens ----------------------------------------------------------
+# -- JSON used by the screens ----------------------------------------------------------------
+
+
+@require_GET
+@customer_required(api=True)
+def api_trips(request):
+    """The bookings list, a page at a time (the Bookings tab renders it)."""
+    rows = request.customer.trips.select_related("vehicle_type").order_by("-created_at")
+    tab = request.GET.get("tab", "all")
+    if tab == "active":
+        rows = rows.filter(status__in=ACTIVE)
+    elif tab in ("completed", "cancelled"):
+        rows = rows.filter(status=tab)
+    page = Paginator(rows, 10).get_page(request.GET.get("page"))
+    return JsonResponse({
+        "trips": [{
+            **_trip_card(t), "pickup": t.pickup_address, "fare": float(t.total_fare or 0), "paid": t.payment_status == "paid",
+            "created": t.created_at.isoformat(), "active": t.status in ACTIVE,
+            "again": f"{reverse('booking:home')}?again={t.pk}",
+        } for t in page],
+        "next": page.next_page_number() if page.has_next() else None,
+        "total": page.paginator.count,
+    })
+
+
+@require_POST
+@customer_required(api=True)
+def api_profile(request):
+    body = _body(request)
+    c = request.customer
+    name = str(body.get("full_name") or "").strip()[:150]
+    email = str(body.get("email") or "").strip()[:254]
+    if not name:
+        return JsonResponse({"error": "Enter your name.", "code": "INVALID_NAME"}, status=400)
+    if email:
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError
+
+        try:
+            validate_email(email)
+        except ValidationError:
+            return JsonResponse({"error": "That email address doesn't look right.", "code": "INVALID_EMAIL"}, status=400)
+    c.full_name, c.email = name, email
+    c.save(update_fields=["full_name", "email", "updated_at"])
+    return JsonResponse({"full_name": c.full_name, "email": c.email})
+
 
 
 @require_GET
@@ -145,7 +216,46 @@ def api_places(request):
     if len(q) < 2:
         return JsonResponse({"places": []})
     lat, lng = _float(request.GET.get("lat")), _float(request.GET.get("lng"))
-    return JsonResponse({"places": BookingService.search_places(q, lat, lng)})
+    session = (request.GET.get("session") or "")[:64]
+    return JsonResponse({"places": BookingService.search_places(q[:120], lat, lng, session)})
+
+
+@require_GET
+@customer_required(api=True)
+def api_place(request):
+    try:
+        place = BookingService.place_details(request.GET.get("id") or "", (request.GET.get("session") or "")[:64])
+    except DomainError as exc:
+        return _error(exc)
+    return JsonResponse(place)
+
+
+@require_http_methods(["GET", "POST"])
+@customer_required(api=True)
+def api_saved(request):
+    c = request.customer
+    if request.method == "POST":
+        try:
+            place = BookingService.save_place(c, _body(request))
+        except DomainError as exc:
+            return _error(exc)
+        return JsonResponse(place.as_json(), status=201)
+    return JsonResponse({"saved": [p.as_json() for p in c.saved_places.all()],
+                         "recent": BookingService.recent_places(c)})
+
+
+@require_http_methods(["POST", "DELETE"])
+@customer_required(api=True)
+def api_saved_place(request, pk):
+    place = get_object_or_404(request.customer.saved_places.all(), pk=pk)
+    if request.method == "DELETE":
+        place.delete()
+        return JsonResponse({"deleted": True})
+    try:
+        place = BookingService.save_place(request.customer, _body(request), place=place)
+    except DomainError as exc:
+        return _error(exc)
+    return JsonResponse(place.as_json())
 
 
 @require_GET
@@ -171,12 +281,12 @@ def api_nearby(request):
 def api_options(request):
     body = _body(request)
     try:
-        options = BookingService.options(_point(body.get("pickup")), _point(body.get("drop")))
+        result = BookingService.options(_point(body.get("pickup")), _point(body.get("drop")))
     except DomainError as exc:
         return _error(exc)
     except (KeyError, TypeError, ValueError):
         return JsonResponse({"error": "Choose where to pick up and where to deliver."}, status=400)
-    return JsonResponse({"options": options})
+    return JsonResponse(result)
 
 
 @require_POST
@@ -188,6 +298,7 @@ def api_book(request):
             request.customer, vehicle_type_id=body.get("vehicle_type_id"), pickup=_point(body.get("pickup")),
             drop=_point(body.get("drop")), receiver_name=(body.get("receiver_name") or "").strip(),
             receiver_phone=(body.get("receiver_phone") or "").strip(), notes=(body.get("notes") or "").strip(),
+            goods=(body.get("goods") or "").strip(),
         )
     except DomainError as exc:
         return _error(exc)
@@ -226,18 +337,36 @@ def _float(value):
 
 
 def _point(p):
-    return {"lat": float(p["lat"]), "lng": float(p["lng"]), "address": str(p.get("address") or "")[:255]}
+    return {"lat": float(p["lat"]), "lng": float(p["lng"]), "address": str(p.get("address") or "")[:255],
+            "details": str(p.get("details") or "")[:120]}
+
+
+def _is_uuid(value):
+    import uuid
+
+    try:
+        uuid.UUID(str(value))
+    except ValueError:
+        return False
+    return True
+
+
+def _trip_card(t):
+    """An active booking as the home screen's live card shows it."""
+    return {"id": str(t.pk), "number": t.order_number, "status": t.status, "status_label": t.get_status_display(),
+            "vehicle": t.vehicle_type.name, "image": static(vehicle_art(t.vehicle_type.category, t.vehicle_type.name)),
+            "drop": t.drop_address, "url": reverse("booking:trip", args=[t.pk])}
 
 
 def _trip_state(t):
     """Everything the tracking screen shows, in one poll."""
     driver = t.driver
-    route = []
-    if t.route_polyline:
-        try:
-            route = [[round(a, 5), round(b, 5)] for a, b in decode_polyline(t.route_polyline, t.polyline_precision)]
-        except Exception:
-            route = []
+    route = decode_route(t.route_polyline, t.polyline_precision) if t.route_polyline else []
+    otp = None
+    if t.status == TripStatus.IN_PROGRESS and (t.payment_mode == "cod" or t.delivery_otp):
+        # Issued at the drop (and texted to the receiver); shown here too so the
+        # customer can read it out to the driver.
+        otp = cache.get(TripService._delivery_otp_cache_key(t.id))
     live = t.status in (TripStatus.ASSIGNED, TripStatus.ARRIVED_AT_PICKUP, TripStatus.IN_PROGRESS)
     return {
         "id": str(t.pk), "number": t.order_number, "status": t.status, "status_label": t.get_status_display(),
@@ -247,6 +376,8 @@ def _trip_state(t):
                  "name": t.drop_contact_name, "phone": t.drop_contact_phone},
         "route": route, "distance_m": t.distance_meters, "duration_s": t.duration_seconds,
         "vehicle_type": t.vehicle_type.name, "category": t.vehicle_type.category,
+        "image": static(vehicle_art(t.vehicle_type.category, t.vehicle_type.name)),
+        "otp": otp, "notes": t.notes,
         "fare": float(t.total_fare or 0), "paid": t.payment_status == "paid", "payment_mode": t.payment_mode,
         "breakdown": {"base": float(t.base_fare or 0), "distance": float(t.distance_fare or 0), "time": float(t.time_fare or 0)},
         "driver": None if not driver else {

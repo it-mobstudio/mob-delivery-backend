@@ -1,19 +1,124 @@
 {% extends "booking/base.html" %}
+{% load static %}
 {% block title %}Account{% endblock %}
 {% block body %}
-<div class="app"><div class="screen">
-  <div class="row" style="margin-bottom:18px"><span class="avatar" style="width:60px;height:60px;font-size:20px">{{ customer.full_name|default:"?"|slice:":1"|upper }}</span>
-    <div><h1>{{ customer.full_name|default:"Your account" }}</h1><span class="muted">{{ customer.phone_number }}</span></div></div>
-  <div class="stat-grid">
-    <div class="stat"><span class="small muted">Bookings</span><b>{{ stats.trips }}</b></div>
-    <div class="stat"><span class="small muted">Delivered</span><b>{{ stats.done }}</b></div>
-  </div>
-  <form method="post" class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">{% csrf_token %}
-    <h3>Your details</h3>
-    <label class="field">Name<input name="full_name" value="{{ customer.full_name }}" autocomplete="name"></label>
-    <label class="field">Email (for receipts)<input name="email" type="email" value="{{ customer.email }}" autocomplete="email"></label>
-    <button class="btn btn-dark">Save</button>
-  </form>
-  <form method="post" action="{% url 'booking:logout' %}" style="margin-top:14px">{% csrf_token %}<button class="btn btn-ghost" style="color:#d64534">Sign out</button></form>
-</div></div>
+<div class="page">
+  <header class="hero" style="padding-bottom:18px">
+    <div class="wrap">
+      <img class="logo" src="{% static 'booking/img/logo.svg' %}" alt="MOB" style="height:22px;margin-bottom:16px;opacity:.95">
+      <div class="me">
+        <span class="avatar">{{ customer.full_name|default:"?"|slice:":1"|upper }}</span>
+        <div class="grow"><h1 class="ellipsis">{{ customer.full_name|default:"Your account" }}</h1><span class="b" style="opacity:.7">{{ customer.phone_number }}</span></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><b data-count="{{ stats.trips }}">0</b><span>Bookings</span></div>
+        <div class="stat"><b data-count="{{ stats.done }}">0</b><span>Delivered</span></div>
+        <div class="stat"><b><span data-count="{{ stats.km }}">0</span><small style="font-size:12px"> km</small></b><span>Moved</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="section" style="margin-top:10px">
+      <div class="section-head"><h2>Saved addresses</h2><button id="add-place"><i data-lucide="plus" style="width:14px;height:14px;vertical-align:-2px"></i> Add new</button></div>
+      <div class="list" id="places"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>Your details</h2></div>
+      <form method="post" class="card card-pad" id="details" data-js="1" style="display:grid;gap:12px">{% csrf_token %}
+        <label class="field">Full name<input name="full_name" value="{{ customer.full_name }}" autocomplete="name" maxlength="150" required></label>
+        <label class="field"><span>Email <span class="muted" style="font-weight:500">· for receipts</span></span><input name="email" type="email" value="{{ customer.email }}" autocomplete="email" placeholder="you@example.com"></label>
+        <label class="field">Mobile number<input value="{{ customer.phone_number }}" disabled style="background:var(--bg);color:var(--muted)"></label>
+        <p class="error" id="details-error" style="margin:0"></p>
+        <button class="btn btn-dark" id="save">Save changes</button>
+      </form>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>Help</h2></div>
+      <div class="list">
+        <details class="faq"><summary>How is my fare worked out?</summary><p>A base fare plus a rate per kilometre and per minute for the road route between your pickup and drop. You see the exact fare before you book.</p></details>
+        <details class="faq"><summary>How do I pay?</summary><p>Pay the driver by cash or UPI once your goods are delivered. The driver shows a UPI QR code for the exact amount.</p></details>
+        <details class="faq"><summary>What is the delivery OTP?</summary><p>For your safety the driver needs a 4-digit code to finish the delivery. It's sent to the receiver by SMS and shown on your tracking screen.</p></details>
+        <details class="faq"><summary>Can I cancel?</summary><p>Yes, free of charge, any time before the driver picks up your goods. Open the booking and tap Cancel booking.</p></details>
+        <details class="faq"><summary>What can't I send?</summary><p>Anything illegal, hazardous or flammable, cash and valuables, and live animals.</p></details>
+      </div>
+    </section>
+
+    <form method="post" action="{% url 'booking:logout' %}" style="margin-top:22px">{% csrf_token %}
+      <button class="btn" style="color:var(--red)"><i data-lucide="log-out"></i>Sign out</button></form>
+    <p class="tiny muted" style="text-align:center;margin-top:16px">MOB · Move anything, anywhere</p>
+  </main>
+</div>
+{{ saved|json_script:"saved" }}
+{% endblock %}
+{% block scripts %}
+<script>window.SAVED_URL = "{% url 'booking:api_saved' %}";</script>
+<script src="{% static 'booking/mobmap.js' %}"></script>
+<script src="{% static 'booking/places.js' %}"></script>
+<script>
+(function () {
+  var M = window.MOB, $ = M.$;
+  var saved = JSON.parse($("saved").textContent);
+
+  function render() {
+    if (!saved.length) {
+      $("places").innerHTML = '<div class="empty" style="padding:26px 16px"><img src="' + M.static + 'img/home.png" alt="" style="width:70px"><h3>No saved addresses</h3>' +
+        '<p class="small muted" style="margin-top:4px">Save Home, Work or your shop for one-tap booking.</p></div>';
+      return;
+    }
+    $("places").innerHTML = saved.map(function (p, i) {
+      var img = p.kind === "home" ? "home" : p.kind === "work" ? "work" : "pin";
+      return '<div class="li"><span class="ic"><img src="' + M.static + "img/" + img + '.png" alt=""></span><span class="grow"><span class="t">' + M.esc(p.name) +
+        '</span><span class="s">' + M.esc((p.details ? p.details + ", " : "") + p.address) + "</span></span>" +
+        '<button class="icon-btn flat" data-edit="' + i + '" aria-label="Edit" style="width:36px;height:36px"><i data-lucide="pencil" style="width:16px;height:16px"></i></button>' +
+        '<button class="icon-btn flat" data-del="' + i + '" aria-label="Delete" style="width:36px;height:36px;color:var(--red)"><i data-lucide="trash-2" style="width:16px;height:16px"></i></button></div>';
+    }).join("");
+    $("places").querySelectorAll("[data-edit]").forEach(function (b) { b.onclick = function () { edit(saved[+b.dataset.edit]); }; });
+    $("places").querySelectorAll("[data-del]").forEach(function (b) { b.onclick = function () { remove(saved[+b.dataset.del]); }; });
+    M.icons();
+  }
+
+  function edit(p) {
+    var kinds = saved.map(function (x) { return x.kind; });
+    M.pickPlace({
+      mode: "save", title: p ? "Edit address" : "Add an address", edit: !!p, label: p && p.label,
+      kind: p ? p.kind : kinds.indexOf("home") < 0 ? "home" : kinds.indexOf("work") < 0 ? "work" : "other",
+      initial: p && { title: p.name, subtitle: p.address, address: p.address, details: p.details, lat: p.lat, lng: p.lng }
+    }).then(function (place) {
+      if (!place) return;
+      return M.api(p ? SAVED_URL + p.id + "/" : SAVED_URL, place).then(function (row) {
+        saved = saved.filter(function (x) { return x.id !== row.id && !(row.kind !== "other" && x.kind === row.kind); }).concat([row]);
+        render(); M.toast(row.name + " saved", "circle-check");
+      });
+    }).catch(function (e) { M.toast(e.message); });
+  }
+
+  function remove(p) {
+    var sh = M.sheet("<h2>Remove " + M.esc(p.name) + '?</h2><p class="small muted" style="margin:6px 0 18px">' + M.esc(p.address) + "</p>" +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="btn" id="no">Keep</button><button class="btn btn-dark" id="yes" style="background:var(--red);border-color:var(--red)">Remove</button></div>');
+    sh.el.querySelector("#no").onclick = sh.close;
+    sh.el.querySelector("#yes").onclick = function () {
+      M.api(SAVED_URL + p.id + "/", null, "DELETE").then(function () {
+        saved = saved.filter(function (x) { return x.id !== p.id; }); render(); sh.close(); M.toast("Address removed");
+      }).catch(function (e) { M.toast(e.message); });
+    };
+  }
+
+  $("add-place").onclick = function () { edit(null); };
+  M.countUp(document.querySelectorAll("[data-count]"));
+  $("details").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target, btn = $("save"); $("details-error").textContent = "";
+    M.busy(btn, true);
+    M.api("{% url 'booking:api_profile' %}", { full_name: f.full_name.value, email: f.email.value }).then(function (d) {
+      document.querySelector(".me h1").textContent = d.full_name;
+      document.querySelector(".me .avatar").textContent = d.full_name.charAt(0).toUpperCase();
+      M.toast("Details saved", "circle-check");
+    }).catch(function (x) { $("details-error").textContent = x.message; }).finally(function () { M.busy(btn, false); });
+  });
+  render();
+})();
+</script>
 {% endblock %}

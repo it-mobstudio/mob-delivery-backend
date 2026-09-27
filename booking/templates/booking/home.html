@@ -1,86 +1,120 @@
 {% extends "booking/base.html" %}
 {% load static %}
 {% block title %}Book a vehicle{% endblock %}
-{% block head %}<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
 {% block body %}
-<div class="map-app">
-  <div id="map"></div>
-  <div class="top-float">
-    <span class="pill"><i data-lucide="sparkles" style="width:16px;height:16px;color:#1463ff"></i>Hi {{ customer.full_name|default:"there"|truncatewords:1 }}</span>
-    <span class="grow"></span>
-    <span class="pill" id="nearby-pill" hidden><span class="dot p" style="width:8px;height:8px;box-shadow:none"></span><span id="nearby-n">0</span> drivers nearby</span>
-  </div>
-  <button class="round locate" id="locate" aria-label="My location" style="bottom:340px"><i data-lucide="locate-fixed"></i></button>
-
-  <!-- where from / to -->
-  <section class="sheet" id="sheet-where">
-    <div class="grab"></div>
-    {% if active %}
-      <a href="{% url 'booking:trip' active.pk %}" class="card row" style="padding:14px;margin-bottom:14px;color:inherit;border-color:#c9dbff;background:#f4f8ff">
-        <span class="status-ic" style="width:40px;height:40px"><i data-lucide="navigation"></i></span>
-        <span class="grow"><b>Booking {{ active.order_number }}</b><br><span class="small muted">{{ active.get_status_display }} · tap to track</span></span>
-        <i data-lucide="chevron-right"></i></a>
-    {% endif %}
-    <h2 style="margin-bottom:12px">Where are you sending?</h2>
-    <div class="where">
-      <button id="btn-pickup"><span class="dot p"></span><span class="grow"><span class="lbl">Pickup</span><br><span class="val empty ellipsis" id="val-pickup">Finding your location…</span></span></button>
-      <hr>
-      <button id="btn-drop"><span class="dot d"></span><span class="grow"><span class="lbl">Drop</span><br><span class="val empty ellipsis" id="val-drop">Where should it go?</span></span></button>
-    </div>
-    <div class="row" style="margin-top:16px;justify-content:space-around">
-      <img src="{% static 'vehicles/bike.svg' %}" alt="Bike" style="width:64px"><img src="{% static 'vehicles/auto.svg' %}" alt="Auto" style="width:64px"><img src="{% static 'vehicles/mini_truck.svg' %}" alt="Mini truck" style="width:64px"><img src="{% static 'vehicles/truck.svg' %}" alt="Truck" style="width:64px">
-    </div>
-  </section>
-
-  <!-- pin on the map -->
-  <section class="sheet away" id="sheet-pin">
-    <div class="grab"></div>
-    <p class="small muted" style="margin:0 0 4px" id="pin-title">Move the map to set the pickup</p>
-    <h3 id="pin-address" class="ellipsis" style="margin-bottom:14px">…</h3>
-    <button class="btn btn-primary" id="pin-confirm">Confirm location</button>
-    <button class="btn btn-ghost" id="pin-cancel">Back</button>
-  </section>
-  <div id="center-pin" hidden style="position:absolute;left:50%;top:50%;z-index:15;transform:translate(-50%,-100%);pointer-events:none">
-    <svg width="40" height="52" viewBox="0 0 40 52"><path d="M20 0C9 0 0 9 0 20c0 15 20 32 20 32s20-17 20-32C40 9 31 0 20 0z" fill="#0f1d2e"/><circle cx="20" cy="20" r="8" fill="#fff"/></svg>
-  </div>
-
-  <!-- choose a vehicle -->
-  <section class="sheet away" id="sheet-options">
-    <div class="grab"></div>
-    <div class="row" style="margin-bottom:6px"><button class="round" id="opts-back" style="width:38px;height:38px;box-shadow:none;background:#f3f6fa" aria-label="Back"><i data-lucide="arrow-left"></i></button>
-      <div class="grow"><h2>Choose a vehicle</h2><span class="small muted" id="trip-summary"></span></div></div>
-    <div class="opts" id="opts"></div>
-    <details id="more" style="margin-bottom:14px">
-      <summary class="small" style="cursor:pointer;font-weight:600;color:#334456;padding:6px 0">Receiver &amp; instructions</summary>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
-        <label class="field">Receiver's name<input id="rcv-name" placeholder="{{ customer.full_name|default:'Name' }}"></label>
-        <label class="field">Receiver's mobile<input id="rcv-phone" type="tel" inputmode="numeric" maxlength="10" placeholder="Leave empty if it's you"></label>
-        <label class="field">Note for the driver<textarea id="note" rows="2" maxlength="300" placeholder="e.g. Fragile, call on arrival, use gate 2"></textarea></label>
+<div class="page" id="home">
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-top row" style="justify-content:space-between;margin-bottom:16px">
+        <img class="logo" src="{% static 'booking/img/logo.svg' %}" alt="MOB">
+        <a class="avatar" href="{% url 'booking:profile' %}" aria-label="Account" style="width:38px;height:38px;font-size:15px;background:#fff;color:var(--brand)">{{ customer.full_name|default:"?"|slice:":1"|upper }}</a>
       </div>
-    </details>
-    <div class="row small muted" style="margin-bottom:12px"><i data-lucide="wallet" style="width:18px;height:18px"></i>Pay cash or UPI to the driver at delivery</div>
-    <button class="btn btn-primary" id="book" disabled>Choose a vehicle</button>
-  </section>
+      <div class="greet">
+        <button class="loc-btn" id="pickup-btn" aria-label="Change pickup">
+          <span class="lbl">Pickup from</span>
+          <span class="val"><span id="pickup-t">Finding you…</span><i data-lucide="chevron-down" style="width:20px;height:20px"></i></span>
+          <span class="sub" id="pickup-s">&nbsp;</span>
+        </button>
+      </div>
+      <button class="searchbar" id="drop-btn"><i data-lucide="search"></i><span>Where do you want to send?</span><span class="go"><i data-lucide="arrow-right"></i></span></button>
+      <div class="quick" id="quick"></div>
+      <div class="hero-road" aria-hidden="true">
+        <img src="{% static 'booking/vehicles/scooter.png' %}" alt=""><img src="{% static 'booking/vehicles/auto.png' %}" alt="">
+        <img src="{% static 'booking/vehicles/pickup.png' %}" alt=""><img src="{% static 'booking/vehicles/lorry.png' %}" alt=""></div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="live"></div>
+
+    <section class="section">
+      <div class="section-head"><h2>Choose a vehicle</h2><span class="small muted" id="veh-count"></span></div>
+      <div class="vgrid" id="vgrid"></div>
+    </section>
+
+    <section class="section">
+      <div class="perks">
+        <div class="perk"><div class="ic" style="background:var(--brand-soft);color:var(--brand)"><i data-lucide="wallet"></i></div><b>Pay later</b><span>Cash or UPI on delivery</span></div>
+        <div class="perk"><div class="ic" style="background:var(--blue-soft);color:var(--blue)"><i data-lucide="radar"></i></div><b>Live tracking</b><span>Watch every turn</span></div>
+        <div class="perk"><div class="ic" style="background:var(--green-soft);color:var(--green)"><i data-lucide="shield-check"></i></div><b>Verified</b><span>KYC-checked drivers</span></div>
+      </div>
+    </section>
+
+    <section class="section" id="recent-sec" hidden>
+      <div class="section-head"><h2>Send again</h2></div>
+      <div class="list stagger" id="recent"></div>
+    </section>
+
+    <section class="section">
+      <div class="promo">
+        <div class="grow"><h3>Moving something big?</h3><p>Mini trucks and trucks for furniture, materials and bulk orders.</p>
+          <button class="btn btn-sm" id="promo-go" style="margin-top:12px;background:#fff;border-color:#fff;color:var(--brand)">Book a truck</button></div>
+        <img src="{% static 'booking/vehicles/truck.png' %}" alt="" class="float">
+      </div>
+    </section>
+  </main>
 </div>
 
-<!-- place search -->
-<div class="overlay" id="search" hidden>
-  <header><button class="round" id="search-close" style="box-shadow:none" aria-label="Close"><i data-lucide="arrow-left"></i></button>
-    <input id="search-input" type="search" placeholder="Search a place, area or landmark" autocomplete="off"></header>
-  <div class="results">
-    <button class="result" id="use-current"><span class="ic"><i data-lucide="locate-fixed"></i></span><span><b>Use my current location</b><span>Pick up from where you are</span></span></button>
-    <button class="result" id="use-map"><span class="ic"><i data-lucide="map-pin"></i></span><span><b>Choose on map</b><span>Drop a pin exactly where it is</span></span></button>
-    <div id="search-results"></div>
+<!-- choose vehicle + book -->
+<div class="screen full" id="review">
+  <div class="split">
+    <div class="mapbox"><div class="map" id="rv-map"></div>
+      <div class="map-top"><button class="icon-btn" id="rv-back" aria-label="Back"><i data-lucide="arrow-left"></i></button><span class="grow"></span>
+        <span class="pill" id="rv-nearby" hidden style="background:#fff;box-shadow:var(--shadow)"><span class="live-dot" style="color:var(--brand)"></span><span id="rv-nearby-n"></span></span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-scroll" id="rv-scroll">
+        <div class="grab" style="margin-top:4px"></div>
+        <div class="card route-card">
+          <button class="stop" id="rv-pickup"><span class="dot p"></span><span class="grow"><span class="tiny b muted">PICKUP</span><span class="t ellipsis" style="display:block" id="rv-pt"></span><span class="s ellipsis" style="display:block" id="rv-ps"></span></span><i data-lucide="pencil" style="width:16px;height:16px;color:var(--faint)"></i></button>
+          <div class="line"></div>
+          <button class="stop" id="rv-drop"><span class="dot d"></span><span class="grow"><span class="tiny b muted">DROP</span><span class="t ellipsis" style="display:block" id="rv-dt"></span><span class="s ellipsis" style="display:block" id="rv-ds"></span></span><i data-lucide="pencil" style="width:16px;height:16px;color:var(--faint)"></i></button>
+          <div class="route-meta" id="rv-meta"></div>
+        </div>
+
+        <div class="section-head" style="margin-top:20px"><h2>Choose a vehicle</h2></div>
+        <div class="opts" id="opts"></div>
+
+        <div class="section-head" style="margin-top:22px"><h2>What are you sending?</h2></div>
+        <div class="chips" id="goods" style="flex-wrap:wrap"></div>
+
+        <div class="card card-pad" style="margin-top:22px">
+          <div class="switch-row">
+            <div><h3>I'll receive it myself</h3><p class="small muted" id="rcv-hint">The driver will call {{ customer.phone_number }}</p></div>
+            <label class="toggle"><input type="checkbox" id="rcv-self" checked><span></span></label>
+          </div>
+          <div id="rcv-fields" hidden style="margin-top:14px;display:grid;gap:10px">
+            <label class="field">Receiver's name<input id="rcv-name" maxlength="150" autocomplete="off" placeholder="Full name"></label>
+            <label class="field">Receiver's mobile
+              <div class="phone"><span>+91</span><input id="rcv-phone" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit number" style="font-size:16px;padding:13px 14px"></div></label>
+          </div>
+        </div>
+
+        <label class="field" style="margin-top:14px">Instructions for the driver
+          <textarea id="note" rows="2" maxlength="300" placeholder="e.g. Fragile — handle with care, call on arrival, use gate 2"></textarea></label>
+
+        <div class="card pay-row" style="margin-top:14px"><span class="ic"><i data-lucide="banknote"></i></span>
+          <div class="grow"><b>Pay on delivery</b><div class="small muted">Cash or UPI to the driver when your goods arrive</div></div></div>
+        <p class="tiny muted" style="margin:14px 4px 0;text-align:center">Fares include distance and time. Waiting and tolls, if any, are paid to the driver.</p>
+      </div>
+      <div class="panel-foot">
+        <button class="btn btn-primary btn-split" id="book" disabled><span id="book-t">Choose a vehicle</span><span class="price" id="book-p"></span></button>
+      </div>
+    </div>
   </div>
 </div>
 
 <div class="finding" id="finding" hidden>
-  <div><div class="radar"><span></span><span></span><span></span><i></i></div>
-    <h2>Booking your <span id="finding-name">vehicle</span></h2><p class="muted">Finding the nearest driver…</p></div>
+  <div>
+    <div class="radar"><span></span><span></span><span></span><div class="sweep"></div><div class="core"><img id="finding-img" alt=""></div></div>
+    <h2 style="font-size:22px">Booking your <span id="finding-name">vehicle</span></h2>
+    <div class="rotating muted" style="margin-top:8px"><span>Contacting drivers near your pickup…</span><span>Matching the closest available driver…</span><span>Almost there…</span></div>
+  </div>
 </div>
+{{ boot|json_script:"boot" }}
 {% endblock %}
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>window.BOOK = { places: "{% url 'booking:api_places' %}", reverse: "{% url 'booking:api_reverse' %}", nearby: "{% url 'booking:api_nearby' %}", options: "{% url 'booking:api_options' %}", book: "{% url 'booking:api_book' %}" };</script>
-<script src="{% static 'booking/app.js' %}"></script>
+<script src="{% static 'booking/mobmap.js' %}"></script>
+<script src="{% static 'booking/places.js' %}"></script>
+<script src="{% static 'booking/home.js' %}"></script>
 {% endblock %}

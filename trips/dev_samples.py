@@ -63,6 +63,35 @@ def sample_items(count, rng=random):
     return items
 
 
+def random_items(count=None, rng=random):
+    """A random order: `count` different products (default: 1 to all of them) in
+    random order, each with a random quantity. Past the catalogue size they
+    repeat with a "#2"... suffix, like sample_items."""
+    count = rng.randint(1, len(CATALOGUE)) if count is None else count
+    products = rng.sample(CATALOGUE, len(CATALOGUE))
+    items = []
+    for index in range(count):
+        product = products[index % len(products)]
+        round_number = index // len(products)
+        items.append({
+            "name": product.name if round_number == 0 else f"{product.name} #{round_number + 1}",
+            "quantity": rng.randint(*product.quantity), "unit": product.unit, "sku": product.sku,
+            "image_url": product.image_url,
+        })
+    return items
+
+
+NOTES = [
+    "Call before arriving. Use the side gate for unloading.",
+    "Fragile - handle with care, keep upright.",
+    "Deliver to the security desk if nobody answers.",
+    "Heavy bags - please help unload at the site.",
+    "Customer will pay by UPI. Ring the bell twice.",
+    "Site entry from the back lane, near the water tank.",
+    "",
+]
+
+
 # -- people and places ------------------------------------------------------------
 # So a test order reads like a real one: a real shop name at the pickup, a real
 # person at the drop, and street addresses built from what OpenStreetMap knows
