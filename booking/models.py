@@ -4,7 +4,7 @@ from core.models import BaseModel
 
 
 class Customer(BaseModel):
-    """Someone who books vehicles on the web app (/book/), signed in with a
+    """Someone who books vehicles on the web app (at the site root, /), signed in with a
     one-time code sent to their phone. Belongs to the company whose fleet
     serves customer bookings (see BookingService.company)."""
 

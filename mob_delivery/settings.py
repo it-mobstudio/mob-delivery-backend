@@ -209,10 +209,10 @@ DRIVER_OTP_DEBUG_RESPONSE = env.bool("DRIVER_OTP_DEBUG_RESPONSE", default=DEBUG)
 # only active company, if there's exactly one, is used so local dev needs no
 # setup. See DriverService.signup_company.
 DRIVER_SIGNUP_COMPANY_ID = env("DRIVER_SIGNUP_COMPANY_ID", default="")
-# Whose fleet serves the customer booking web app (/book/). Empty: the driver
+# Whose fleet serves the customer booking web app (at the site root, /). Empty: the driver
 # sign-up company, or — in DEBUG — the only company that has vehicle types.
 BOOKING_COMPANY_ID = env("BOOKING_COMPANY_ID", default="")
-# Google Maps Platform key for the customer booking app (/book/): the map
+# Google Maps Platform key for the customer booking app (at the site root, /): the map
 # (Maps JavaScript API) and address search (Places Autocomplete + Details,
 # Geocoding — all called from our server, so the key only needs those APIs).
 # Empty: OpenStreetMap search (Photon) and the tile map below are used instead.

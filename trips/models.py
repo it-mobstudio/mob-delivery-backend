@@ -28,7 +28,7 @@ ACTIVE_TRIP_STATUSES = [
 class Trip(BaseModel):
     vehicle_type = models.ForeignKey(VehicleType, on_delete=models.PROTECT, related_name="trips")
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, blank=True, related_name="trips")
-    # Who booked it on the customer web app (/book/); empty for API bookings.
+    # Who booked it on the customer web app (at the site root, /); empty for API bookings.
     customer = models.ForeignKey(
         "booking.Customer", on_delete=models.SET_NULL, null=True, blank=True, related_name="trips"
     )

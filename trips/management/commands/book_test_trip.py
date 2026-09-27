@@ -40,7 +40,7 @@ class Command(BaseCommand):
         "with --items N (0 for none), --mode cod|prepaid, --distance-km, --note, --no-invoice, "
         "--pickup-photo / --delivery-photo; --seed N repeats a run exactly; --count N books "
         "several.\n\n"
-        "--customer 98XXXXXXXX also puts the order in that customer's web app (/book/): their "
+        "--customer 98XXXXXXXX also puts the order in that customer's web app (at the site root, /): their "
         "bookings, live tracking and the delivery OTP.\n\n"
         "The pickup is placed at the driver's own last reported location (so they're the "
         "nearest driver and get it). The driver must be ON DUTY: open the app and tap 'Start "
@@ -64,7 +64,7 @@ class Command(BaseCommand):
         parser.add_argument("--customer-phone", default="+919888800002", help="The delivery OTP is texted here on a COD trip.")
         parser.add_argument(
             "--customer", default=None, metavar="PHONE",
-            help="A customer of the booking web app (/book/) to book it for: it shows in their bookings with live "
+            help="A customer of the booking web app (at the site root, /) to book it for: it shows in their bookings with live "
                  "tracking and the delivery OTP, and they're the receiver. Created if new.",
         )
         parser.add_argument(
@@ -207,7 +207,7 @@ class Command(BaseCommand):
             self._attach_voice_note(trip)
         self._report(trip, driver, options)
         if customer:
-            self.stdout.write(f"  Customer web app: /book/trips/{trip.id}/  (sign in as {customer.phone_number})")
+            self.stdout.write(f"  Customer web app: /trips/{trip.id}/  (sign in as {customer.phone_number})")
 
     # -- inputs ------------------------------------------------------------------
 

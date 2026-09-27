@@ -37,7 +37,7 @@
     var a = e.target.closest && e.target.closest("a[href]");
     if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || a.target === "_blank") return;
     var url = new URL(a.href, location.href);
-    if (url.origin !== location.origin || url.pathname.indexOf("/book/") !== 0) return;
+    if (url.origin !== location.origin || /^\/(admin|api|media|static)\//.test(url.pathname)) return;
     if (url.pathname === location.pathname && url.search === location.search) return;
     M.leaving();
   });
@@ -56,7 +56,7 @@
     return fetch(url, opts).then(function (r) {
       M.loading(false);
       return r.json().catch(function () { return {}; }).then(function (d) {
-        if (r.status === 401) { window.location = "/book/login/?next=" + encodeURIComponent(location.pathname + location.search); }
+        if (r.status === 401) { window.location = M.urls.login + "?next=" + encodeURIComponent(location.pathname + location.search); }
         if (!r.ok) { var e = new Error(d.error || "Something went wrong. Please try again."); e.code = d.code; throw e; }
         return d;
       });

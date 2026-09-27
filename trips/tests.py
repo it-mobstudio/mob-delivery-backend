@@ -456,7 +456,7 @@ class BookTestTripCommandTests(DriverTestMixin, TestCase):
         self.assertEqual(trips[0].drop_contact_phone, "+919876500011", "the customer receives it, so the OTP reaches them")
         self.assertEqual(trips[0].driver_id, self.driver.id)
         self.assertIn("order 2 of 2", output)
-        self.assertIn(f"/book/trips/{trips[0].id}/", output)
+        self.assertIn(f"/trips/{trips[0].id}/", output)
 
     def test_without_a_phone_any_driver_on_duty_is_used(self):
         from trips.models import Trip

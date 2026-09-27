@@ -19915,7 +19915,7 @@ tags:
     | `PERMISSION_DENIED` | 403 | You are signed in, but this kind of token may not use this endpoint (e.g. a driver token on a company endpoint, or the reverse). | Use the right principal for the endpoint - each operation lists who may call it. |
     | `NOT_YOUR_TRIP` | 403 | A driver called a trip endpoint for a trip that isn't assigned to them. | Only act on trips returned by `GET /driver/trips/active` or `GET /driver/trips`. |
     | `INVALID_REFRESH_TOKEN` | 401 | The driver's refresh token has expired or was already used up. | Send the driver through the OTP login again. |
-    | `INVALID_PHONE` | 400 | A customer signing in on the booking web app (/book/) gave a number that isn't a 10-digit Indian mobile number. | Send 10 digits (optionally with +91). |
+    | `INVALID_PHONE` | 400 | A customer signing in on the booking web app (at the site root, /) gave a number that isn't a 10-digit Indian mobile number. | Send 10 digits (optionally with +91). |
     | `INVALID_OTP` | 400 | The login OTP is wrong or has expired (OTPs last 5 minutes). | Ask for a new OTP with `POST /driver/auth/otp/request`. |
     | `DRIVER_NOT_FOUND` | 404 | Sign-up is closed on this server and no driver is registered with this phone number. (When sign-up is open, an unknown number simply becomes a new driver.) | Ask the company to register the driver (`POST /drivers`), or check the number (`+919000000001`). |
     | `DRIVER_PHONE_AMBIGUOUS` | 409 | The same phone number belongs to drivers in more than one company, so the login can't tell which one to use. | Contact support - phone numbers must be unique across companies. |
@@ -19927,7 +19927,7 @@ tags:
     | Code | HTTP | When it happens | What to do |
     |---|---|---|---|
     | `BOOKING_CLOSED` | 503 | The customer booking web app has no company to book with (BOOKING_COMPANY_ID / DRIVER_SIGNUP_COMPANY_ID isn't set). | Operator action: set BOOKING_COMPANY_ID to the company whose fleet serves customer bookings. |
-    | `PLACE_NOT_FOUND` | 404 | The booking web app (/book/) asked for the details of a Google place that doesn't exist, or Google search isn't set up. | Search again and pick one of the suggestions; operators set GOOGLE_MAPS_API_KEY. |
+    | `PLACE_NOT_FOUND` | 404 | The booking web app (at the site root, /) asked for the details of a Google place that doesn't exist, or Google search isn't set up. | Search again and pick one of the suggestions; operators set GOOGLE_MAPS_API_KEY. |
     | `INVALID_PLACE` | 400 | A customer tried to save an address on the booking web app without an address or map position. | Pick the place on the map, then save. |
     | `TOO_MANY_PLACES` | 400 | A customer already has 20 saved addresses on the booking web app. | Remove a saved address before adding another. |
     | `VEHICLE_TYPE_NOT_FOUND` | 404 | `vehicle_type_id` doesn't match an active vehicle type of your company. | List your vehicle types with `GET /vehicle-types` and use one of those ids. |

@@ -515,31 +515,59 @@ img { display: block; max-width: 100%; }
 @keyframes rotText { 0% { opacity: 0; transform: translateY(12px); } 5%, 30% { opacity: 1; transform: none; } 36%, 100% { opacity: 0; transform: translateY(-12px); } }
 
 /* ---- road animation (sign-in) -------------------------------------------- */
-.road { position: relative; height: 150px; overflow: hidden; }
+.road { position: relative; height: 96px; overflow: hidden; margin-top: 8px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
 .road::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 22px; height: 4px;
-  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .35) 0 26px, transparent 26px 50px);
+  content: ""; position: absolute; left: 0; right: 0; bottom: 14px; height: 3px;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .35) 0 22px, transparent 22px 44px);
   animation: road 1s linear infinite;
 }
-@keyframes road { to { background-position: -50px 0; } }
-.road img { position: absolute; bottom: 20px; width: 110px; animation: pass 9s linear infinite, drive .5s ease-in-out infinite alternate; }
-.road img:nth-child(2) { animation-delay: -2.25s; width: 96px; }
-.road img:nth-child(3) { animation-delay: -4.5s; width: 124px; }
-.road img:nth-child(4) { animation-delay: -6.75s; width: 88px; }
-@keyframes pass { from { left: 110%; } to { left: -40%; } }
+@keyframes road { to { background-position: -44px 0; } }
+.road img { position: absolute; bottom: 15px; width: 72px; animation: pass 10s linear infinite, drive .5s ease-in-out infinite alternate; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, .25)); }
+.road img:nth-child(2) { animation-delay: -2.5s, -.1s; width: 62px; }
+.road img:nth-child(3) { animation-delay: -5s, -.2s; width: 80px; }
+.road img:nth-child(4) { animation-delay: -7.5s, -.3s; width: 66px; }
+@keyframes pass { from { left: 105%; } to { left: -25%; } }
 
 /* ---- auth ----------------------------------------------------------------- */
 .auth {
   min-height: 100%; display: flex; flex-direction: column; color: #fff;
   background: radial-gradient(80% 50% at 100% 0%, rgba(47, 127, 214, .55), transparent 70%), linear-gradient(165deg, var(--navy) 0%, var(--brand) 100%);
 }
-.auth-top { padding: calc(28px + env(safe-area-inset-top, 0px)) 24px 0; max-width: 480px; width: 100%; margin: 0 auto; }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -.02em; }
-.brand-mark { width: 38px; height: 38px; border-radius: 12px; background: #fff; color: var(--brand); display: grid; place-items: center; font-size: 19px; font-weight: 800; }
-.auth-title { font-size: 30px; font-weight: 800; line-height: 1.1; margin-top: 22px; letter-spacing: -.03em; }
+.auth-shell { flex: 1; display: flex; flex-direction: column; width: 100%; }
+.auth-brand { padding: calc(22px + env(safe-area-inset-top, 0px)) 24px 0; }
+.auth-brand .logo { align-self: flex-start; width: auto; }
+.auth-title { font-size: 26px; font-weight: 800; line-height: 1.12; margin-top: 16px; letter-spacing: -.03em; }
+.auth-sub { font-size: 14px; color: rgba(255, 255, 255, .72); margin-top: 8px; max-width: 340px; }
+.auth-perks { display: none; }
 .auth-card {
-  width: min(480px, 100%); margin: 0 auto; background: #fff; color: var(--ink); flex: 1; padding: 28px 24px calc(24px + var(--safe-b));
-  border-radius: 28px 28px 0 0; box-shadow: 0 -10px 30px rgba(0, 0, 0, .05);
+  background: #fff; color: var(--ink); flex: 1; padding: 26px 24px calc(22px + var(--safe-b));
+  border-radius: 26px 26px 0 0; box-shadow: 0 -10px 30px rgba(0, 0, 0, .08); display: flex; flex-direction: column;
+}
+.auth-card h2 { font-size: 21px; }
+.auth-foot { margin-top: auto; padding-top: 22px; display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; font-size: 12px; font-weight: 600; color: var(--muted); }
+.auth-foot span { display: inline-flex; align-items: center; gap: 5px; }
+.auth-foot svg { width: 14px; height: 14px; color: var(--brand); }
+@media (min-width: 860px) {
+  .auth { align-items: center; justify-content: center; padding: 32px; }
+  .auth-shell {
+    flex: none; flex-direction: row; max-width: 920px; min-height: 540px; border-radius: 30px; overflow: hidden;
+    background: #fff; box-shadow: 0 30px 80px rgba(0, 10, 30, .45);
+  }
+  .auth-brand {
+    width: 50%; padding: 40px 40px 32px; display: flex; flex-direction: column; position: relative; overflow: hidden;
+    background: radial-gradient(90% 60% at 100% 0%, rgba(47, 127, 214, .6), transparent 70%), linear-gradient(160deg, var(--navy), var(--brand));
+  }
+  .auth-brand::after { content: ""; position: absolute; right: -80px; bottom: -120px; width: 300px; height: 300px; border-radius: 50%; border: 50px solid rgba(255, 255, 255, .05); }
+  .auth-title { font-size: 34px; margin-top: 34px; }
+  .road { margin-top: auto; }
+  .auth-perks { display: grid; gap: 10px; margin-top: 22px; position: relative; z-index: 1; }
+  .auth-perks span { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: rgba(255, 255, 255, .85); }
+  .auth-perks i { width: 28px; height: 28px; border-radius: 9px; background: rgba(255, 255, 255, .12); display: grid; place-items: center; color: #00de9d; }
+  .auth-perks svg { width: 15px; height: 15px; }
+  .auth-card { width: 50%; flex: none; border-radius: 0; box-shadow: none; padding: 48px 44px 32px; justify-content: center; }
+  .auth-card .step { width: 100%; margin-top: auto; }
+  .auth-foot { justify-content: flex-start; }
 }
 .phone { display: flex; align-items: center; border: 1.5px solid var(--line-2); border-radius: 14px; overflow: hidden; transition: border-color .15s, box-shadow .15s; }
 .phone:focus-within { border-color: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }

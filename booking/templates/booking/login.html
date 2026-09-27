@@ -3,21 +3,28 @@
 {% block title %}Sign in{% endblock %}
 {% block body %}
 <div class="auth">
-  <div class="auth-top">
-    <img class="logo" src="{% static 'booking/img/logo.svg' %}" alt="MOB" style="height:30px">
+ <div class="auth-shell">
+  <div class="auth-brand">
+    <img class="logo" src="{% static 'booking/img/logo.svg' %}" alt="MOB" style="height:26px">
     <div class="auth-title">Move anything,<br>anywhere in minutes.</div>
+    <p class="auth-sub">Bikes, autos, mini trucks and trucks — booked in seconds, tracked live.</p>
+    <div class="auth-perks">
+      <span><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></i>Live tracking on a map</span>
+      <span><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></i>Pay cash or UPI on delivery</span>
+      <span><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></i>KYC-verified drivers</span>
+    </div>
     <div class="road" aria-hidden="true">
-      <img src="{% static 'booking/vehicles/scooter.png' %}" alt="" class="drive">
-      <img src="{% static 'booking/vehicles/auto.png' %}" alt="" class="drive">
-      <img src="{% static 'booking/vehicles/truck.png' %}" alt="" class="drive">
-      <img src="{% static 'booking/vehicles/pickup.png' %}" alt="" class="drive">
+      <img src="{% static 'booking/vehicles/scooter.png' %}" alt="">
+      <img src="{% static 'booking/vehicles/auto.png' %}" alt="">
+      <img src="{% static 'booking/vehicles/truck.png' %}" alt="">
+      <img src="{% static 'booking/vehicles/pickup.png' %}" alt="">
     </div>
   </div>
 
   <div class="auth-card">
     <form id="step-phone" class="step">
       <h2>Log in or sign up</h2>
-      <p class="muted small" style="margin:4px 0 18px">Bikes, autos, mini trucks and trucks — booked in seconds.</p>
+      <p class="muted small" style="margin:4px 0 18px">Enter your mobile number to continue.</p>
       <div class="phone"><span>🇮🇳 +91</span><input id="phone" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="Mobile number" required aria-label="Mobile number"></div>
       <p class="error" id="phone-error"></p>
       <button class="btn btn-primary" id="send" disabled>Continue</button>
@@ -43,7 +50,10 @@
       <p class="error"></p>
       <button class="btn btn-primary">Start booking</button>
     </form>
+    <div class="auth-foot"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Secure sign-in</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Takes 30 seconds</span></div>
   </div>
+ </div>
 </div>
 {% endblock %}
 {% block scripts %}
