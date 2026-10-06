@@ -108,8 +108,12 @@
     if (!state.pickup) {
       return choosePickup().then(function (ok) { if (ok) chooseDrop(); });
     }
-    return M.pickPlace({ mode: "drop", from: state.pickup, initial: state.drop, saved: boot.saved, recent: boot.recent }).then(function (p) {
-      if (!p) return;
+    var fromChanged = false;
+    return M.pickPlace({
+      mode: "drop", from: state.pickup, initial: state.drop, saved: boot.saved, recent: boot.recent,
+      onFrom: function (p) { state.pickup = p; fromChanged = true; M.store.set("pickup", { p: p, at: Date.now() }); renderPickup(); }
+    }).then(function (p) {
+      if (!p) { if (fromChanged && reviewOpen) openReview(); return; }
       state.drop = p;
       if (p.saved && p.saved.contact_phone) prefillReceiver(p.saved.contact_name, p.saved.contact_phone);
       openReview();

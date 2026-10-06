@@ -359,7 +359,13 @@ img { display: block; max-width: 100%; }
 /* ---- place picker --------------------------------------------------------- */
 .pk-head { background: #fff; padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 14px; box-shadow: 0 1px 0 var(--line); }
 .pk-head .row { gap: 10px; }
-.pk-from { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-top: 12px; border-radius: 12px; background: var(--bg); font-size: 13px; }
+.pk-from {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; margin-top: 12px; border-radius: 12px;
+  background: var(--bg); font-size: 13px; text-align: left; transition: background .15s, transform .12s var(--ease);
+}
+.pk-from:hover { background: #eceff5; }
+.pk-from:active { transform: scale(.985); }
+.pk-from .chg { flex: none; font-size: 12.5px; font-weight: 700; color: var(--brand); }
 .pk-search {
   display: flex; align-items: center; gap: 10px; margin-top: 12px; height: 52px; padding: 0 12px 0 14px; border-radius: 14px;
   border: 1.5px solid var(--brand); background: #fff; box-shadow: 0 0 0 4px var(--brand-soft);
@@ -678,11 +684,15 @@ details.faq p { padding: 0 16px 14px; font-size: 13.5px; color: var(--ink-2); }
   .split .mapbox { height: auto; flex: 1; }
   .split .panel { width: 440px; flex: none; margin-top: 0; border-radius: 0; box-shadow: 8px 0 30px rgba(0, 0, 0, .08); }
   .split .panel .grab { display: none; }
-  .screen { left: 50%; width: 560px; transform: translate(-50%, 0) translateX(110vw); box-shadow: var(--shadow-lg); }
-  .screen.show { transform: translate(-50%, 0); }
-  .screen.up { transform: translate(-50%, 100%); }
-  .screen.up.show { transform: translate(-50%, 0); }
-  .screen.full { left: 0; width: 100%; transform: translateX(100%); }
+  /* A screen is a centred dialog here, not a full-height column. */
+  .screen:not(.full) {
+    inset: auto; left: 50%; top: 50%; width: 440px; height: min(660px, calc(100vh - 48px)); border-radius: 22px; overflow: hidden;
+    transform: translate(-50%, -50%) translateX(110vw); transition: transform .38s var(--ease), box-shadow .3s;
+  }
+  .screen:not(.full).show { transform: translate(-50%, -50%); box-shadow: var(--shadow-lg), 0 0 0 100vmax rgba(0, 21, 51, .45); }
+  .screen.up:not(.full) { transform: translate(-50%, 100vh); }
+  .screen.up:not(.full).show { transform: translate(-50%, -50%); }
+  .screen.full { transform: translateX(100%); }
   .screen.full.show { transform: none; }
   .scrim.desk { opacity: 1; pointer-events: auto; }
   .toast { bottom: 100px; }

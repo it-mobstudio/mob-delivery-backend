@@ -33,9 +33,12 @@
     { featureType: "administrative.land_parcel", stylers: [{ visibility: "off" }] }
   ];
 
+  var refused = false;  // Google refused the key on this page
+  var live = [];        // every map on this page, so a refusal can swap them to Leaflet in place
+
   function useGoogle() {
-    var off = false;
-    try { off = sessionStorage.getItem(NO_GOOGLE) === "1"; } catch (e) { /* ignore */ }
+    var off = refused;
+    try { off = off || sessionStorage.getItem(NO_GOOGLE) === "1"; } catch (e) { /* ignore */ }
     return !!M.mapKey && !off;
   }
 
@@ -43,7 +46,14 @@
   function script(src) {
     if (!loading[src]) {
       loading[src] = new Promise(function (resolve, reject) {
-        var s = document.createElement("script"); s.src = src; s.async = true; s.onload = resolve; s.onerror = reject;
+        var s = document.createElement("script"), timer;
+        function fail() {
+          clearTimeout(timer); s.remove(); delete loading[src];
+          reject(new Error("The map couldn't load. Check your connection and try again."));
+        }
+        s.src = src; s.async = true;
+        s.onload = function () { clearTimeout(timer); resolve(); }; s.onerror = fail;
+        timer = setTimeout(fail, 12000);
         document.head.appendChild(s);
       });
     }
@@ -55,15 +65,22 @@
       if (window.google && window.google.maps && window.google.maps.Map) return Promise.resolve("google");
       if (!loading.google) {
         loading.google = new Promise(function (resolve, reject) {
-          window.__mobMapsReady = function () { resolve("google"); };
+          var timer = setTimeout(function () { reject(new Error("Map loading timed out.")); }, 12000);
+          window.__mobMapsReady = function () { clearTimeout(timer); resolve("google"); };
           // Google calls this if it refuses the key (billing, referrer…): fall back for this tab.
+          // Never reload for it: an app's WebView often has no sessionStorage, so the
+          // flag would not survive and the page would reload forever.
           window.gm_authFailure = function () {
+            clearTimeout(timer);
+            refused = true;
             try { sessionStorage.setItem(NO_GOOGLE, "1"); } catch (e) { /* ignore */ }
-            location.reload();
+            resolve(loadLeaflet());
+            live.forEach(function (m) { m.toLeaflet(); });
           };
           script("https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(M.mapKey) +
-            "&v=weekly&loading=async&callback=__mobMapsReady&region=IN&language=en").catch(reject);
+            "&v=weekly&loading=async&callback=__mobMapsReady&region=IN&language=en").catch(function (e) { clearTimeout(timer); reject(e); });
         }).catch(function () {
+          refused = true;
           try { sessionStorage.setItem(NO_GOOGLE, "1"); } catch (e) { /* ignore */ }
           return loadLeaflet();
         });
@@ -99,11 +116,74 @@
     var center = opts.center || [26.8467, 80.9462], zoom = opts.zoom || 13;
     el.classList.add("map-loading");
     return M.loadMaps().then(function (kind) {
-      var map = kind === "google" ? googleMap(el, center, zoom) : leafletMap(el, center, zoom);
+      var map = swappable(el, kind, center, zoom);
       setTimeout(function () { el.classList.remove("map-loading"); }, kind === "google" ? 500 : 250);
       return map;
+    }).catch(function (e) {
+      el.classList.remove("map-loading");
+      throw e;
     });
   };
+
+  /* The map the pages hold. It remembers its listeners, markers and routes so
+     that, if Google refuses the key after the map is up, it can move them all
+     onto a Leaflet map in the same spot without the page noticing. */
+  function swappable(el, kind, center, zoom) {
+    var impl = kind === "google" ? googleMap(el, center, zoom) : leafletMap(el, center, zoom);
+    var listeners = [], markers = [], routes = [];
+    var api = {
+      view: function (ll, z) { impl.view(ll, z); },
+      fit: function (points, pad) { impl.fit(points, pad); },
+      center: function () { return impl.center(); },
+      on: function (ev, fn) { listeners.push([ev, fn]); impl.on(ev, fn); },
+      marker: function (ll, html, o) {
+        var rec = { ll: ll, html: html, o: o, m: impl.marker(ll, html, o) };
+        markers.push(rec);
+        return {
+          get el() { return rec.m.el; },
+          move: function (to, ms) { rec.ll = to; rec.m.move(to, ms); },
+          remove: function () { rec.m.remove(); markers.splice(markers.indexOf(rec), 1); }
+        };
+      },
+      route: function (points) {
+        var rec = { points: points, r: impl.route(points) };
+        routes.push(rec);
+        return { remove: function () { rec.r.remove(); routes.splice(routes.indexOf(rec), 1); } };
+      },
+      toLeaflet: function () {
+        if (impl.kind !== "google") return;
+        var c = impl.center(), z = impl.zoom();
+        routes.forEach(function (r) { r.r.remove(); });
+        markers.forEach(function (m) { m.m.remove(); });
+        impl.destroy();
+        // A clean element: Google leaves its own styles and error box on the old one.
+        var fresh = el.cloneNode(false); fresh.removeAttribute("style"); fresh.classList.add("map-loading");
+        el.replaceWith(fresh); el = fresh;
+        // Stand-in while Leaflet loads: remembers where to look, the rest is replayed.
+        var stub = { el: null, move: function () {}, remove: function () {} }, fitTo = null;
+        impl = {
+          kind: "switching",
+          view: function (ll, zz) { c = ll; if (zz) z = zz; fitTo = null; },
+          fit: function (points, pad) { fitTo = [points, pad]; },
+          center: function () { return c; }, zoom: function () { return z; },
+          on: function () {}, marker: function () { return stub; }, route: function () { return stub; }
+        };
+        loadLeaflet().then(function () {
+          impl = leafletMap(el, c, z);
+          listeners.forEach(function (l) { impl.on(l[0], l[1]); });
+          markers.forEach(function (m) { m.m = impl.marker(m.ll, m.html, m.o); });
+          routes.forEach(function (r) { r.r = impl.route(r.points); });
+          if (fitTo) impl.fit(fitTo[0], fitTo[1]);
+          setTimeout(function () { el.classList.remove("map-loading"); }, 250);
+        }).catch(function () {
+          el.classList.remove("map-loading");
+          el.textContent = "The map couldn't load. Check your connection and reload to retry.";
+        });
+      }
+    };
+    if (impl.kind === "google") live.push(api);
+    return api;
+  }
 
   /* ---------------------------------------------------------------- Google */
   function googleMap(el, center, zoom) {
@@ -140,6 +220,8 @@
         map.fitBounds(b, pad || 60);
       },
       center: function () { var c = map.getCenter(); return [c.lat(), c.lng()]; },
+      zoom: function () { return map.getZoom(); },
+      destroy: function () { g.event.clearInstanceListeners(map); },
       on: function (ev, fn) {
         if (ev === "idle") map.addListener("idle", fn);
         else if (ev === "movestart") { map.addListener("dragstart", fn); map.addListener("zoom_changed", fn); }
@@ -189,6 +271,7 @@
         map.fitBounds(points, { paddingTopLeft: [pad.left, pad.top], paddingBottomRight: [pad.right, pad.bottom], animate: true });
       },
       center: function () { var c = map.getCenter(); return [c.lat, c.lng]; },
+      zoom: function () { return map.getZoom(); },
       on: function (ev, fn) { map.on(ev === "idle" ? "moveend" : "movestart", fn); },
       marker: function (ll, html, o) {
         o = o || {};

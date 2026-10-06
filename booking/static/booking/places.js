@@ -9,6 +9,8 @@
   var M = window.MOB, $ = M.$;
   var root, map, pinTimer, searchTimer, seq = 0, session = "", st = {};
 
+  function placeApi(url) { return M.api(url, null, "GET", 20000); }
+
   var COPY = {
     pickup: { title: "Pickup location", ph: "Search pickup area, street, landmark…", btn: "Confirm pickup", tip: "Your goods will be picked up here", dot: "p", pin: "green" },
     drop: { title: "Drop location", ph: "Where should it be delivered?", btn: "Confirm drop", tip: "Your goods will be delivered here", dot: "d", pin: "red" },
@@ -26,7 +28,8 @@
       '<div id="pk-s1" style="display:flex;flex-direction:column;height:100%">' +
       '  <div class="pk-head">' +
       '    <div class="row"><button class="icon-btn flat" id="pk-close" aria-label="Back"><i data-lucide="arrow-left"></i></button><h2 id="pk-title"></h2></div>' +
-      '    <div class="pk-from" id="pk-from"><span class="dot p"></span><span class="grow ellipsis" id="pk-from-t"></span></div>' +
+      '    <button type="button" class="pk-from" id="pk-from" aria-label="Change pickup"><span class="dot p"></span>' +
+      '      <span class="grow ellipsis"><span class="muted">From </span><b id="pk-from-t"></b></span><span class="chg">Change</span></button>' +
       '    <label class="pk-search"><span class="dot" id="pk-dot"></span><input id="pk-q" type="search" autocomplete="off" enterkeyhint="search" spellcheck="false">' +
       '      <button type="button" class="icon-btn flat" id="pk-clear" style="width:30px;height:30px" aria-label="Clear" hidden><i data-lucide="x" style="width:16px;height:16px"></i></button></label>' +
       "  </div>" +
@@ -63,6 +66,7 @@
     $("pk-change").onclick = function () { M.nav.back(); setTimeout(function () { $("pk-q").focus(); }, 60); };
     $("pk-q").addEventListener("input", onType);
     $("pk-clear").onclick = function () { $("pk-q").value = ""; onType(); $("pk-q").focus(); };
+    $("pk-from").onclick = changeFrom;
     $("pk-here").onclick = useHere;
     $("pk-onmap").onclick = function () {
       var start = st.initial || st.from || (M.lastKnown() && { lat: M.lastKnown()[0], lng: M.lastKnown()[1] });
@@ -84,6 +88,7 @@
 
   /* ------------------------------------------------------------ search */
   function onType() {
+    ++seq;
     var q = $("pk-q").value.trim();
     $("pk-clear").hidden = !q;
     clearTimeout(searchTimer);
@@ -96,7 +101,7 @@
   function search(q) {
     var mine = ++seq, near = st.from || M.lastKnown() && { lat: M.lastKnown()[0], lng: M.lastKnown()[1] };
     var url = M.urls.places + "?q=" + encodeURIComponent(q) + "&session=" + session + (near ? "&lat=" + near.lat + "&lng=" + near.lng : "");
-    M.api(url).then(function (d) {
+    placeApi(url).then(function (d) {
       if (mine !== seq) return;
       if (!d.places.length) {
         $("pk-list").innerHTML = '<div class="empty fade-up"><img src="' + M.static + 'img/pin.png" alt="" style="width:72px"><h3>No places found</h3>' +
@@ -140,7 +145,7 @@
   function choose(p, btn) {
     if (p.lat != null) return openPin(p, false);
     btn.style.opacity = ".5";
-    M.api(M.urls.place + "?id=" + encodeURIComponent(p.place_id) + "&session=" + session).then(function (full) {
+    placeApi(M.urls.place + "?id=" + encodeURIComponent(p.place_id) + "&session=" + session).then(function (full) {
       session = uuid();  // a details call ends Google's billing session
       openPin(full, false);
     }).catch(function (e) { M.toast(e.message); }).finally(function () { btn.style.opacity = ""; });
@@ -178,50 +183,78 @@
 
   function useHere() {
     var btn = $("pk-here"); btn.style.opacity = ".6";
-    M.locate().then(function (ll) {
-      return M.api(M.urls.reverse + "?lat=" + ll[0] + "&lng=" + ll[1]).then(function (p) { openPin(p, false); });
-    }).catch(function () {}).finally(function () { btn.style.opacity = ""; });
+    M.locate(true).then(function (ll) {
+      openPin({ lat: ll[0], lng: ll[1] }, true);
+    }).catch(function (e) { M.toast(e.message); }).finally(function () { btn.style.opacity = ""; });
   }
 
   /* --------------------------------------------------------------- pin */
   function openPin(place, lookup) {
+    ++seq; clearTimeout(searchTimer); clearTimeout(pinTimer);
+    st.pinActive = true;
     $("pk-s1").style.display = "none"; $("pk-s2").style.display = "flex";
     M.nav.push(closePin);
     st.pinned = place && place.title ? place : null;
     showAddress(st.pinned);
     $("pk-details").value = (place && place.details) || (st.initial && st.initial.details) || "";
     var ll = place ? [place.lat, place.lng] : (M.lastKnown() || [26.8467, 80.9462]);
-    // The place already has a good name: don't replace it with the reverse
-    // geocode of the map settling on it (only a move the customer makes).
-    st.skipUntil = !lookup && st.pinned ? Date.now() + 1500 : 0;
+    // Address text changes the card height and therefore the map size. Google
+    // emits idle after that resize too: only geocode a different pin position.
+    st.pinCenter = ll.slice();
     if (!map) {
       M.map($("pk-map"), { center: ll, zoom: 17 }).then(function (m) {
         map = m;
-        map.on("movestart", function () { $("pk-pin").classList.add("lift"); });
+        map.on("movestart", function () {
+          if (!st.pinActive) return;
+          $("pk-pin").classList.add("lift");
+        });
         map.on("idle", function () {
+          if (!st.pinActive) return;
           $("pk-pin").classList.remove("lift");
-          if (Date.now() < st.skipUntil) { st.skipUntil = 0; return; }
-          clearTimeout(pinTimer); showAddress(null);
+          var c = map.center();
+          if (sameCenter(c, st.pinCenter)) return;
+          st.pinCenter = c;
+          ++seq; clearTimeout(pinTimer); st.pinned = null; showAddress(null);
           pinTimer = setTimeout(lookupCenter, 250);
         });
         if (lookup || !st.pinned) lookupCenter();
+      }).catch(function (e) {
+        if (!st.pinActive) return;
+        showPinError(e.message || "The map couldn't load. Go back and try again.");
       });
     } else {
       map.view(ll, 17);
-      if (lookup || !st.pinned) setTimeout(lookupCenter, 400);
+      if (lookup || !st.pinned) pinTimer = setTimeout(lookupCenter, 400);
     }
   }
 
-  function closePin() { $("pk-s2").style.display = "none"; $("pk-s1").style.display = "flex"; }
+  function closePin() {
+    st.pinActive = false; ++seq; clearTimeout(pinTimer);
+    $("pk-s2").style.display = "none"; $("pk-s1").style.display = "flex";
+  }
+
+  function sameCenter(a, b) {
+    return b && Math.abs(a[0] - b[0]) < 0.000001 && Math.abs(a[1] - b[1]) < 0.000001;
+  }
+
+  function showPinError(message) {
+    st.pinned = null;
+    $("pk-ok").disabled = true;
+    $("pk-at").textContent = "Couldn't load this address";
+    $("pk-as").textContent = message + " Move the pin to retry, or tap Change to search.";
+  }
 
   function lookupCenter() {
-    if (!map) return;
+    if (!map || !st.pinActive) return;
     var c = map.center(), mine = ++seq;
+    st.pinCenter = c;
+    st.pinned = null;
     showAddress(null);
-    M.api(M.urls.reverse + "?lat=" + c[0] + "&lng=" + c[1]).then(function (p) {
+    placeApi(M.urls.reverse + "?lat=" + c[0] + "&lng=" + c[1]).then(function (p) {
       if (mine !== seq) return;
+      if (!p || !p.title || p.lat == null || p.lng == null) throw new Error("Please choose another location.");
       st.pinned = p; showAddress(p);
-    }).catch(function () {});
+    }).catch(function (e) { if (mine === seq) showPinError(e.message); });
   }
 
   function showAddress(p) {
@@ -248,20 +281,39 @@
     finish(out, 2);
   }
 
+  /* ------------------------------------------- change "From" while picking a drop */
+  // The same screen turns into the pickup picker; choosing a place (or going
+  // back) returns to the drop search with the new From.
+  function changeFrom() {
+    var drop = st;
+    st = { mode: "pickup", initial: drop.from, saved: drop.saved, recent: drop.recent, sub: drop };
+    configure();
+    M.nav.push(function () { st = drop; configure(); });
+    $("pk-q").focus({ preventScroll: true });
+  }
+
   /* ------------------------------------------------------------- open/close */
   function finish(place, depth) {
+    st.pinActive = false; ++seq; clearTimeout(pinTimer); clearTimeout(searchTimer);
+    if (st.sub) {  // a new From: back to the drop search
+      var drop = st.sub;
+      M.nav.drop(depth);
+      st = drop; st.from = place;
+      if (drop.onFrom) drop.onFrom(place);
+      configure();
+      M.toast("Pickup set to " + place.title, "circle-check");
+      return;
+    }
     var done = st.done; st.done = null;
     root.classList.remove("show");
     M.nav.drop(depth);
     if (done) done(place);
   }
 
-  M.pickPlace = function (opts) {
-    if (!root) build();
-    st = { mode: opts.mode || "drop", from: opts.from, initial: opts.initial, saved: opts.saved, recent: opts.recent, kind: opts.kind || "home" };
-    session = uuid();
+  function configure() {
+    st.pinActive = false; ++seq; clearTimeout(pinTimer); clearTimeout(searchTimer);
     var c = COPY[st.mode];
-    $("pk-title").textContent = opts.title || c.title;
+    $("pk-title").textContent = st.title || c.title;
     $("pk-q").placeholder = c.ph; $("pk-q").value = ""; $("pk-clear").hidden = true;
     $("pk-dot").className = "dot " + c.dot; $("pk-dot2").className = "dot " + c.dot;
     $("pk-ok").textContent = c.btn; $("pk-tip").textContent = c.tip;
@@ -269,11 +321,21 @@
     $("pk-here").style.display = st.mode === "drop" ? "none" : "";
     $("pk-onmap").parentNode.style.gridTemplateColumns = st.mode === "drop" ? "1fr" : "";
     $("pk-from").hidden = !(st.mode === "drop" && st.from);
-    if (st.from) $("pk-from-t").textContent = "From  " + st.from.title;
+    if (st.from) $("pk-from-t").textContent = st.from.title;
     $("pk-save").hidden = st.mode !== "save";
-    if (st.mode === "save") { setKind(st.kind); $("pk-label").value = opts.label || ""; }
     $("pk-s2").style.display = "none"; $("pk-s1").style.display = "flex";
     renderIdle();
+  }
+
+  M.pickPlace = function (opts) {
+    if (!root) build();
+    st = {
+      mode: opts.mode || "drop", title: opts.title, from: opts.from, initial: opts.initial, saved: opts.saved, recent: opts.recent,
+      kind: opts.kind || "home", onFrom: opts.onFrom
+    };
+    session = uuid();
+    configure();
+    if (st.mode === "save") { setKind(st.kind); $("pk-label").value = opts.label || ""; }
     requestAnimationFrame(function () { root.classList.add("show"); });
     setTimeout(function () { $("pk-q").focus({ preventScroll: true }); }, 380);
     // Warm the map up while they type.

@@ -47,20 +47,30 @@
   });
 
   /* fetch JSON; rejects with an Error carrying the server's own message */
-  M.api = function (url, body, method) {
+  M.api = function (url, body, method, timeout) {
     method = method || (body ? "POST" : "GET");
     var opts = { method: method, credentials: "same-origin", headers: {} };
     if (method !== "GET") opts.headers["X-CSRFToken"] = M.csrf;
     if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+    var controller = timeout ? new AbortController() : null, timer;
+    if (controller) {
+      opts.signal = controller.signal;
+      timer = setTimeout(function () { controller.abort(); }, timeout);
+    }
     M.loading(true);
     return fetch(url, opts).then(function (r) {
-      M.loading(false);
-      return r.json().catch(function () { return {}; }).then(function (d) {
+      return r.json().catch(function (e) { if (e.name === "AbortError") throw e; return {}; }).then(function (d) {
         if (r.status === 401) { window.location = M.urls.login + "?next=" + encodeURIComponent(location.pathname + location.search); }
         if (!r.ok) { var e = new Error(d.error || "Something went wrong. Please try again."); e.code = d.code; throw e; }
         return d;
       });
-    }, function () { M.loading(false); throw new Error("You're offline. Check your connection and try again."); });
+    }, function (e) {
+      if (e.name === "AbortError") throw e;
+      throw new Error("You're offline. Check your connection and try again.");
+    }).catch(function (e) {
+      if (e.name === "AbortError") throw new Error("The request took too long. Please try again.");
+      throw e;
+    }).finally(function () { clearTimeout(timer); M.loading(false); });
   };
 
   var toastTimer;
